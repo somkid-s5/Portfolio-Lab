@@ -915,7 +915,11 @@ python3 probe.py --url "$LB_URL" --requests 300 --concurrency 10 --rate 10 \
 - ได้ backout จริงหรือเพียงบันทึกแผน / ผล retest: [เติม]
 - สถานะ: PENDING
 
-Diagram ด้านบนแสดง baseline สอง VM หลังทำ Change request ให้บันทึกภาพระบบจริงและปรับภาพให้มี Zone a / group C / VM C / เส้น health และ IAP ตามที่สร้าง โดยคง frontend และ subnet เดิม อย่าใช้ภาพ baseline อ้างว่าเป็นสาม backend
+ภาพหลังเปลี่ยนด้านล่างเพิ่ม Zone a / group C / VM C โดยคง frontend และ subnet เดิม เป็นแบบที่ต้องสร้าง ไม่ใช่ภาพหลักฐานว่า Deploy แล้ว หากเปลี่ยนจากแบบให้ปรับ Diagram และอธิบายเหตุผล
+
+![หลังเพิ่ม backend C](assets/solution-after-change.svg)
+
+[เปิด SVG หลังเปลี่ยน](assets/solution-after-change.svg)
 
 **ไปต่อ:** เมื่อจบ change/retest แล้วจึงสรุป Task 9 และ Cleanup ทั้งสามเครื่อง
 

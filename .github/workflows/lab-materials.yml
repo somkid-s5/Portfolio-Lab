@@ -27,8 +27,9 @@ jobs:
           sudo apt-get install -y librsvg2-bin
           mkdir -p diagram-previews
           rsvg-convert --width 960 GCP/LAB-001-multi-zone-web/assets/solution.svg -o diagram-previews/lab001-solution.png
+          rsvg-convert --width 960 GCP/LAB-001-multi-zone-web/assets/solution-after-change.svg -o diagram-previews/lab001-after-change.png
       - uses: actions/upload-artifact@v4
         with:
           name: lab001-diagram-preview
-          path: diagram-previews/lab001-solution.png
+          path: diagram-previews/*.png
           retention-days: 14
