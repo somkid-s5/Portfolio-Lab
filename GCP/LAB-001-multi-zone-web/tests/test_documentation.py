@@ -2,6 +2,7 @@
 from pathlib import Path
 import re
 import unittest
+import unicodedata
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -11,7 +12,7 @@ class DocumentationTests(unittest.TestCase):
         text = (ROOT / 'README.md').read_text()
         text = re.sub(r'```[\s\S]*?```', '', text)
         headings = re.findall(r'^#{1,6} (.+)$', text, re.M)
-        anchors = {re.sub(r'[^\w\- ]', '', h.lower()).replace(' ', '-') for h in headings}
+        anchors = {''.join(c for c in h.lower() if c.isalnum() or c in '_- ' or unicodedata.category(c).startswith('M')).replace(' ', '-') for h in headings}
         for target in re.findall(r'!?\[[^\]]*\]\(([^)]+)\)', text):
             if '://' in target or target.startswith('mailto:'):
                 continue
