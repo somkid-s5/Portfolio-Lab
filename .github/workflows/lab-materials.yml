@@ -103,3 +103,38 @@ jobs:
           name: lab003-diagram-preview
           path: lab003-previews/*.png
           retention-days: 14
+
+  lab004:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: booking_ci
+          POSTGRES_USER: booking_admin
+          POSTGRES_PASSWORD: disposable-booking-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U booking_admin -d booking_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGDATABASE: booking_ci
+      PGUSER: booking_admin
+      PGPASSWORD: disposable-booking-ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Booking dependencies
+        run: |
+          python3 -m venv .ci-lab004
+          .ci-lab004/bin/pip install -r GCP/LAB-004-serverless-booking/requirements.txt
+      - name: Check browser script syntax
+        run: node --check GCP/LAB-004-serverless-booking/app/static/app.js
+      - name: Verify Booking against PostgreSQL 16
+        run: .ci-lab004/bin/python -m unittest discover -s GCP/LAB-004-serverless-booking/tests -v
+      - name: Build self-contained application image
+        run: docker build -t lab004-booking:ci GCP/LAB-004-serverless-booking

@@ -1,7 +1,7 @@
 ---
 lab: LAB-004
 platform: GCP
-guide_status: brief
+guide_status: design
 cloud_verification: not-run
 last_verified: null
 ---
@@ -64,7 +64,11 @@ Fault ใช้ revisionที่ไม่รับ production traffic ใน sa
 
 ยืนยัน identity/network/schema/rotation/connection budget → working App + PostgreSQL integration tests + container → deployment/IaC materials → Diagramตามscopeจริง → READMEพาทำครบjourney/negative/ops/change/cleanup → Review/render/Guide-ready
 
-สถานะ Brief: ยังไม่มี App/Guideเต็มหรือผล GCP จริง
+สถานะ Design / Materials: มี App UI/API, schema/seed/invariants, bounded pool, secret generator, bootstrap/grants และ Dockerfile พร้อม PostgreSQL integration tests กำลังตรวจ cloud CI ยังไม่มีคู่มือ Deploy เต็มหรือผล GCP จริง
+
+ไฟล์ประกอบ: [App](app/main.py), [DB pool/connector](app/database.py), [UI](app/templates/index.html), [schema](db/schema.sql), [seed](db/seed.sql), [grants](db/grants.sql), [invariants](db/check-invariants.sql), [secret generator](scripts/create-secrets.py), [bootstrap](scripts/init-db.py), [tests](tests/test_booking.py)
+
+App pool4/max_overflow0, pool wait3s, statement5s, lock3s ใช้ Gunicorn1worker/16threads ทำให้จำนวน pool ต่อ instanceชัด ไม่เพิ่ม workers โดยไม่คูณ connection budget Runtime DB logins booking_a/booking_b ไม่มี superuser/DDL/delete-ledger ส่วน admin bootstrap เป็น jobแยก ไม่ใช้ credentialเดียวกับ App
 
 ## แหล่งอ้างอิงขอบเขต
 
