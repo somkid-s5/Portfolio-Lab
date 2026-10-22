@@ -104,9 +104,28 @@ App ใช้ Python standard library เพื่อให้ติดตั้
 4. คู่มือนี้ตั้ง VM เป็น **No service account** จึงไม่ต้องให้ App เข้าถึง Cloud API หาก project บังคับ OS Login ผู้ทำต้องมี Compute OS Admin Login สำหรับ `sudo` ด้วย อย่าเปลี่ยนนโยบายองค์กรเพื่อข้ามข้อกำหนด
 5. มี browser, Cloud Shell และเปิด SSH tunnel ไปยัง IAP ได้ หากองค์กรห้าม external IPv4 หรือ global LB ต้องเปลี่ยนแบบและทบทวนคู่มือก่อนเริ่ม
 
+### ตรวจ quota และความพร้อมก่อนคิดค่าใช้จ่าย
+
+**Console:** เปิด **IAM & Admin → Quotas & System Limits** กรอง service Compute Engine และ region asia-southeast1 ตรวจ CPU/E2 CPU, persistent disk, in-use external IPv4 และ global external IPv4/forwarding rules ที่เกี่ยวข้อง ต้องเหลือพอสำหรับ VM สามเครื่องและ frontend หนึ่งชุด ชื่อ quota อาจต่างตามชนิด resource และบัญชี การมี quota ไม่รับประกัน capacity ของ Zone
+
+**Cloud Shell** ใช้คำสั่งอ่านอย่างเดียวเพื่อตรวจ machine type ในสาม Zone และรายการ image ที่จะเลือก:
+
+```bash
+for ZONE in asia-southeast1-a asia-southeast1-b asia-southeast1-c; do
+  gcloud compute machine-types describe e2-small --zone="$ZONE" \
+    --format='table(name,zone,guestCpus,memoryMb)'
+done
+gcloud compute images describe-from-family debian-12 --project=debian-cloud \
+  --format='table(name,family,architecture,status)'
+gcloud compute project-info describe --project="$PROJECT_ID" --format='json(quotas)'
+gcloud compute regions describe asia-southeast1 --project="$PROJECT_ID" --format='json(quotas)'
+```
+
+รันหลังตั้ง PROJECT_ID ใน Task 0 ถ้า quota ไม่พอหรือ organization policy ปฏิเสธ ให้บันทึก BLOCKED และให้ผู้ดูแลแก้ก่อนสร้าง ไม่เปลี่ยน Zone/CIDR/ชนิด LB เฉพาะบางจุดโดยไม่ปรับแบบทั้งชุด และไม่ขอ Owner เพื่อแก้ permission ทุกกรณี
+
 ### ค่าใช้จ่ายและขอบเขต
 
-จะมี VM `e2-small` สองเครื่อง, boot disk รวม 20 GB, VM external IPv4 สอง IP, global frontend IPv4 หนึ่ง IP, Load Balancer และ traffic/logs ที่เกิดจากการทดสอบ ดู [Compute pricing](https://cloud.google.com/compute/all-pricing), [LB pricing](https://cloud.google.com/load-balancing/pricing) และ [IP/network pricing](https://cloud.google.com/vpc/network-pricing) ก่อนสร้าง ค่าใช้จ่ายขึ้นกับเวลาที่เปิดและบัญชีของคุณ ไม่ถือว่าอยู่ใน Free Tier โดยอัตโนมัติ
+จะมี VM `e2-small` สองเครื่อง, boot disk รวม 20 GB, VM external IPv4 สอง IP (หลัง Task 8B เพิ่ม VM/disk/IP อีกหนึ่งชุด รวม disk 30 GB), global frontend IPv4 หนึ่ง IP, Load Balancer และ traffic/logs ที่เกิดจากการทดสอบ ดู [Compute pricing](https://cloud.google.com/compute/all-pricing), [LB pricing](https://cloud.google.com/load-balancing/pricing) และ [IP/network pricing](https://cloud.google.com/vpc/network-pricing) ก่อนสร้าง ค่าใช้จ่ายขึ้นกับเวลาที่เปิดและบัญชีของคุณ ไม่ถือว่าอยู่ใน Free Tier โดยอัตโนมัติ
 
 เปิด **Billing → Budgets & alerts → Create budget** ตั้งวงเงินแจ้งเตือนที่ยอมรับได้ Budget เป็นการแจ้งเตือน ไม่ได้หยุดใช้จ่ายอัตโนมัติ วางเวลาทำให้จบใน session เดียวและทำ Task 10 หลังเก็บหลักฐานครบ แม้ทดสอบไม่ผ่านก็ควร Cleanup
 
@@ -217,7 +236,8 @@ python3 probe.py --help
 
 กรอกหลังตรวจจริง: ใช้ PASS / FAIL / BLOCKED ตามผล และแนบหลักฐานที่ระบุเวลาได้
 
-- Source commit SHA / Python version: [เติม]
+- Source commit SHA / Python version / image name ที่เลือกจริง: [เติม]
+- Quota/capacity/policy ที่ตรวจ และวงเงินแจ้งเตือนที่ยอมรับ: [เติม]
 - Project alias ที่ใช้อ้างอิง: [เติม; ไม่จำเป็นต้องเผยแพร่ Project ID]
 - วันที่เริ่มและ timezone: [เติม]
 - ผู้ใช้มีสิทธิ์พร้อม / API พร้อม: [เติม]
@@ -599,6 +619,7 @@ curl --connect-timeout 5 --max-time 10 -i "$LB_URL/api"
 - HTTP status และ hostname ที่ตอบครั้งแรก: [เติม]
 - วันเวลา: [เติม]
 - หลักฐานแนะนำ: `assets/evidence/t04-backends-healthy.png`
+- Forwarding rule / target HTTP proxy / URL map / global address ที่ wizard สร้างจริง: [เติมชื่อ; ใช้ตรวจ Cleanup]
 - ลิงก์หลักฐาน / สถานะ: [เติม; เริ่ม PENDING]
 
 **ไปต่อ:** เมื่อ Healthy 2/2 และ frontend ตอบ 200 ไป Task 6 เพื่อเก็บ baseline

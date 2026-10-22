@@ -31,6 +31,14 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn(f'## Task {task} ', guide)
         self.assertIn('## Task 8B ', guide)
 
+    def test_changed_diagram_has_all_backend_ids(self):
+        text = (ROOT / 'assets/solution-after-change.svg').read_text()
+        ET.fromstring(text)
+        for backend in ['a', 'b', 'c']:
+            self.assertIn(f'lab001-app-{backend}', text)
+            self.assertIn(f'lab001-group-{backend}', text)
+        self.assertIn('asia-southeast1-a', text)
+
     def test_accessible_offline_svg(self):
         tree = ET.parse(ROOT / 'assets/solution.svg')
         root = tree.getroot()

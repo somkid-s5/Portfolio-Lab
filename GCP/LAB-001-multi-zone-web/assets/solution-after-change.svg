@@ -31,7 +31,7 @@
 <!-- Compact branched lanes: no perimeter wrapping -->
 <g fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#b)"><path d="M146 578H402"/><path d="M478 578H606V468H841"/><path d="M606 578V698H841"/><path d="M606 698V928H841"/></g>
 <circle cx="606" cy="578" r="3" fill="#2563eb"/>
-<g fill="none" stroke="#15803d" stroke-width="1.5" stroke-dasharray="6 4"><path d="M580 814H658V704"/><path d="M658 692V488H841" marker-end="url(#g)"/><path d="M658 718H841" marker-end="url(#g)"/><path d="M658 718V948H841" marker-end="url(#g)"/></g>
+<g fill="none" stroke="#15803d" stroke-width="1.5" stroke-dasharray="6 4"><path d="M580 814H658V704"/><path d="M658 692V488H841" marker-end="url(#g)"/><path d="M658 718H841" marker-end="url(#g)"/><path d="M658 718V922"/><path d="M658 934V948H841" marker-end="url(#g)"/></g>
 <circle cx="658" cy="718" r="3" fill="#15803d"/>
 <g fill="none" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="9 4 2 4" marker-end="url(#p)"><path d="M1250 578H1174V478H905"/><path d="M1174 578V708H905"/><path d="M1174 708V938H905"/></g>
 <circle cx="1174" cy="578" r="3" fill="#7c3aed"/>
