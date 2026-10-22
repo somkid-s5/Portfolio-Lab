@@ -1,17 +1,17 @@
 ---
 lab: LAB-003
 platform: GCP
-guide_status: authoring
+guide_status: guide-ready
 cloud_verification: not-run
 last_verified: null
 ---
 # Lab 03 — เอกสารสาธารณะผ่าน CDN และ HTTPS ที่อัปเดตและย้อนเวอร์ชันได้
 
-![Public docs delivery](assets/solution.svg)
+![Public docs delivery](assets/solution-preview.png)
 
 DNS ใช้ provider ที่คุณควบคุม ส่วน certificate เป็น Compute-managed SSL resource ไม่ใช่ Certificate Manager ระบบไม่มี VPC/subnet/VM และ Cloud CDN เป็น feature ของ backend bucket เส้นประคือ cache miss/fill จาก origin ซึ่งเป็น public read ตามขอบเขต Lab
 
-![Safe release and rollback](assets/release-flow.svg)
+![Safe release and rollback](assets/release-flow-preview.png)
 
 อัปโหลด asset ก่อน index และใช้ generation fence ทุกครั้งที่เปลี่ยน root การ rollback ตรวจ remote bytes ก่อน ไม่ใช่เพียงคัดลอกไฟล์เก่าทับแล้วถือว่าสำเร็จ
 
@@ -30,7 +30,7 @@ DNS ใช้ provider ที่คุณควบคุม ส่วน certifi
 | R7 | Change request: HTML กับ asset TTL ต่างกัน | เปรียบเทียบ update ก่อน/หลังเลือก TTL และ fingerprinted URLs; บันทึก stale object behavior และข้อจำกัด browser cache |
 | R8 | Cleanup/rebuild ครบ | ลบ frontend/proxy/URL map/backend bucket/cert/reserved IP/objects versions/bucket และ DNS record ของ Lab ตาม dependency; บันทึก commit/config/resources จริง |
 
-## Architecture ที่จะยืนยันก่อนเขียน Tasks
+## เหตุผลการออกแบบ
 
 Global external Application LB + Cloud CDN + Cloud Storage backend bucket + public DNS + Google-managed certificate ไม่มี VM/VPC/subnet ในเส้นทางนี้ ไม่ใส่กรอบ network ที่ไม่ได้สร้าง
 
@@ -47,9 +47,9 @@ Cloud Storage origin baseline เป็น public-readable สำหรับเ
 - มีต้นทุน LB/static IP/storage/CDN egress/cache fill/requests/logs และ DNS ถ้าสร้าง zone แยก Budget ไม่ใช่ hard cap เปิดเวลาจำกัดแล้ว cleanup
 - งานจัดทำคู่มือไม่สร้างทรัพยากร ไม่เปลี่ยน DNS และไม่ Deploy เว็บไซต์ใดจริง ผู้เรียนรันหลังตรวจงบ/สิทธิ์ของตนเอง
 
-## Release materials ที่ต้องมี
+## Release materials ที่ใช้
 
-สร้างตัวอย่างคู่มือผลิตภัณฑ์อย่างน้อยสอง release พร้อม release ID, immutable CSS/JS, local manifest ระบุ SHA256/size/MIME/cache metadata และ bad-release fixture ที่เปลี่ยนกลับได้ เครื่องมือ build/release ต้องไม่เขียนทับ output เดิมแบบเงียบ ไม่ใส่ timestamps แบบสุ่มจนตรวจ hash ซ้ำไม่ได้
+ชุดนี้มีคู่มือผลิตภัณฑ์ v1/v2 และ bad-release fixture พร้อม release ID, immutable CSS และ manifest ระบุ SHA256/size/MIME/cache metadata Builder ไม่เขียนทับ output เดิมและไม่มี timestamp สุ่ม จึงตรวจ build ซ้ำได้
 
 เครื่องมือ publish ต้อง upload assets ก่อน root index, ตรวจ generation fence, ไม่ลบ asset เก่าทันที และไม่ใช้งาน cloud credentials ใน CI baseline มี bounded HTTP probe เก็บ status/headers/content hash โดยไม่อ้าง cache HIT จาก header ที่ origin ใส่เอง
 
@@ -58,18 +58,6 @@ Cloud Storage origin baseline เป็น public-readable สำหรับเ
 แยก browser cache, edge cache และ origin metadata ให้ชัด การ invalidate CDN ไม่ล้าง browser cache และการใช้ URL query สุ่มอาจเปลี่ยน cache key จึงห้ามใส่ cache-buster ใน probe ที่ใช้พิสูจน์ cache hit การ warm จาก client เดียวไม่พิสูจน์ hit ทุก PoP
 
 เก็บ request timestamp/URL/release/hash, cache logs ที่สัมพันธ์กับชุดทดสอบ, certificate/DNS และ before/after metadata ไม่แต่ง screenshot หรือค่า latency เปรียบเทียบที่ไม่ได้วัด
-
-## ลำดับหลัง Brief
-
-ยืนยัน stack/certificate/DNS/access model → สร้าง deterministic release materials/test contracts → Diagram ที่ไม่มี VPC ปลอม → คู่มือ Console/CLI พร้อม publish/fault/rollback/cache change → review/render/cleanup evidence
-
-สถานะ Design / Materials: มี deterministic builder, manifest integrity validator, dry-run publisher และ bounded content probe พร้อม tests กำลังตรวจ cloud CI ยังไม่มีคู่มือเต็มหรือผล Deploy จริง
-
-ไฟล์: [releases](content/releases.json), [build](scripts/build-release.py), [publish](scripts/publish-release.py), [probe](scripts/probe-release.py), [tests](tests/test_release.py)
-
-URL map ใช้ [renderer](scripts/render-config.py) แยก content map (HTTPS; / redirect ไป /index.html) ออกจาก HTTP→HTTPS map ไม่ใส่ httpsRedirect บน map ที่ใช้กับ HTTPS proxy Backend bucket logging เปิดให้อัตโนมัติและไม่มีสวิตช์ sample-rate แบบ backend service ตาม [เอกสาร logging](https://docs.cloud.google.com/load-balancing/docs/https/https-logging-monitoring)
-
-Publisher upload asset/archived index ด้วย generation=0 ก่อนเปลี่ยน root index ด้วย expected generation ที่ผู้ทำป้อน การ rollback ใช้ --index-only และ verify remote bytes ของ asset/archive ก่อนเปลี่ยน index ไม่ลบ asset เก่า ไม่ invalidate cache โดยอัตโนมัติ ไม่เรียก cloud ถ้าไม่ใส่ --apply
 
 ## แหล่งอ้างอิงขอบเขต
 
@@ -559,4 +547,4 @@ dig +short A "$HOST"
 
 ## ขอบเขตการตรวจ
 
-ไม่มีการสร้าง GCP resources เปลี่ยน DNS หรืออ้างผล TLS/CDN จริงในขั้นจัดทำเอกสารนี้ CI ที่ใช้ localhost HTTP/fake publish runner พิสูจน์ได้เฉพาะ code/material contracts ไม่ใช่ Cloud-verified ทุกช่อง T00–T11 ยัง PENDING จนผู้เรียนลงมือจริง คู่มือยังอยู่ระหว่าง Authoring/Review และต้องตรวจ Diagram กับผล CI ก่อน Guide-ready
+ไม่มีการสร้าง GCP resources เปลี่ยน DNS หรืออ้างผล TLS/CDN จริงในขั้นจัดทำเอกสารนี้ CI ที่ใช้ localhost HTTP/fake publish runner พิสูจน์ได้เฉพาะ code/material contracts ไม่ใช่ Cloud-verified ทุกช่อง T00–T11 ยัง PENDING จนผู้เรียนลงมือจริง คู่มือระดับ Guide-ready: [CI 39816792474 / lab003](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39816792474) ผ่าน 18 tests ครอบคลุม release integrity/determinism, publish generation/order/partial resume, rollback, TTL change, real localhost HTTP probe, config, navigation, shell syntax และ SVG ตรวจภาพที่ 960px แล้ว เก็บ PNG คู่กับ [SVG ระบบ](assets/solution.svg) และ [SVG release flow](assets/release-flow.svg) การตรวจนี้ไม่ใช่ผล DNS/TLS/CDN บน GCP จริง

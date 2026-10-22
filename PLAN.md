@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** เริ่มดำเนิน Goal แล้ว — กำลังออกแบบ Lab 01; Lab 02–20 ยัง Planned
+**สถานะ:** เริ่มดำเนิน Goal แล้ว — Lab 01–03 Guide-ready; เริ่ม Brief Lab 04; Lab 05–20 ยัง Planned
 
 ## ผลลัพธ์ปลายทาง
 
