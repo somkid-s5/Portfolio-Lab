@@ -1,7 +1,7 @@
 ---
 lab: LAB-005
 platform: GCP
-guide_status: design
+guide_status: authoring
 cloud_verification: not-run
 last_verified: null
 ---
@@ -188,3 +188,128 @@ UI เก็บเฉพาะ pending cart + idempotency key ใน sessionStor
 [CI 39830356415](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39830356415) source146bb2e ผ่าน18 tests พร้อมตรวจ bootstrap จริง: failure rollback ไม่ทิ้ง role, schema/seed/grants, runtime login และ rerun ไม่เปลี่ยนรหัสเดิม [ที่มาภาพ](assets/ui-ci-provenance.json)
 
 ไฟล์เตรียมระบบ: [สร้าง Secret bundle](scripts/create-secrets.py), [bootstrap ฐานข้อมูล](scripts/init-db.py) ยังต้องใช้ตามลำดับ Foundation/Secret/init ที่จะระบุใน Tasks ไม่ใช้ admin credential เป็น App runtime
+
+## เริ่มทำ Lab — จาก Cloud Shell ถึง release ที่ตรวจสอบได้
+
+**สถานะคู่มือ: กำลังเขียน** ส่วนด้านล่างครอบคลุม Tasks 0–2 เท่านั้น ยังต้องต่อ Secret/bootstrap/เปิดระบบ/ทดสอบ/operations/change/cleanup ก่อนใช้เป็นคู่มือจบทั้ง Solution ไม่มีผล GCP จริงถูกบันทึกไว้ล่วงหน้า
+
+### Task 0 — เตรียมพื้นที่ฝึกและบันทึกเวอร์ชัน
+
+**ทำที่ไหน:** Google Cloud Console → เลือก sandbox project → กด Activate Cloud Shell มุมขวาบน ทุกคำสั่งต่อไปใช้ Bash ใน Cloud Shell ไม่ใช่ PowerShell และไม่ใช่ terminal บน Web/API VM
+
+1. ตรวจว่า project นี้สร้างเพื่อ Lab โดยเฉพาะ มี Billing และคุณยอมรับค่าใช้จ่าย VM/SQL HA/NAT/LB/disks/backups ก่อนเริ่ม อย่าทำใน production หรือ project ที่มี Shared VPC/ทรัพยากรทีมอื่น
+2. เตรียม hostname ที่คุณแก้ DNS ได้จริง เช่น subdomain ของคุณเอง ห้ามใช้ชื่อในตัวอย่างแล้วคาดหวังว่า certificate จะออกได้
+3. ใน Console เปิด IAM & Admin → Quotas & System Limits ตรวจ compute CPU, regional managed instance groups, addresses และ Cloud SQL ใน asia-southeast1 รวมช่วง surge ไม่ใช่เฉพาะ steady state ตั้ง Billing budget alert และเวลาหยุดฝึกไว้ด้วย Budget ไม่ใช่การตัดค่าใช้จ่ายอัตโนมัติ
+4. ผู้รันต้องมีสิทธิ์เปิด APIs, จัดการ network/firewall/SA/IAM/Storage/SQL/Secrets/VM/LB ของ sandbox การ SSH ต้องมี IAP tunnel access, OS Login ที่เหมาะสม และสิทธิ์ใช้ attached service account อย่าให้ Editor กับ runtime SA เพื่อแก้ปัญหา permission รวม ๆ
+5. เริ่ม checkout ใหม่ในพื้นที่ชั่วคราว ไม่ทับโฟลเดอร์เดิม:
+
+```bash
+export PROJECT_ID='ใส่-project-id-ของคุณ'
+export ARTIFACT_BUCKET='ใส่ชื่อ-bucket-ใหม่ที่ไม่ซ้ำทั่วโลก'
+export LAB_DOMAIN='ใส่-hostname-ของคุณ'
+export REGION='asia-southeast1'
+gcloud config set project "$PROJECT_ID"
+gcloud auth list --filter=status:ACTIVE --format='value(account)'
+gcloud config get-value project
+export CHECKOUT_PARENT="$(mktemp -d "$HOME/lab005-work-XXXXXX")"
+git clone --branch docs/gcp-solution-labs --single-branch   https://github.com/somkid-s5/Portfolio-Lab.git "$CHECKOUT_PARENT/Portfolio-Lab"
+export REPO_DIR="$CHECKOUT_PARENT/Portfolio-Lab"
+export LAB_DIR="$REPO_DIR/GCP/LAB-005-three-tier-orders"
+cd "$LAB_DIR"
+export SOURCE_COMMIT="$(git -C "$REPO_DIR" rev-parse HEAD)"
+printf 'Source commit: %s\n' "$SOURCE_COMMIT"
+gcloud version
+terraform version
+python3 --version
+```
+
+**Expected:** active account กับ project ตรง sandbox ที่เลือก, commit เป็น SHA เต็ม 40 ตัว และ Terraform รุ่น 1.9.x ที่ใช้ตรวจคู่มือนี้คือ 1.9.8; provider ตรึง 6.50.0 ในไฟล์ ไม่ต้องใช้ `init -upgrade` ถ้าไม่มี Terraform ที่รองรับให้ติดตั้งรุ่นที่ระบุจาก HashiCorp ก่อน อย่าลด version constraint เพื่อให้คำสั่งผ่าน
+
+Checkout นี้อยู่ใน home persistent ของ Cloud Shell ไม่ใช่ /tmp ให้จด CHECKOUT_PARENT/REPO_DIR/LAB_DIR และเก็บ state ของแต่ละ Terraform root ไว้จน cleanup เสร็จ หากเปิด session ใหม่ให้ตั้ง variables กลับไปยัง checkout เดิมก่อน ห้าม clone ใหม่แล้ว apply ซ้ำเสมือนไม่มีระบบเดิม State/plan/Secret bundle เป็นไฟล์ private ห้าม commit หรืออัปโหลด GitHub; ตั้งสิทธิ์พื้นที่ฝึกด้วย `chmod 700 "$CHECKOUT_PARENT"` และอย่าแชร์ home/storage นี้กับผู้ไม่มีสิทธิ์ หากองค์กรไม่ให้เก็บ state ใน Cloud Shell ต้องเตรียม remote backend ที่ควบคุมสิทธิ์ก่อน provision
+
+**จุดบันทึก T00**
+
+| รายการ | ผลจริงของคุณ |
+|---|---|
+| Project / active account ที่ตรวจแล้ว | … |
+| SOURCE_COMMIT / Terraform / gcloud / Python | … |
+| Persistent working directory และที่เก็บ state ที่จำกัดสิทธิ์ | … |
+| Hostname / ผู้ดูแล DNS | … |
+| Quota รวม surge / budget alert / เวลาปิด | … |
+| ข้อจำกัดองค์กรที่ต้องแก้ก่อนเริ่ม | … |
+
+**เกณฑ์ไปต่อ:** ยืนยัน project, budget, domain, สิทธิ์ และพื้นที่ persistent ครบ ถ้ายังไม่ครบหยุดที่นี่ ไม่ใช้ HTTP public แทน HTTPS baseline
+
+### Task 1 — สร้าง foundation โดยยังไม่เปิด App VM
+
+**เป้าหมาย:** ได้ custom VPC สอง subnet, NAT, private SQL HA, identities และ Secret containers เปล่า ยังไม่มีค่า Secret ใน Terraform state
+
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR จาก Task 0 และใช้ checkout persistent เดิม คำสั่ง apply ในหัวข้อนี้สร้างทรัพยากรมีค่าใช้จ่าย ผู้เรียนต้องตรวจ plan และยืนยันด้วยตนเอง
+
+```bash
+cd "$LAB_DIR"
+export TF_VAR_project_id="$PROJECT_ID"
+export TF_VAR_artifact_bucket="$ARTIFACT_BUCKET"
+terraform -chdir=infra/foundation init -input=false
+terraform -chdir=infra/foundation validate
+terraform -chdir=infra/foundation plan -out=foundation.tfplan
+terraform -chdir=infra/foundation show -no-color foundation.tfplan
+```
+
+อ่าน plan ก่อน apply: ชื่อทั้งหมดขึ้นต้น lab005, subnets10.55.10.0/24 กับ10.55.20.0/24, PSA10.85.0.0/16, SQL POSTGRES_16/ENTERPRISE/REGIONAL ไม่มี public IP, primary a/secondary b, ไม่มี resource ลบหรือแก้ของระบบอื่น ไม่มี google_sql_user หรือ Secret version/payload ถ้าไม่ตรงให้แก้ input/โค้ดและ plan ใหม่ ไม่รัน apply ทั้งที่ยังไม่เข้าใจ diff
+
+```bash
+terraform -chdir=infra/foundation apply foundation.tfplan
+terraform -chdir=infra/foundation output
+gcloud compute networks describe lab005-vpc --format='yaml(name,autoCreateSubnetworks)'
+gcloud compute networks subnets list --filter='network:lab005-vpc'   --format='table(name,region.basename(),ipCidrRange,privateIpGoogleAccess)'
+gcloud sql instances describe lab005-sql   --format='yaml(name,databaseVersion,region,settings.edition,settings.availabilityType,settings.locationPreference,settings.ipConfiguration.ipv4Enabled,ipAddresses)'
+gcloud storage buckets describe "gs://$ARTIFACT_BUCKET"   --format='yaml(name,location,iamConfiguration)'
+```
+
+เปิด Console → SQL → lab005-sql ดู Connections/Networking ว่ามี private address และไม่มี public address; ดู Configuration ว่าเป็น HA ภายใน region เดียวกัน และตรวจ backups/PITR เปิดแล้ว อย่าตีความ standby เป็น read replica สำหรับ App
+
+**Expected:** VPC custom; subnets อยู่ region เดียว; SQL REGIONAL พร้อม private address; bucket บังคับ public access prevention และ uniform access ค่า Secret containers ยังไม่มี payload จน Task ถัดไป การแสดง HA ใน Console ยังไม่ใช่ผล failover สำเร็จ
+
+**ถ้าไม่ตรง:** API disabled ให้ตรวจ permission เปิด API; Service Networking/PSA failure ให้ตรวจ address overlap และสิทธิ์ peering; SQL creation/quota failure ให้ตรวจ operation และ quota/region ก่อน retry ไม่สร้าง SQL สำรองชื่ออื่นจนไม่รู้ว่าตัวใดอยู่ใน state ถ้า connection รอ provisioning ให้ตรวจ operation จน terminal ก่อนรัน apply ซ้ำ
+
+**จุดบันทึก T01:** เวลาเริ่ม/จบ …; plan ที่ review …; VPC/subnets/SQL private IP …; primary/secondary …; backup/PITR …; bucket policy …; หลักฐาน sanitized ที่พิสูจน์รายการเหล่านี้ …; ปัญหา/วิธีแก้ …  
+ห้ามแนบ state/plan binary หรือ output ที่มีข้อมูลลับลง repository
+
+**เกณฑ์ไปต่อ:** foundation ตรง design และ Terraform state ถูกเก็บรักษา ไม่ใช่เพียง exit code0
+
+### Task 2 — สร้าง release จาก commit ที่ระบุและตรวจคำสั่งอัปโหลด
+
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR สร้าง Web/API archive แยกกันจาก committed blobs เท่านั้น ไฟล์ secrets/evidence/dirty working tree ไม่ถูก pack เข้า archive
+
+```bash
+cd "$LAB_DIR"
+mkdir -p .build
+python3 scripts/release.py build --source-commit "$SOURCE_COMMIT"   --app-version v1 --out .build/v1
+python3 scripts/publish-release.py --release-dir .build/v1 --bucket "$ARTIFACT_BUCKET"
+python3 scripts/publish-release.py --release-dir .build/v1 --bucket "$ARTIFACT_BUCKET" --shell
+```
+
+**Expected:** manifest มี web/api SHA256 คนละค่า, source_commit ตรง T00 และชื่อ object เป็น releases/HASH/web.tar.gz หรือ api.tar.gz คำสั่ง upload ทุกบรรทัดมี `--if-generation-match=0` ตัว planner ไม่ได้เรียก GCP จึงยังไม่มีไฟล์บน bucket
+
+ตรวจสองบรรทัด upload แล้วคัดลอกไปรันใน Cloud Shell เอง **ไม่ pipe เข้า shell โดยไม่อ่าน** หลัง upload ให้ตรวจ object list:
+
+```bash
+gcloud storage ls --long "gs://$ARTIFACT_BUCKET/releases/**"
+```
+
+หากได้412 แปลว่ามี live object ชื่อนั้นแล้ว ไม่ใช่คำสั่งให้ลบ generation guard หรือลบไฟล์เดิม ดาวน์โหลด object นั้นไปยังโฟลเดอร์ใหม่แล้วใช้ `release.py unpack --archive FILE --sha256 HASH --tier web|api --out NEW_DIRECTORY` เพื่อตรวจ bytes/manifest ก่อน reuse ถ้าตรวจไม่ผ่านหยุดสอบสวน bucket/identity ไม่สั่งทับของเดิม
+
+หาก build แจ้ง directory exists อย่าใช้ recursive delete เพื่อให้ผ่าน ให้ตรวจ manifest ของชุดเดิมหรือใช้ชื่อ output ใหม่ เช่น .build/v1-check2; หาก committed blob missing ตรวจ SOURCE_COMMIT กับไฟล์ใน commit นั้น อย่าใช้ archive จาก dirty worktree แทนแล้วอ้าง source SHA เดิม
+
+**จุดบันทึก T02**
+
+| รายการ | ผลจริงของคุณ |
+|---|---|
+| Source commit / app version | … |
+| Web SHA256 / object generation | … |
+| API SHA256 / object generation | … |
+| Upload หรือ reuse ที่ตรวจแล้ว / เวลา | … |
+| ผล archive verification และหลักฐานที่ไม่มี secrets | … |
+
+**เกณฑ์ไปต่อ:** Web/API archives ที่ใช้งานจริงตรง hash และ source commit ที่บันทึก ไม่ใช่แค่มีไฟล์ชื่อคล้ายกันใน bucket ขั้นต่อไปจะสร้าง Secret versions และ initialize DB ก่อนเปิด API MIG

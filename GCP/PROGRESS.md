@@ -8,7 +8,7 @@
 | 02 | [ระบบ Inventory ภายในองค์กรแบบ Private](LAB-002-private-inventory/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 03 | [เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS](LAB-003-public-docs-cdn/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Design | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 06 | ระบบรับและประมวลผลไฟล์อย่างปลอดภัย | Planned | Not run | — |
 | 07 | ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue | Planned | Not run | — |
 | 08 | ระบบรายงานตามเวลาและงาน Batch รายวัน | Planned | Not run | — |
@@ -98,3 +98,5 @@ Lab 05 / Workloads Terraform draft: เพิ่มrootแยกสำหรั�
 Lab 05 / Bootstrap and diagnostic Terraform: เพิ่มone-time privateinitializer rootใช้bootstrapSA/numericadmin+DBversions/verifiedAPIarchive และdiagnostic VMแบบopt-inใช้SAไม่มีSecret/SQL grants แยกlab005-infra CIตรวจ3rootsโดยไม่รอApppackages ไม่มีplan/apply; CI39836686676ยังin_progressตอนตรวจ ชุดIaCใหม่ยังรอvalidateและยังต้องทำGuide/ops probes/Diagramก่อนGuide-ready
 
 Lab 05 / IaC schema repair + bounded evidence probe: CI39836942611 lab005-infraยืนยันfoundation/bootstrapvalidateผ่าน แต่workloadsล้มเพราะmin_ready_secไม่มีในgoogle6.50 ย้ายเฉพาะregionalMIGไปgoogle-beta6.50เพื่อคงready30sไม่ลดrequirement เพิ่มread-onlyHTTPprobeจำกัดrequests200/workers8/interval>=0.1s/timeout5s/body64KiB ไม่followredirect/ไม่logcookieCSRFbody พร้อมreal-loopbackHTTPtests ชุดแก้รอCI ยังไม่ใช่Cloud-verified และGuide/Diagramยังไม่ครบ
+
+Lab 05 / Guide authoring Tasks0–2: เพิ่มขั้นCloudShell persistentcheckout/state/budget/domain/IAM, foundationplanreview/apply/Consolechecks และverifiedreleasebuild/uploadplanning พร้อมExpected/diagnosis/inlineevidence ไม่บันทึกผลGCPจริง ยังต้องเติมTasksSecret/bootstrap/workloads/business/operations/change/cleanup/DiagramและตรวจCIของbetaMIG/probeก่อนGuide-ready
