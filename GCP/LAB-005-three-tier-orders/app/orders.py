@@ -82,10 +82,10 @@ class Orders:
             conn.execute(text("INSERT INTO orders(id,username,request_key,request_fingerprint,status,total_satang) VALUES(CAST(:id AS uuid),:u,:k,:f,'confirmed',:total)"),
                          {'id':order_id,'u':username,'k':key,'f':fingerprint,'total':total})
             for item,product in rows:
-                params={'id':order_id,'sku':item['sku'],'quantity':item['quantity'],'price':product['unit_price_satang']}
+                params={'id':order_id,'sku':item['sku'],'quantity':item['quantity'],'price':product['unit_price_satang'],'delta':-item['quantity']}
                 conn.execute(text('INSERT INTO order_items(order_id,sku,quantity,price_snapshot_satang) VALUES(CAST(:id AS uuid),:sku,:quantity,:price)'),params)
                 conn.execute(text('UPDATE products SET available=available-:quantity WHERE sku=:sku'),params)
-                conn.execute(text("INSERT INTO stock_events(order_id,sku,event,delta) VALUES(CAST(:id AS uuid),:sku,'reserved',-:quantity)"),params)
+                conn.execute(text("INSERT INTO stock_events(order_id,sku,event,delta) VALUES(CAST(:id AS uuid),:sku,'reserved',:delta)"),params)
             return self._read(conn,order_id),False
 
     def cancel(self,username,order_id):
