@@ -138,3 +138,13 @@ jobs:
         run: .ci-lab004/bin/python -m unittest discover -s GCP/LAB-004-serverless-booking/tests -v
       - name: Build self-contained application image
         run: docker build -t lab004-booking:ci GCP/LAB-004-serverless-booking
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate foundation without credentials or cloud provisioning
+        working-directory: GCP/LAB-004-serverless-booking/infra
+        run: |
+          terraform fmt -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
