@@ -3,7 +3,7 @@ lab_id: LAB-001
 title: Two-Zone Web Application with Health-Based Load Balancing
 platform: GCP
 level: intermediate-foundation
-guide_status: authoring
+guide_status: guide-ready
 cloud_verification: not-run
 skills: [VPC, Compute Engine, Application Load Balancer, Health Checks, Failure Testing]
 last_verified: null
@@ -938,7 +938,7 @@ python3 probe.py --url "$LB_URL" --requests 300 --concurrency 10 --rate 10 \
 
 ภาพหลังเปลี่ยนด้านล่างเพิ่ม Zone a / group C / VM C โดยคง frontend และ subnet เดิม เป็นแบบที่ต้องสร้าง ไม่ใช่ภาพหลักฐานว่า Deploy แล้ว หากเปลี่ยนจากแบบให้ปรับ Diagram และอธิบายเหตุผล
 
-![หลังเพิ่ม backend C](assets/solution-after-change.svg)
+![หลังเพิ่ม backend C](assets/solution-after-change-preview.png)
 
 [เปิด SVG หลังเปลี่ยน](assets/solution-after-change.svg)
 
@@ -1113,7 +1113,7 @@ gcloud compute networks list
 
 เริ่มจาก clean sandbox project ที่มี Billing/API/IAM พร้อมตาม Task 0 แล้วดึง SOURCE_COMMIT ที่บันทึกไว้ ใช้ resource inventory เดิมและทำ Task 1–8B ใหม่ ห้ามถือว่าการเปิด VM ที่หยุดไว้แทนการ rebuild ได้ ตรวจ quota `e2-small` ครบสาม Zone และ global IPv4 ก่อนเริ่มซ้ำ หากชื่อชนกับงานเดิมต้องแยก project หรือวางแผนชื่อทั้งชุด ไม่เปลี่ยนบางชื่อกลางทาง
 
-โค้ด startup/probe ผ่าน [cloud CI 39808594467](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39808594467) 5 integration tests บน Ubuntu runner แต่ยังไม่ตรวจ apt/systemd ภายใน GCE หรือ Console deployment จริง ผลทุก Txx จึงยัง PENDING และ cloud_verification ยัง not-run การตรวจคู่มือ/ภาพเพิ่มเติมยังอยู่ระหว่างทำ
+คู่มือระดับ Guide-ready: [cloud CI 39809864366](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39809864366) ผ่าน 10 tests ครอบคลุม App ที่ฝังใน startup script, health fault/restore, probe success/error/no-overwrite/bounds/slow-target rate, ลิงก์และสารบัญ, SVG และ resource IDs หลังเปลี่ยน พร้อม shell syntax/Python compile และ render Diagram สองแบบ ตรวจภาพที่ความกว้าง 960px แล้ว แต่ยังไม่ตรวจ apt/systemd ภายใน GCE หรือ Console deployment จริง ผลทุก Txx จึงยัง PENDING และ cloud_verification ยัง not-run
 
 ## เอกสารอ้างอิง
 

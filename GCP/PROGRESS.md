@@ -4,7 +4,7 @@
 
 | Lab | Solution | Guide status | Cloud verification | PR / checkpoint |
 |---|---|---|---|---|
-| 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Review | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 02 | ระบบ Inventory ภายในองค์กรแบบ Private | Planned | Not run | — |
 | 03 | เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS | Planned | Not run | — |
 | 04 | ระบบจองบริการบน Serverless และ Private Database | Planned | Not run | — |
@@ -31,8 +31,10 @@ Cloud verification: Not run → In progress → Verified / Failed / Blocked (ต
 
 ## Current checkpoint
 
-M0 เสร็จแล้ว; M1 / Lab 01 อยู่ระหว่าง Review มีคู่มือเต็ม Tasks 0–10 และ Change request 8B, App/startup/probe, Diagram baseline พร้อม PNG และ Diagram หลังเพิ่ม C แล้ว ยังต้องตรวจภาพหลังเปลี่ยนและผล documentation checks รอบล่าสุดก่อน Guide-ready
+M1 / Lab 01: Guide-ready — คู่มือครบ Tasks 0–10/8B, normal/fault/recovery/load/access/change/backout/cleanup/rebuild, code และภาพก่อน/หลังเปลี่ยน อ่านกลับจาก GitHub แล้ว
 
-- [CI 39809105744](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39809105744): shell syntax, Python compile, 6 materials tests และ render baseline ผ่าน ตรวจภาพ PNG ที่ความกว้าง 960px แล้ว
-- [CI 39809433657](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39809433657): 6 materials tests ผ่าน แต่ documentation anchor validator ไม่รองรับ combining marks ภาษาไทย แก้ตัวตรวจแล้วใน commit d52cfe4 และรันทดสอบใหม่ ไม่ข้าม test หรือทำเครื่องหมายผ่านย้อนหลัง
-- Cloud verification ยัง Not run: ไม่ได้รัน apt/systemd บน GCE หรือสร้าง LB/firewall/IAP การทดสอบบน Ubuntu CI ไม่แทนผล GCP
+[CI run 39809864366](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39809864366) ของ commit `3a5f312c21355f9254f1deee776ca26c4d4dbcf4`: shell syntax, Python compile, 10 tests และ render SVG สองแบบผ่าน ตรวจภาพ baseline/after-change ที่ 960px แล้ว PNG ถูกบันทึกใน assets พร้อม SVG editable และเครดิตไอคอน
+
+ขอบเขต: ไม่ได้สร้าง GCP resources, ไม่ได้ทดสอบ IAP/firewall/LB health จริง หรือ apt/systemd ใน GCE ผล cloud ทุก Lab ยัง Not run ไม่ใช้ CI เป็นหลักฐาน Cloud-verified
+
+ขั้นถัดไป: M2 / Lab 02 — Brief → Design ก่อนเขียน Tasks โดยคงหนึ่ง README ต่อ Lab

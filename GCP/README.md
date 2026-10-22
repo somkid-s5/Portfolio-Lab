@@ -8,4 +8,4 @@
 
 ตัวอย่างรูปแบบคู่มือ: [Lab Test 2](../test/lab-test-2/README.md)
 
-สถานะปัจจุบัน: วางโจทย์แล้ว ยังไม่ได้เขียนคู่มือหรือทดสอบระบบของ Lab 01–20
+สถานะปัจจุบัน: [Lab 01 — เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) พร้อมระดับ Guide-ready; Lab 02–20 ตาม [Progress](PROGRESS.md) ยังไม่มีผลทดสอบทรัพยากร GCP จริง
