@@ -32,7 +32,7 @@ class InventoryTests(unittest.TestCase):
         with psycopg2.connect() as conn:
             with conn.cursor() as cur:
                 cur.execute((ROOT / 'db/schema.sql').read_text())
-                cur.execute("DO $ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='inventory_app') THEN CREATE ROLE inventory_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD 'disposable-app-ci'; END IF; END $;")
+                cur.execute("DO $lab002$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='inventory_app') THEN CREATE ROLE inventory_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD 'disposable-app-ci'; END IF; END $lab002$;")
                 cur.execute((ROOT / 'db/grants.sql').read_text())
         cls.processes, cls.urls = [], []
         for backend in ['app-a','app-b']:
