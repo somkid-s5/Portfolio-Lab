@@ -371,7 +371,17 @@ python3 scripts/probe-release.py --url "https://$HOST" \
 
 อย่าแก้ expected generation เป็น 0 หรือ force overwrite ทันที ตรวจ root generation/release ปัจจุบันและว่าใครเปลี่ยน ถ้าการเปลี่ยนอื่นถูกต้องให้หยุดและตัดสินใจร่วมกับเจ้าของ ถ้าจะ retry ต้องอ่าน generation ใหม่อย่างมีเหตุผลก่อน
 
-หากการอัปโหลดค้างหลัง CSS สำเร็จแต่ archived index ยังไม่มี ให้เก็บ error/dry-run แล้วใช้คำสั่ง upload archived index จาก dry-run ที่มี --if-generation-match=0 โดยไม่อัปโหลดทับ CSS อีก จากนั้นใช้ --index-only เพื่อ verify remote asset/archive ก่อน root publish ถ้าไม่แน่ใจ remote bytes ให้หยุดตรวจ ไม่ข้าม integrity check
+หากการอัปโหลดค้างหลัง CSS สำเร็จแต่ archived index ยังไม่มี ให้เก็บ error แล้วตรวจใน Console ว่าเป็นกรณีนี้จริง อ่าน root generation ล่าสุดและใช้ --reuse-assets (ตัวอย่าง v2):
+
+```bash
+export INDEX_GENERATION="$(gcloud storage objects describe "gs://$BUCKET/index.html" --format='value(generation)')"
+python3 scripts/publish-release.py --release-dir builds/v2 --bucket "$BUCKET" \
+  --expected-generation "$INDEX_GENERATION" --reuse-assets
+python3 scripts/publish-release.py --release-dir builds/v2 --bucket "$BUCKET" \
+  --expected-generation "$INDEX_GENERATION" --reuse-assets --apply
+```
+
+โหมดนี้อ่าน remote CSS ตรวจ SHA256 ก่อน แล้ว upload archived index ด้วย generation=0 และ publish root ด้วย generation fence ถ้า archive มีอยู่แล้วด้วย ให้ใช้ --index-only แทนเพื่อ verify ทั้ง CSS/archive ถ้า root ไม่เคยสร้างมาก่อนจริงจึงใช้ expected-generation=0 ไม่อ่านค่าจาก error แล้วเดาเอง ทั้งสองโหมดหยุดเมื่อ remote bytes ไม่ตรงและไม่ทับ immutable objects
 
 **บันทึก T07 / R4:** generation ก่อน/หลัง [เติม] / origin v2 UTC [เติม] / edge transition ที่วัดได้ [เติม] / invalidation operation/time [เติม] / ผล after [เติม] / สถานะ PENDING
 

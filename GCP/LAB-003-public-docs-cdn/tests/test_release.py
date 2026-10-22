@@ -98,6 +98,22 @@ class ReleaseTests(unittest.TestCase):
         publisher.execute(plan,good)
         self.assertEqual(len(calls),3)
 
+    def test_partial_stage_resume_verifies_asset_before_archive(self):
+        _,plan=publisher.commands(self.out,'lab003-example-docs','123',reuse_assets=True)
+        self.assertEqual([p['kind'] for p in plan],['verify','upload','publish-index'])
+        self.assertIn('/releases/v1/index.html',plan[1]['command'][4])
+        self.assertIn('--if-generation-match=0',plan[1]['command'])
+        self.assertIn('--if-generation-match=123',plan[2]['command'])
+        calls=[]
+        def mismatch(command,**kwargs):
+            calls.append(command)
+            return subprocess.CompletedProcess(command,0,stdout=b'not-the-asset')
+        with self.assertRaises(ValueError):
+            publisher.execute(plan,mismatch)
+        self.assertEqual(len(calls),1)
+        with self.assertRaises(ValueError):
+            publisher.commands(self.out,'lab003-example-docs','0',True,True)
+
     def test_publish_failure_not_bypassed(self):
         _,plan=publisher.commands(self.out,'lab003-example-docs','0')
         calls=[]

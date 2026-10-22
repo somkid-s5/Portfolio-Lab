@@ -44,7 +44,9 @@ def load_release(directory):
         raise ValueError('Index asset reference mismatch')
     return root,manifest
 
-def commands(directory,bucket,expected_generation,index_only=False):
+def commands(directory,bucket,expected_generation,index_only=False,reuse_assets=False):
+    if index_only and reuse_assets:
+        raise ValueError('Choose index-only or reuse-assets, not both')
     if not re.fullmatch(r'lab003-[a-z0-9][a-z0-9-]{3,50}[a-z0-9]',bucket):
         raise ValueError('Bucket must be an explicitly named lab003- sandbox bucket')
     if not re.fullmatch(r'0|[1-9][0-9]*',str(expected_generation)):
@@ -59,7 +61,12 @@ def commands(directory,bucket,expected_generation,index_only=False):
             plan.append({'kind':'verify','command':['gcloud','storage','cat',f'gs://{bucket}/{name}'],
                          'sha256':entry['sha256']})
     else:
-        for entry,name in [(asset,asset['path']),(index,archive)]:
+        uploads=[(asset,asset['path']),(index,archive)]
+        if reuse_assets:
+            plan.append({'kind':'verify','command':['gcloud','storage','cat',f"gs://{bucket}/{asset['path']}"],
+                         'sha256':asset['sha256']})
+            uploads=[(index,archive)]
+        for entry,name in uploads:
             plan.append({'kind':'upload','command':['gcloud','storage','cp',
                 str(root/entry['path']),f'gs://{bucket}/{name}','--if-generation-match=0',
                 '--content-type='+entry['content_type'],'--cache-control='+entry['cache_control']]})
@@ -80,10 +87,12 @@ def main():
     parser.add_argument('--release-dir',required=True)
     parser.add_argument('--bucket',required=True)
     parser.add_argument('--expected-generation',required=True)
-    parser.add_argument('--index-only',action='store_true',help='Rollback/promote previously uploaded verified release')
+    modes=parser.add_mutually_exclusive_group()
+    modes.add_argument('--index-only',action='store_true',help='Rollback/promote previously uploaded verified release')
+    modes.add_argument('--reuse-assets',action='store_true',help='Resume after assets exist but archive index is absent')
     parser.add_argument('--apply',action='store_true')
     args=parser.parse_args()
-    manifest,plan=commands(args.release_dir,args.bucket,args.expected_generation,args.index_only)
+    manifest,plan=commands(args.release_dir,args.bucket,args.expected_generation,args.index_only,args.reuse_assets)
     print(json.dumps({'release':manifest['release'],'mode':'apply' if args.apply else 'dry-run',
                       'steps':plan},indent=2))
     if args.apply:
