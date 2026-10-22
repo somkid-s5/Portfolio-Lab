@@ -86,6 +86,27 @@ class MaterialsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             checker.check(session,'sandbox-booking','latest')
 
+
+    def test_guide_task_links_and_shell_syntax(self):
+        import re
+        from urllib.parse import unquote,urlsplit
+        guide=(ROOT/'README.md').read_text()
+        for task in range(13):
+            self.assertIn('### Task '+str(task)+' —',guide)
+        for requirement in range(1,9):
+            self.assertIn('| R'+str(requirement)+' ',guide)
+        for link in re.findall(r'!?\[[^\]]*\]\(([^)]+)\)',guide):
+            parsed=urlsplit(link)
+            if parsed.scheme or link.startswith('#'):
+                continue
+            path=unquote(parsed.path)
+            self.assertTrue((ROOT/path).exists(),'Missing relative guide link: '+path)
+        fences=re.findall(r'```bash\n(.*?)```',guide,re.S)
+        self.assertGreaterEqual(len(fences),20)
+        for index,script in enumerate(fences):
+            result=subprocess.run(['bash','-n'],input=script,capture_output=True,text=True,timeout=5)
+            self.assertEqual(result.returncode,0,'Bash block '+str(index)+': '+result.stderr)
+
     def test_all_python_materials_compile(self):
         for folder in ['app','scripts','tests']:
             for path in (ROOT/folder).glob('*.py'):

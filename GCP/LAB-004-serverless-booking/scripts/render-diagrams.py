@@ -58,21 +58,21 @@ def main():
 <text x="674" y="378" text-anchor="middle" class="s">Direct VPC egress</text>
 <text x="674" y="454" text-anchor="middle" class="small">private-ranges-only</text>
 <rect x="856" y="214" width="224" height="256" rx="5" fill="#f5f3ff" stroke="#7c3aed"/>
-<text x="872" y="244" class="h">Managed data service</text>
+<text x="872" y="244" class="n">Managed data service</text>
 <image x="930" y="336" width="76" height="76" xlink:href="{sql}"/>
 <text x="968" y="436" text-anchor="middle" class="n">Cloud SQL • lab004-sql</text>
 <text x="968" y="460" text-anchor="middle" class="s">PostgreSQL 16 • ZONAL</text>
 <text x="968" y="286" text-anchor="middle" class="small">Private IP only • TLS connector</text>
-<text x="968" y="310" text-anchor="middle" class="small">Google-managed producer network</text>
+<text x="968" y="308" text-anchor="middle" class="small">Google-managed</text><text x="968" y="328" text-anchor="middle" class="small">producer network</text>
 <rect x="28" y="268" width="108" height="76" rx="5" fill="#fff7ed" stroke="#c2410c"/>
 <rect x="42" y="282" width="80" height="44" rx="3" fill="#fff" stroke="#475569"/>
 <path d="M42 292H122" stroke="#475569"/>
 <text x="82" y="372" text-anchor="middle" class="n">Browser</text>
 <text x="82" y="398" text-anchor="middle" class="small">HTTPS • run.app</text>
-<path class="arrow" d="M136 310H340"/>
+<path class="arrow" d="M136 310H354"/>
 
-<path class="arrow" d="M416 310H526V372H588"/>
-<path class="arrow" d="M760 372H930"/>
+<path class="arrow" d="M409 310H526V372H588"/>
+<path class="arrow" d="M760 372H944"/>
 <rect x="802" y="337" width="112" height="24" fill="white"/><text x="858" y="354" text-anchor="middle" class="small">PSA route</text>
 <text x="244" y="494" class="small">Cloud Run is regional managed compute, not a VM inside the subnet.</text>
 <text x="28" y="574" class="s">PSA allocation: 10.84.0.0/16 • service-producer address space, not another workload subnet.</text>
