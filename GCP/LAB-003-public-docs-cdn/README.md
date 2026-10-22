@@ -71,6 +71,21 @@ Publisher upload asset/archived index ด้วย generation=0 ก่อนเ�
 - [Cloud CDN cache modes](https://docs.cloud.google.com/cdn/docs/caching)
 - [Cache invalidation](https://docs.cloud.google.com/cdn/docs/cache-invalidation-overview)
 
+## สารบัญการลงมือทำ
+
+- [Task 0 — ตรวจ Project, Domain และเตรียม Code](#task-0)
+- [Task 1 — Build เอกสารสาม Release แบบตรวจซ้ำได้](#task-1)
+- [Task 2 — สร้าง Public-read Bucket เฉพาะ Demo](#task-2)
+- [Task 3 — Publish v1 โดยยังไม่สร้าง Frontend](#task-3)
+- [Task 4 — ประกอบ Global HTTPS LB และ HTTP Redirect](#task-4)
+- [Task 5 — ตั้ง DNS และตรวจ HTTPS จริง](#task-5)
+- [Task 6 — ตรวจ Release และพิสูจน์ CDN Cache](#task-6)
+- [Task 7 — ปล่อย v2 และรับมือ Cache ที่ยังเห็น v1](#task-7)
+- [Task 8 — Fault: Bad Release และ Rollback](#task-8)
+- [Task 9 — Change Request: Hotfix HTML เร็ว แต่ไม่ทำ Asset Cache เสีย](#task-9)
+- [Task 10 — ตรวจ Public-read Boundary และสรุปผลงาน](#task-10)
+- [Task 11 — Cleanup และ Rebuild](#task-11)
+
 ## เตรียมลงมือทำ
 
 | สิ่งที่ต้องเตรียม | รายละเอียด |
@@ -97,6 +112,8 @@ Publisher upload asset/archived index ด้วย generation=0 ก่อนเ�
 | SSL certificate / policy | lab003-cert / lab003-tls |
 
 คำสั่งทั้งหมดรันใน **Cloud Shell** ของ Console เว้นแต่ระบุ Browser/Console ไม่มี VM ที่ต้อง SSH เข้า
+
+<a id="task-0"></a>
 
 ## Task 0 — ตรวจ Project, Domain และเตรียม Code
 
@@ -126,6 +143,8 @@ python3 scripts/render-config.py --project "$PROJECT_ID" --host "$HOST" --out bu
 
 **บันทึก T00:** Project alias [เติม] / hostname และสิทธิ์ควบคุม DNS [เติม] / commit/Python/gcloud versions [เติม] / IAM/quota/PAP/budget [เติม] / สถานะ PENDING
 
+<a id="task-1"></a>
+
 ## Task 1 — Build เอกสารสาม Release แบบตรวจซ้ำได้
 
 **Cloud Shell:**
@@ -147,6 +166,8 @@ Builder ไม่เขียนทับ output เดิม ถ้ารัน
 
 **บันทึก T01:** Release IDs/hash ใน manifest [เติม] / ภาพหน้า v1 ไม่ใช่ Cloud deployment [แนบ] / ผล tests [เติม] / สถานะ PENDING
 
+<a id="task-2"></a>
+
 ## Task 2 — สร้าง Public-read Bucket เฉพาะ Demo
 
 **Cloud Shell:** ตรวจ BUCKET ต้องขึ้นต้น lab003- และอยู่ใน project ทดลอง คำสั่งนี้สร้าง resource ที่คิดค่าใช้จ่าย:
@@ -167,6 +188,8 @@ gcloud storage buckets get-iam-policy "gs://$BUCKET"
 **Console:** เปิด **Cloud Storage → Buckets → bucket นี้ → Permissions** ตรวจ public read เฉพาะ bucket Lab ดู **Protection** ว่า soft delete/versioning/retention ตรงสิ่งที่ตกลง อย่าคัดลอกข้อมูลลับใดเข้า bucket แม้ชั่วคราว
 
 **บันทึก T02:** bucket/location/class [เติม] / IAM viewer-only [เติม] / retention/soft-delete/versioning ที่ตั้งจริง [เติม] / สถานะ PENDING
+
+<a id="task-3"></a>
 
 ## Task 3 — Publish v1 โดยยังไม่สร้าง Frontend
 
@@ -194,6 +217,8 @@ curl --max-time 10 -i "https://storage.googleapis.com/$BUCKET/index.html"
 หาก root หรือ archived path มีอยู่แล้ว publisher จะหยุด ไม่ใช้ force overwrite การรันซ้ำ release ที่อัปโหลดครบแล้วต้องเลือก --index-only พร้อม generation ของ root ปัจจุบัน และตรวจเหตุผลก่อนทำ ถ้าอัปโหลดค้างเพียงบางไฟล์ให้ตรวจ remote hashes/รายการให้ครบก่อนตัดสินใจ ไม่ลบทั้ง bucket เพื่อหนี precondition failure
 
 **บันทึก T03:** ลำดับ publish [เติม] / root generation [เติม] / origin HTTP/release/hash/headers [เติม] / หลักฐาน dry-run ไม่ใช่ผล apply [แยกให้ชัด] / สถานะ PENDING
+
+<a id="task-4"></a>
 
 ## Task 4 — ประกอบ Global HTTPS LB และ HTTP Redirect
 
@@ -228,6 +253,8 @@ Certificate ยังไม่ ACTIVE เป็นเรื่องที่ค
 Backend bucket logging เปิดอัตโนมัติและปิดไม่ได้ด้วย sample-rate flag ของ backend service หากไม่เห็น logs ภายหลังให้ตรวจช่วงเวลา/forwarding rule และ exclusions ไม่เพิ่มคำสั่ง --enable-logging ที่ไม่มีสำหรับ backend bucket
 
 **บันทึก T04:** frontend IP/scheme [เติม] / proxy/maps/backend bucket [เติม] / cert initial state [เติม] / resource inventory [เติม] / สถานะ PENDING
+
+<a id="task-5"></a>
 
 ## Task 5 — ตั้ง DNS และตรวจ HTTPS จริง
 
@@ -264,6 +291,8 @@ openssl s_client -connect "$HOST:443" -servername "$HOST" \
 
 **บันทึก T05 / R1:** DNS ก่อน/หลัง [เติม] / cert ACTIVE และ UTC [เติม] / HTTPS status, redirect Location, certificate subject/SAN/expiry [เติม] / ข้อจำกัด propagation [เติม] / สถานะ PENDING
 
+<a id="task-6"></a>
+
 ## Task 6 — ตรวจ Release และพิสูจน์ CDN Cache
 
 **Cloud Shell:**
@@ -294,6 +323,8 @@ resource.labels.forwarding_rule_name="lab003-https"
 **Expected R3:** มี metadata ตามชนิดไฟล์และ cache-hit evidence หลัง warmup ถ้า logs ไม่มาให้ตรวจ log exclusions, forwarding rule และเวลาที่เลือก Backend bucket logging เปิดอัตโนมัติ ไม่ใช่กรณี backend service ที่ต้อง enable sample rate การ warm จาก client เดียวไม่รับประกันทุก PoP เป็น hit
 
 **บันทึก T06 / R2–R3:** index release/hash [เติม] / CSS path/hash/TTL [เติม] / cache fill URL/time/field [เติม] / cache hit URL/time/field [เติม] / probe JSON และ sanitized log entries [แนบ] / สถานะ PENDING
+
+<a id="task-7"></a>
 
 ## Task 7 — ปล่อย v2 และรับมือ Cache ที่ยังเห็น v1
 
@@ -336,6 +367,8 @@ python3 scripts/probe-release.py --url "https://$HOST" \
 
 **บันทึก T07 / R4:** generation ก่อน/หลัง [เติม] / origin v2 UTC [เติม] / edge transition ที่วัดได้ [เติม] / invalidation operation/time [เติม] / ผล after [เติม] / สถานะ PENDING
 
+<a id="task-8"></a>
+
 ## Task 8 — Fault: Bad Release และ Rollback
 
 ทำเฉพาะ demo hostname โดยผู้ทำรู้ว่าชั่วคราวจะเห็นเอกสารผิด ห้ามใช้กับเอกสารลูกค้าจริง
@@ -372,6 +405,8 @@ Rollback นี้ย้อน content pointer ไม่ได้ลบ bad rele
 
 **บันทึก T08 / R5:** bad publish time/generation [เติม] / HTTP/hash/business result [เติม] / สาเหตุที่ระบุได้ [เติม] / rollback generation/remote verification [เติม] / observed recovery และข้อจำกัด [เติม] / สถานะ PENDING
 
+<a id="task-9"></a>
+
 ## Task 9 — Change Request: Hotfix HTML เร็ว แต่ไม่ทำ Asset Cache เสีย
 
 ทีมขอให้ HTML hotfix สดขึ้นเป็น TTL15 วินาที โดย CSS ยัง immutable หนึ่งปี ไม่แก้เป็น FORCE_CACHE_ALL เพราะจะทับนโยบาย origin ทั้งชุด
@@ -396,6 +431,8 @@ python3 scripts/probe-release.py --url "https://$HOST" \
 **Backout:** ใช้ builds/v2 เดิมกับ --index-only/expected-generation ล่าสุดเพื่อคืน HTML TTL60 และ invalidate เฉพาะ index จากนั้นใช้ manifest v2 ตรวจใหม่ หากกังวลเนื้อหาให้เลือก v1 ที่ทราบว่าดีแทนพร้อมบันทึกเหตุผล
 
 **บันทึก T09 / R7:** requirement และทางเลือกที่พิจารณา [เติม] / HTML TTL ก่อน/หลัง [เติม] / CSS path/hash/TTL คงเดิม [เติม] / ข้อจำกัด browser cache [เติม] / backout ทำจริงหรือแผน [เติม] / สถานะ PENDING
+
+<a id="task-10"></a>
 
 ## Task 10 — ตรวจ Public-read Boundary และสรุปผลงาน
 
@@ -449,6 +486,8 @@ Origin URL อ่านได้โดยตรงเป็นข้อจำก
 
 **บันทึก Incident:** Task/UTC [เติม] / อาการ [เติม] / สมมติฐาน/หลักฐานที่ตรวจ [เติม] / สาเหตุที่พิสูจน์ได้ [เติม] / การแก้ [เติม] / retest [เติม]
 
+<a id="task-11"></a>
+
 ## Task 11 — Cleanup และ Rebuild
 
 คำสั่งต่อไปนี้ลบเนื้อหาและทรัพยากรจริงของ Lab ตรวจ PROJECT_ID, BUCKET และ HOST ให้ตรง sandbox และเก็บหลักฐานครบก่อน ห้ามแทนค่าเป็น bucket/domain งานจริง
@@ -472,6 +511,7 @@ gcloud compute addresses delete lab003-lb-ip --global
 3. ตรวจว่า bucket เป็นของ Lab ใหม่และไม่มีไฟล์อื่นแล้วจึงลบทุก object/version รวม archived v1/v2/bad จากนั้นลบ bucket:
 
 ```bash
+python3 -c 'import os,re; assert re.fullmatch(r"lab003-[a-z0-9][a-z0-9-]{3,50}[a-z0-9]",os.environ["BUCKET"]), "Stop: invalid lab bucket"'
 gcloud storage ls --all-versions "gs://$BUCKET/**"
 gcloud storage rm --recursive --all-versions "gs://$BUCKET"
 ```
