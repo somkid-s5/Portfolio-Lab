@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** พร้อมใช้ตั้ง Goal; ยังไม่เริ่มจัดทำ Lab จริง 01–20
+**สถานะ:** เริ่มดำเนิน Goal แล้ว — กำลังออกแบบ Lab 01; Lab 02–20 ยัง Planned
 
 ## ผลลัพธ์ปลายทาง
 
@@ -90,6 +90,6 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 > จัดทำ GCP Solution Labs ทั้ง 20 เรื่องใน repository somkid-s5/Portfolio-Lab ตาม PLAN.md และ GCP/ROADMAP.md ให้ครบระดับ Guide-ready ทำทีละ Lab เริ่มจาก Lab 01: วาง brief และ architecture ให้ชัดก่อนเขียน Task/README พร้อม App, scripts, Diagram และการตรวจที่เหมาะสม เมื่อ Lab ปัจจุบันผ่าน self-review แล้วจึงไป Lab ถัดไป บันทึกงานบน GitHub ผ่าน branch/PR และอัปเดต GCP/PROGRESS.md ทุก checkpoint ทำใน Cloud โดยไม่พึ่ง laptop ไม่สร้างทรัพยากร GCP ที่คิดค่าใช้จ่าย ไม่ deploy เว็บไซต์ Portfolio และไม่อ้าง Cloud-verified เมื่อยังไม่ได้รันจริง
 
-## สิ่งที่ยังไม่เริ่มในรอบวางแผน
+## สถานะดำเนินงาน
 
-ยังไม่ตั้ง Goal อัตโนมัติ และยังไม่เริ่มสร้าง Lab 01–20 ผู้ใช้จะเป็นผู้เริ่ม Goal เมื่อพร้อม
+ผู้ใช้เริ่ม Goal แล้ว กำลังจัดทำ Lab 01 ตามขั้น Brief → Design → Materials → Guide → Review; ติดตามผลจริงที่ GCP/PROGRESS.md ไม่ถือว่าเอกสาร Brief เป็น Lab ที่เสร็จแล้ว

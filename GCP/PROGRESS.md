@@ -4,7 +4,7 @@
 
 | Lab | Solution | Guide status | Cloud verification | PR / checkpoint |
 |---|---|---|---|---|
-| 01 | เว็บหลาย Zone หลัง Load Balancer | Planned | Not run | — |
+| 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Brief | Not run | Branch: docs/gcp-solution-labs |
 | 02 | ระบบ Inventory ภายในองค์กรแบบ Private | Planned | Not run | — |
 | 03 | เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS | Planned | Not run | — |
 | 04 | ระบบจองบริการบน Serverless และ Private Database | Planned | Not run | — |
@@ -31,5 +31,5 @@ Cloud verification: Not run → In progress → Verified / Failed / Blocked (ต
 
 ## Current checkpoint
 
-M0: แผนใหญ่และรูปแบบอ้างอิงพร้อม ยังไม่เริ่ม Lab 01 และยังไม่ได้ตั้ง Goal
+M0 เสร็จแล้ว; เริ่ม M1 โดยบันทึก Brief ของ Lab 01 พร้อม requirement-to-evidence matrix, baseline/change scope และลำดับ Tasks ยังต้องทำ materials, คู่มือเต็ม, diagram และ cloud CI review ก่อนเลื่อนเป็น Guide-ready
 
