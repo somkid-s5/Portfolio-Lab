@@ -7,6 +7,14 @@ last_verified: null
 ---
 # Lab 02 — Inventory ภายในองค์กรที่ไม่เปิด App และ Database สู่อินเทอร์เน็ต
 
+![Private Inventory architecture](assets/solution.svg)
+
+ภาพหลักแสดงเส้นทางใช้งานและฐานข้อมูล ส่วนภาพถัดไปแยก IAP/NAT ซึ่งไม่อยู่ในเส้นทางธุรกรรม App A/B วางแนวตั้งเพื่อให้ fan-out/fan-in สั้นและไม่อ้อมขอบภาพ ทั้งสองใช้ app subnet เดียวซึ่งเป็น regional
+
+![Management and outbound](assets/operations.svg)
+
+DNS เป็น private zone ที่ authorize VPC ไม่ใช่ VM DNS server; PostgreSQL ใช้ไอคอน Compute Engine เพราะติดตั้งบน VM ไม่ใช่ Cloud SQL เส้น App→DB เป็น TCP5432 และ firewall ไม่อนุญาต client→DB ส่วน health check HTTP8080 ตรวจ /healthz แยกจาก request ผู้ใช้
+
 ทีมคลังสินค้าต้องค้นหาสินค้า ดูยอดคงเหลือ และบันทึกรับเข้า/เบิกออกจากเครือข่ายภายใน ผู้ดูแลต้องแยกให้ได้ว่าการเข้าไม่ได้เกิดจาก DNS, network, App auth หรือฐานข้อมูล โดยไม่เปิด public ingress เพื่อแก้ปัญหา
 
 ## ขอบเขตที่เลือก

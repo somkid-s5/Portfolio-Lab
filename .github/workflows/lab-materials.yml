@@ -62,8 +62,18 @@ jobs:
       - name: Install distro PostgreSQL driver
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y python3-psycopg2
+          sudo apt-get install -y python3-psycopg2 librsvg2-bin
       - name: Check App installer shell syntax
         run: bash -n GCP/LAB-002-private-inventory/scripts/install-app.sh
       - name: Exercise Inventory against PostgreSQL 15
         run: /usr/bin/python3 -m unittest discover -s GCP/LAB-002-private-inventory/tests -v
+      - name: Render Inventory solution and operations views
+        run: |
+          mkdir -p lab002-previews
+          rsvg-convert --width 960 GCP/LAB-002-private-inventory/assets/solution.svg -o lab002-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-002-private-inventory/assets/operations.svg -o lab002-previews/operations.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab002-diagram-preview
+          path: lab002-previews/*.png
+          retention-days: 14
