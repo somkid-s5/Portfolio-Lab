@@ -97,6 +97,7 @@ jobs:
           mkdir -p lab003-previews
           rsvg-convert --width 960 GCP/LAB-003-public-docs-cdn/assets/solution.svg -o lab003-previews/solution.png
           rsvg-convert --width 960 GCP/LAB-003-public-docs-cdn/assets/release-flow.svg -o lab003-previews/release-flow.png
+          python3 -c "import base64,pathlib; [print('LAB003_PREVIEW_'+p.stem.upper().replace('-','_')+'='+base64.b64encode(p.read_bytes()).decode()) for p in sorted(pathlib.Path('lab003-previews').glob('*.png'))]"
       - uses: actions/upload-artifact@v4
         with:
           name: lab003-diagram-preview
