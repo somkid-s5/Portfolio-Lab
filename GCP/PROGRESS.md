@@ -4,7 +4,7 @@
 
 | Lab | Solution | Guide status | Cloud verification | PR / checkpoint |
 |---|---|---|---|---|
-| 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Brief | Not run | Branch: docs/gcp-solution-labs |
+| 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 02 | ระบบ Inventory ภายในองค์กรแบบ Private | Planned | Not run | — |
 | 03 | เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS | Planned | Not run | — |
 | 04 | ระบบจองบริการบน Serverless และ Private Database | Planned | Not run | — |
@@ -31,5 +31,8 @@ Cloud verification: Not run → In progress → Verified / Failed / Blocked (ต
 
 ## Current checkpoint
 
-M0 เสร็จแล้ว; เริ่ม M1 โดยบันทึก Brief ของ Lab 01 พร้อม requirement-to-evidence matrix, baseline/change scope และลำดับ Tasks ยังต้องทำ materials, คู่มือเต็ม, diagram และ cloud CI review ก่อนเลื่อนเป็น Guide-ready
+M0 เสร็จแล้ว; M1 / Lab 01 อยู่ระหว่าง Authoring มี Brief และ app/startup/probe พร้อม integration tests แล้ว คู่มือเต็มและ diagram/review ยังไม่ครบ จึงยังไม่เป็น Guide-ready
 
+ตรวจ materials บน [GitHub Actions run 39808594467](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39808594467): startup shell syntax, Python compile และ integration tests 5 tests ผ่านบน Ubuntu runner สำหรับ commit `273cdbd138d31ebf7b5fe82d34bead97ec3e02fc` ทดสอบ exact App ที่ฝังใน startup script และ probe จริง ไม่ได้รัน apt/systemd บน GCE หรือสร้าง LB/firewall/IAP จึงไม่ใช่ Cloud-verified
+
+ปรับ probe scheduling ให้เว้นระยะ submission หลัง request ช้า ไม่เร่งส่งชดเชยจนเกิด burst เกิน rate ที่ตั้งไว้ ยังต้องเพิ่ม regression test สำหรับ slow-target scheduling ในรอบ review
