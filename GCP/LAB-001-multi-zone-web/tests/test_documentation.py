@@ -9,10 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 class DocumentationTests(unittest.TestCase):
     def test_relative_links_and_anchors(self):
         text = (ROOT / 'README.md').read_text()
-        text = re.sub(r'```[\\s\\S]*?```', '', text)
+        text = re.sub(r'```[\s\S]*?```', '', text)
         headings = re.findall(r'^#{1,6} (.+)$', text, re.M)
-        anchors = {re.sub(r'[^\\w\\- ]', '', h.lower()).replace(' ', '-') for h in headings}
-        for target in re.findall(r'!?\\[[^\\]]*\\]\\(([^)]+)\\)', text):
+        anchors = {re.sub(r'[^\w\- ]', '', h.lower()).replace(' ', '-') for h in headings}
+        for target in re.findall(r'!?\[[^\]]*\]\(([^)]+)\)', text):
             if '://' in target or target.startswith('mailto:'):
                 continue
             path, _, anchor = target.partition('#')
