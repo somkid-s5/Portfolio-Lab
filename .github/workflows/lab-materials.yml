@@ -166,7 +166,7 @@ jobs:
 
   lab005:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:16
@@ -184,6 +184,7 @@ jobs:
       PGDATABASE: orders_ci
       PGUSER: orders_admin
       PGPASSWORD: disposable-orders-ci
+      LAB005_UI_PREVIEW: lab005-previews/ui-ci.png
     steps:
       - uses: actions/checkout@v4
         with:
@@ -191,12 +192,20 @@ jobs:
       - name: Install Nginx config validator
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y nginx
+          sudo apt-get install -y nginx fonts-noto-core
       - name: Install pinned Orders dependencies
         run: |
           python3 -m venv .ci-lab005
-          .ci-lab005/bin/pip install -r GCP/LAB-005-three-tier-orders/requirements.txt
+          .ci-lab005/bin/pip install -r GCP/LAB-005-three-tier-orders/requirements.txt -r GCP/LAB-005-three-tier-orders/tests/requirements.txt
       - name: Check Orders browser script syntax
         run: node --check GCP/LAB-005-three-tier-orders/web/app.js
       - name: Verify Orders transactions, API boundaries and Web config
         run: .ci-lab005/bin/python -m unittest discover -s GCP/LAB-005-three-tier-orders/tests -v
+      - name: Emit real browser CI preview
+        run: python3 -c "import base64,pathlib; print('LAB005_UI_PREVIEW='+base64.b64encode(pathlib.Path('lab005-previews/ui-ci.png').read_bytes()).decode())"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab005-web-ui-ci-preview
+          path: lab005-previews/ui-ci.png
+          if-no-files-found: error
+          retention-days: 14

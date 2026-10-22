@@ -171,4 +171,9 @@ Failoverprobe ต้องมี boundeddeadline/requests และ idempotencyk
 
 ## Materials ที่กำลังตรวจ
 
-[Order domain](app/orders.py), [schema](db/schema.sql), [seed](db/seed.sql), [runtime grants](db/grants.sql), [invariants](db/check-invariants.sql) และ [PostgreSQL transaction tests](tests/test_orders.py) เป็นแกนธุรกรรมก่อนต่อ HTTP/UI ยังไม่ใช่คู่มือ Deploy หรือผล Cloud SQL HA จริง
+[Order domain](app/orders.py), [schema](db/schema.sql), [seed](db/seed.sql), [runtime grants](db/grants.sql), [invariants](db/check-invariants.sql) และ [PostgreSQL transaction tests](tests/test_orders.py) เป็นแกนธุรกรรมที่ใช้ร่วมกับ API ยังไม่ใช่คู่มือ Deploy หรือผล Cloud SQL HA จริง
+
+
+[Orders API](app/main.py), [private DB pool](app/database.py), [Web UI](web/index.html), [browser script](web/app.js), [Nginx template](web/nginx.conf.template) และ [config renderer](scripts/render-web-config.py) แยก Web static tier ออกจาก API โดยใช้ session/CSRF/owner/role และแชร์ข้อมูลผ่าน PostgreSQL ไม่ใช้ in-memory stock
+
+UI เก็บเฉพาะ pending cart + idempotency key ใน sessionStorage ของแท็บนั้นเพื่อใช้คำขอเดิมหลัง response หาย ไม่เก็บรหัสผ่าน/cookie/CSRF ใน storage การทดสอบเบราว์เซอร์จำลอง response หายหลัง DB commit แล้ว reload/retry และตรวจ order/stock จาก DB จริง เป็นการทดสอบใน CI ไม่ใช่ผล Deploy GCP หรือ SQL HA failover

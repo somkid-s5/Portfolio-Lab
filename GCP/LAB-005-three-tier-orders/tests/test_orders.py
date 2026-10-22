@@ -278,6 +278,136 @@ class OrdersTests(unittest.TestCase):
                 conn.exec_driver_sql('ALTER ROLE orders_app LOGIN')
         self.assertEqual(client.get('/healthz',base_url='https://localhost').status_code,200)
 
+
+    def test_browser_through_nginx_recovers_lost_order_reply_without_duplicate(self):
+        import importlib.util
+        import shutil
+        import socket
+        import subprocess
+        import tempfile
+        import threading
+        import time
+        from urllib.request import urlopen
+        from werkzeug.serving import make_server
+        from selenium import webdriver
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.common.keys import Keys
+        from selenium.webdriver.support.ui import WebDriverWait
+        from main import create_app
+        spec=importlib.util.spec_from_file_location('browser_web_config',ROOT/'scripts/render-web-config.py')
+        renderer=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(renderer)
+        with patch.dict(os.environ,{'APP_LOCAL_TEST':'1','APP_VERSION':'v1'}):
+            app=create_app(self.engines[0],self.auth)
+        server=make_server('127.0.0.1',0,app,threaded=True)
+        thread=threading.Thread(target=server.serve_forever,daemon=True)
+        thread.start()
+        nginx=None
+        driver=None
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                work=Path(tmp)
+                web=work/'web'
+                web.mkdir()
+                for name in ['index.html','app.js','style.css']:
+                    shutil.copyfile(ROOT/'web'/name,web/name)
+                with socket.socket() as sock:
+                    sock.bind(('127.0.0.1',0))
+                    web_port=sock.getsockname()[1]
+                config=work/'nginx.conf'
+                config.write_text(renderer.render('127.0.0.1',str(web),web_port,server.server_port,True,
+                                                 str(work/'nginx.pid'),str(work)))
+                with (work/'nginx.log').open('w+') as logs:
+                    nginx=subprocess.Popen(['nginx','-p',str(work)+'/', '-c',str(config),
+                                            '-g','daemon off;'],stdout=subprocess.DEVNULL,stderr=logs)
+                    url='http://127.0.0.1:'+str(web_port)
+                    ready=False
+                    for _ in range(50):
+                        if nginx.poll() is not None:
+                            break
+                        try:
+                            with urlopen(url+'/livez',timeout=1) as response:
+                                ready=response.status==200
+                            if ready:
+                                break
+                        except OSError:
+                            time.sleep(.1)
+                    logs.flush()
+                    self.assertTrue(ready,(work/'nginx.log').read_text())
+                    binary=shutil.which('google-chrome') or shutil.which('chromium')
+                    self.assertIsNotNone(binary,'Cloud runner must provide a real Chrome/Chromium browser')
+                    options=webdriver.ChromeOptions()
+                    options.binary_location=binary
+                    for flag in ['--headless=new','--no-sandbox','--disable-dev-shm-usage','--window-size=1280,1200']:
+                        options.add_argument(flag)
+                    with patch.dict(os.environ,{'SE_AVOID_STATS':'true'}):
+                        driver=webdriver.Chrome(options=options)
+                    driver.set_page_load_timeout(20)
+                    driver.set_script_timeout(10)
+                    wait=WebDriverWait(driver,15)
+                    driver.get(url)
+                    wait.until(lambda d:d.find_element(By.ID,'version').text.startswith('API') and
+                               not d.find_element(By.ID,'place').get_property('disabled'))
+                    driver.find_element(By.ID,'username').send_keys('alice')
+                    driver.find_element(By.ID,'password').send_keys('test-alice')
+                    driver.find_element(By.CSS_SELECTOR,'#login-form button').click()
+                    wait.until(lambda d:d.find_element(By.ID,'workspace').is_displayed() and
+                               not d.find_element(By.ID,'place').get_property('disabled') and
+                               len(d.find_elements(By.CSS_SELECTOR,'#products input'))==5)
+                    quantity=driver.find_element(By.CSS_SELECTOR,"input[aria-label='จำนวน BOOK-01']")
+                    quantity.clear()
+                    quantity.send_keys('2',Keys.TAB)
+                    driver.execute_script("""
+                        const realFetch=window.fetch.bind(window); let dropped=false;
+                        window.fetch=async (input,options)=>{
+                          if(!dropped&&input==='/api/orders'&&options&&options.method==='POST'){
+                            dropped=true; await realFetch(input,options);
+                            throw new TypeError('CI simulated lost reply after server commit');
+                          }
+                          return realFetch(input,options);
+                        };
+                    """)
+                    driver.find_element(By.ID,'place').click()
+                    wait.until(lambda d:'เชื่อมต่อไม่ได้' in d.find_element(By.ID,'message').text)
+                    pending=driver.execute_script("return JSON.parse(sessionStorage.getItem('lab005.pending.alice'))")
+                    self.assertEqual(set(pending),{'key','items'})
+                    self.assertEqual(pending['items'],[{'sku':'BOOK-01','quantity':2}])
+                    with self.admin.connect() as conn:
+                        self.assertEqual(conn.execute(text('SELECT count(*) FROM orders')).scalar_one(),1)
+                    driver.refresh()
+                    wait.until(lambda d:d.find_element(By.ID,'pending').is_displayed() and
+                               not d.find_element(By.ID,'place').get_property('disabled'))
+                    restored=driver.execute_script("return JSON.parse(sessionStorage.getItem('lab005.pending.alice'))")
+                    self.assertEqual(restored['key'],pending['key'])
+                    driver.find_element(By.ID,'place').click()
+                    wait.until(lambda d:'ได้ผลรายการเดิมจาก retry' in d.find_element(By.ID,'message').text)
+                    self.assertIsNone(driver.execute_script("return sessionStorage.getItem('lab005.pending.alice')"))
+                    with self.admin.connect() as conn:
+                        self.assertEqual(conn.execute(text('SELECT count(*) FROM orders')).scalar_one(),1)
+                        self.assertEqual(conn.execute(text("SELECT available FROM products WHERE sku='BOOK-01'")).scalar_one(),8)
+                    preview=os.environ.get('LAB005_UI_PREVIEW')
+                    if preview:
+                        target=Path(preview)
+                        target.parent.mkdir(parents=True,exist_ok=True)
+                        self.assertTrue(driver.save_screenshot(str(target)))
+                    driver.find_element(By.XPATH,"//tbody[@id='orders']//button[normalize-space()='ยกเลิก']").click()
+                    wait.until(lambda d:'cancelled' in d.find_element(By.ID,'orders').text)
+                    with self.admin.connect() as conn:
+                        self.assertEqual(conn.execute(text("SELECT available FROM products WHERE sku='BOOK-01'")).scalar_one(),10)
+        finally:
+            if driver:
+                driver.quit()
+            if nginx:
+                nginx.terminate()
+                try:
+                    nginx.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    nginx.kill()
+                    nginx.wait(timeout=5)
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+
     def test_runtime_is_not_admin_or_ledger_deleter(self):
         with self.engines[0].connect() as conn:
             self.assertEqual(tuple(conn.execute(text('SELECT rolsuper,rolcreatedb,rolcreaterole FROM pg_roles WHERE rolname=current_user')).one()),(False,False,False))
