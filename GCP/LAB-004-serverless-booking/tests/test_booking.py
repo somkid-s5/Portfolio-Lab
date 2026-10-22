@@ -155,6 +155,81 @@ class BookingTests(unittest.TestCase):
         self.assertEqual(response.json['version'],'v2')
         self.assertEqual(client.get('/api/bookings/'+bid,base_url='https://localhost').status_code,200)
 
+
+    def test_operations_snapshot_and_retirement_guards(self):
+        import importlib.util
+        spec=importlib.util.spec_from_file_location('booking_ops',ROOT/'scripts/inspect-db.py')
+        ops=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ops)
+        first=ops.snapshot(self.admin)
+        self.assertEqual(first['invariant_violations'],[])
+        self.assertEqual(len(first['slots']),5)
+        # Existing checked-in pooled A sessions must block retirement.
+        held=self.pool.connect()
+        try:
+            with self.assertRaisesRegex(ValueError,'still has connections'):
+                ops.retire_a(self.admin)
+        finally:
+            held.close()
+        self.pool.dispose()
+        with self.admin.begin() as conn:
+            conn.exec_driver_sql('ALTER ROLE booking_b NOLOGIN')
+        try:
+            with self.assertRaisesRegex(ValueError,'Login B'):
+                ops.retire_a(self.admin)
+        finally:
+            with self.admin.begin() as conn:
+                conn.exec_driver_sql('ALTER ROLE booking_b LOGIN')
+        try:
+            ops.retire_a(self.admin)
+            state=ops.snapshot(self.admin)
+            self.assertFalse(next(r for r in state['roles'] if r['rolname']=='booking_a')['rolcanlogin'])
+            with self.assertRaises(SQLAlchemyError):
+                with self.pool.connect():
+                    pass
+        finally:
+            with self.admin.begin() as conn:
+                conn.exec_driver_sql('ALTER ROLE booking_a LOGIN')
+
+
+    def test_http_probe_journey_read_limits_and_no_secret_output(self):
+        import importlib.util
+        import threading
+        from werkzeug.serving import make_server
+        spec=importlib.util.spec_from_file_location('booking_probe',ROOT/'scripts/probe.py')
+        probe=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(probe)
+        insecure=create_app(self.pool,self.auth)
+        insecure.config['SESSION_COOKIE_SECURE']=False
+        server=make_server('127.0.0.1',0,insecure,threaded=True)
+        thread=threading.Thread(target=server.serve_forever,daemon=True)
+        thread.start()
+        url='http://127.0.0.1:'+str(server.server_port)
+        logins={u:'test-'+u for u in self.auth['users']}
+        try:
+            with self.assertRaises(ValueError):
+                probe.Client(url)
+            with self.assertRaises(ValueError):
+                probe.Client('http://example.com',True)
+            with self.assertRaises(ValueError):
+                probe.Client('https://example.com/path')
+            result=probe.journey(url,logins,True)
+            self.assertEqual(result['checks'],'completed')
+            serialized=json.dumps(result)
+            for password in logins.values():
+                self.assertNotIn(password,serialized)
+            self.assertNotIn('csrf',serialized.lower())
+            loaded=probe.read_load(url,logins,8,2,True)
+            self.assertEqual(loaded['sample_count'],8)
+            self.assertEqual(loaded['status_counts'],{'200':8})
+            for requests,workers in [(201,1),(1,9),(0,1)]:
+                with self.assertRaises(ValueError):
+                    probe.read_load(url,logins,requests,workers,True)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+
     def test_runtime_role_is_not_db_admin(self):
         with self.pool.connect() as conn:
             self.assertEqual(tuple(conn.execute(text('SELECT rolsuper,rolcreatedb,rolcreaterole FROM pg_roles WHERE rolname=current_user')).one()),(False,False,False))
