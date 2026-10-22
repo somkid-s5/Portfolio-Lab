@@ -1,7 +1,7 @@
 ---
 lab: LAB-004
 platform: GCP
-guide_status: design
+guide_status: authoring
 cloud_verification: not-run
 last_verified: null
 ---
@@ -60,11 +60,203 @@ DB credential rotation ใช้สอง loginชั่วคราว A/B เ�
 
 Fault ใช้ revisionที่ไม่รับ production traffic ใน sandboxและมีtagสำหรับทดสอบจำกัด ไม่ทำลายDBเพื่อให้มีincident ต้องบันทึกerror/สาเหตุ/การแก้/retestจริง พร้อมลบfault revisionตอนปิดงาน
 
-## ลำดับหลัง Brief
+
+## ลงมือทำ
+
+### Task 0 — เตรียม Sandbox และกำหนดเวลาปิด
+
+**ทำที่ไหน:** Google Cloud Console และ Cloud Shell (Bash) ทุกคำสั่งด้านล่างรันใน Cloud Shell ไม่ใช่ PowerShell บนเครื่องส่วนตัว
+
+1. เลือก Project สำหรับฝึกโดยเฉพาะ เปิด Billing และยืนยันว่าองค์กรอนุญาต Cloud Run public entry, Secret Manager และ Cloud SQL private services access หาก policy ไม่อนุญาต อย่าปิด policy เพื่อให้ผ่าน
+2. เปิด **Billing → Budgets & alerts → Create budget** เลือก Project นี้ ตั้งวงเงินที่ยอมรับและผู้รับแจ้งเตือน Budget แจ้งเตือนเท่านั้น ไม่หยุดค่าใช้จ่ายอัตโนมัติ
+3. กำหนดเวลาลบระบบ เช่น ภายในวันเดียวหลังทำเสร็จ Cloud SQL มีค่าใช้จ่ายแม้ไม่มีคนเปิดเว็บ คิดรวม instance, disk/backup/PITR, Secret versions, image storage, requests และ logs ตรวจ [เครื่องคำนวณราคา](https://cloud.google.com/products/calculator) ก่อน Apply ไม่ใช้ยอดจาก Lab อื่น
+4. ผู้จัดเตรียม Sandbox ต้องให้สิทธิ์ตามงาน: Service Usage Admin, Compute Network Admin, Cloud SQL Admin, Service Account Admin, Secret Manager Admin, Artifact Registry Admin, Project IAM Admin และ Cloud Run Admin ภายใน Project ฝึกนี้ การมอบ IAM สำหรับ runtime เป็นงานแยกจากสิทธิ์ login หน้าเว็บ ไม่ต้องใช้ Owner เป็น baseline
+5. เปิดปุ่ม **Activate Cloud Shell** มุมขวาบน ตรวจบัญชีก่อนเริ่ม:
+
+```bash
+gcloud auth list --filter=status:ACTIVE --format='value(account)'
+export PROJECT_ID='เปลี่ยนเป็น-project-id-จริง'
+export REGION='asia-southeast1'
+gcloud config set project "$PROJECT_ID"
+gcloud projects describe "$PROJECT_ID" --format='value(projectId)'
+git clone --branch docs/gcp-solution-labs https://github.com/somkid-s5/Portfolio-Lab.git portfolio-booking
+cd portfolio-booking
+export LAB_ROOT="$PWD/GCP/LAB-004-serverless-booking"
+git rev-parse HEAD
+gcloud version
+terraform version
+docker version
+```
+
+ถ้าเคย clone แล้ว ให้เปิด checkout เดิมและตรวจ branch/commit แทนการ clone ทับ ถ้า Terraform ไม่มี ให้ติดตั้งตาม [คู่มือ HashiCorp](https://developer.hashicorp.com/terraform/install) รุ่นที่เข้าเงื่อนไข versions.tf; CI ของชุดนี้ใช้ 1.9.8 / Google provider 6.50.0 ไม่ถือว่าเป็นรุ่นล่าสุด Docker ต้องตอบทั้ง Client และ Server
+
+**Expected:** บัญชี/Project ตรง Sandbox, อยู่ใน Repo นี้, มีเครื่องมือครบ ยังไม่มี GCP resource ของ Lab ถูกสร้าง
+
+**บันทึก T00:** วันที่ ___ / Project ___ / Region ___ / Source commit ___ / Tool versions ___ / Budget และเวลาปิด ___ (ไม่บันทึก access token)
+
+**ไปต่อเมื่อ:** มีสิทธิ์และงบ/เวลาปิดชัด หากได้ permission denied ให้ขอสิทธิ์เฉพาะงานจากผู้ดูแล ไม่เปลี่ยนไปใช้บัญชีร่วม
+
+### Task 1 — สร้าง Foundation และตรวจขอบเขต Private
+
+**ทำที่ไหน:** Cloud Shell, เริ่มจาก Lab root
+
+```bash
+cd "$LAB_ROOT"
+gcloud services enable serviceusage.googleapis.com cloudresourcemanager.googleapis.com iam.googleapis.com
+terraform -chdir=infra init
+terraform -chdir=infra validate
+terraform -chdir=infra plan -var="project_id=$PROJECT_ID" -out=booking.tfplan
+terraform -chdir=infra show -no-color booking.tfplan
+```
+
+อ่าน Plan ก่อน Apply: VPC lab004-vpc, subnet 10.44.0.0/24, PSA range 10.84.0.0/16, PostgreSQL16 Enterprise ZONAL, SSD10GB fixed size, private IP เท่านั้น, backups2/PITR1วัน, Secret containers4ชื่อ, SA runtime/bootstrap และ Artifact Registry1แห่ง ไม่ควรมีการลบของระบบอื่นหรือ secret payload ใน Plan ห้ามเปลี่ยน CIDR ถ้าไม่ตรวจว่าทับเครือข่ายที่ต้องเชื่อมต่อหรือไม่
+
+```bash
+terraform -chdir=infra apply booking.tfplan
+export INSTANCE_CONNECTION_NAME="$(terraform -chdir=infra output -raw instance_connection_name)"
+export RUNTIME_SA="$(terraform -chdir=infra output -raw runtime_service_account)"
+export BOOTSTRAP_SA="$(terraform -chdir=infra output -raw bootstrap_service_account)"
+export IMAGE_REPO="$(terraform -chdir=infra output -raw image_repository)"
+gcloud sql instances describe lab004-sql --format='yaml(databaseVersion,region,settings.edition,settings.availabilityType,settings.ipConfiguration,ipAddresses)'
+gcloud secrets list --filter='name:lab004-' --format='table(name)'
+```
+
+**Expected:** SQL มี PRIVATE address และ ipv4Enabled=false; ไม่มี PRIMARY/Public address Secret เพิ่งสร้างยังไม่มี version ค่าลับ Terraform ไม่ได้สร้าง DB password หรือ Cloud Run revision
+
+หาก instance สร้างไม่สำเร็จ ตรวจ SQL operation/error, quota/region/tier, API และ PSA connection อย่าสร้าง instance สำรองแบบ Public IP เพื่อข้ามปัญหา ถ้า CIDR ชนให้หยุดและออกแบบ range ใหม่ก่อนสร้าง App
+
+State/plan แม้ไม่มี password ยังเป็นข้อมูลโครงสร้างระบบ อย่า commit ลง Repo เก็บ checkout/infra state ใน Cloud Shell อย่างปลอดภัยจน Cleanup เสร็จ หากสลับเครื่องทำงาน ต้องใช้ state เดิม ไม่เริ่ม apply ด้วย state ว่าง
+
+**บันทึก T01:** Plan resource counts ___ / SQL private address (redact ตามนโยบาย) ___ / edition-zone ___ / state location ___ / evidence `assets/evidence/T01-private-boundary.txt` ___
+
+### Task 2 — เตรียม Secret โดยแยก Admin กับ Runtime
+
+**ทำที่ไหน:** Cloud Shell, Lab root ไม่เปิด shell tracing (`set -x`) และไม่บันทึกหน้าจอขณะเปิดไฟล์ลับ
+
+```bash
+cd "$LAB_ROOT"
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python scripts/create-secrets.py --out secrets
+git status --short --untracked-files=all
+```
+
+Generator สร้าง directory700/files600 และปฏิเสธ directory ที่มีอยู่แล้ว `auth.json` เก็บ password hashes/session key, `demo-logins.json` เป็นรหัสสำหรับเข้าเว็บ, `db-a.json`/`db-b.json` เป็น runtime login และ `bootstrap-admin.json` ใช้ postgres เฉพาะตอนตั้ง schema ไม่มีไฟล์เหล่านี้ควรปรากฏใน git status ถ้าเผลอเผยแพร่ให้ถือว่า secret รั่วและเปลี่ยนใหม่ ไม่ใช่แค่ลบออกจาก commit ล่าสุด
+
+เปิด **Cloud Shell Editor → secrets/sql-admin-password.txt** คัดลอกรหัสไปใช้กับ prompt ต่อไปนี้ (ไม่ใส่รหัสใน command line และไม่ใช้ cat พิมพ์ลง log):
+
+```bash
+gcloud sql users set-password postgres --instance=lab004-sql --prompt-for-password
+```
+
+วางรหัสจากไฟล์แล้ว Enter ต้องตรงกับ bootstrap-admin.json หากไม่ตรง bootstrap จะ authentication failed ปิดไฟล์ลับหลังใช้ จากนั้นเพิ่ม Secret versions โดยส่งจากไฟล์โดยตรง:
+
+```bash
+export AUTH_VERSION="$(gcloud secrets versions add lab004-auth --data-file=secrets/auth.json --format='value(name)' | awk -F/ '{print $NF}')"
+export A_VERSION="$(gcloud secrets versions add lab004-db-a --data-file=secrets/db-a.json --format='value(name)' | awk -F/ '{print $NF}')"
+export B_VERSION="$(gcloud secrets versions add lab004-db-b --data-file=secrets/db-b.json --format='value(name)' | awk -F/ '{print $NF}')"
+export ADMIN_VERSION="$(gcloud secrets versions add lab004-bootstrap-admin --data-file=secrets/bootstrap-admin.json --format='value(name)' | awk -F/ '{print $NF}')"
+printf 'auth=%s dbA=%s dbB=%s bootstrap=%s\n' "$AUTH_VERSION" "$A_VERSION" "$B_VERSION" "$ADMIN_VERSION"
+```
+
+**Expected:** ได้เลข version บวก4ค่า ไม่ใช่ latest; คำสั่งไม่แสดง payload Runtime SA อ่านเฉพาะ auth/db-a/db-b ส่วน bootstrap อ่าน admin/db-a/db-b ไม่อ่าน auth บัญชีผู้ใช้ที่ Deploy ต้องมี iam.serviceAccounts.actAs บน SA ที่ใช้ ผู้ดูแลสามารถให้ Service Account User เฉพาะ runtime/bootstrap ดังนี้:
+
+```bash
+export DEPLOYER_EMAIL="$(gcloud config get-value account)"
+gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SA" --member="user:$DEPLOYER_EMAIL" --role=roles/iam.serviceAccountUser
+gcloud iam service-accounts add-iam-policy-binding "$BOOTSTRAP_SA" --member="user:$DEPLOYER_EMAIL" --role=roles/iam.serviceAccountUser
+```
+
+ตัวอย่างนี้ใช้ human user หากเป็น federated/service-account deployer ต้องใช้ member type ที่ถูกต้อง ไม่แปลงทุก identity เป็น user โดยอัตโนมัติ
+
+**บันทึก T02:** Secret names+version numbers ___ / runtime/bootstrap role review ___ / file permission check ___ ห้ามแนบ demo passwords/cookies/JSON payload
+
+### Task 3 — สร้าง Image และตรึง Digest
+
+**ทำที่ไหน:** Cloud Shell, Docker build บน Cloud Shell ไม่ใช้เครื่องผู้เรียน ไม่มี secret รวมใน image เพราะ .dockerignore กัน secrets/ ออก
+
+```bash
+cd "$LAB_ROOT"
+export SOURCE_COMMIT="$(git rev-parse --short=12 HEAD)"
+export IMAGE_TAG="$IMAGE_REPO/booking:$SOURCE_COMMIT"
+gcloud auth configure-docker "$REGION-docker.pkg.dev"
+docker build --pull -t "$IMAGE_TAG" .
+docker push "$IMAGE_TAG"
+export IMAGE_DIGEST="$(gcloud artifacts docker images describe "$IMAGE_TAG" --format='value(image_summary.digest)')"
+export IMAGE_PIN="$IMAGE_REPO/booking@$IMAGE_DIGEST"
+printf '%s\n' "$IMAGE_PIN"
+```
+
+**Expected:** digest รูป sha256: ตามด้วย64ตัวอักษร ไม่ใช้ tag ที่อาจถูกเขียนทับตอน Deploy ถ้า push denied ตรวจ active account และสิทธิ์ Artifact Registry ใน repo lab004-images; อย่าเอา runtime SA ไปเป็น image builder หรือมอบ Editor ให้ runtime
+
+**บันทึก T03:** Commit ___ / Image digest ___ / Build result ___ / ไม่พบ secret ใน context ___
+
+### Task 4 — Bootstrap ฐานข้อมูลด้วย Job แยก
+
+**ทำที่ไหน:** Cloud Shell; Job รันใน Cloud Run ผ่าน Direct VPC ภายในregionเดียวกัน
+
+```bash
+gcloud run jobs create lab004-bootstrap --region="$REGION" \
+  --image="$IMAGE_PIN" --service-account="$BOOTSTRAP_SA" \
+  --network=lab004-vpc --subnet=lab004-run-subnet --vpc-egress=private-ranges-only \
+  --tasks=1 --parallelism=1 --max-retries=0 --task-timeout=300s \
+  --cpu=1 --memory=512Mi --command=python \
+  --args=scripts/init-db.py,--role-a-file,/secrets/a/config.json,--role-b-file,/secrets/b/config.json \
+  --set-env-vars="DB_MODE=cloud,DB_CONFIG_FILE=/secrets/admin/config.json,INSTANCE_CONNECTION_NAME=$INSTANCE_CONNECTION_NAME" \
+  --set-secrets="/secrets/admin/config.json=lab004-bootstrap-admin:$ADMIN_VERSION,/secrets/a/config.json=lab004-db-a:$A_VERSION,/secrets/b/config.json=lab004-db-b:$B_VERSION"
+gcloud run jobs execute lab004-bootstrap --region="$REGION" --wait
+gcloud run jobs logs read lab004-bootstrap --region="$REGION" --limit=30
+```
+
+**Expected:** execution สำเร็จ และข้อความ Schema, seed and least-privilege logins created atomically ไม่มี password จะได้ slots5แถว/schema/booking_a/booking_b ที่ไม่ใช่ superuser การสร้างทั้งหมดอยู่ใน transaction เดียว
+
+หาก timeout ระหว่าง Direct VPC เริ่มต้นหรือ SQL connector เชื่อมต่อ ให้ตรวจ execution logs และ rerun **execute** หลังแก้เครือข่าย/permission ไม่ต้อง create job ซ้ำ ถ้าพบ Runtime role exists แสดงว่าฐานข้อมูลผ่าน bootstrap แล้วหรือมีของเดิมอยู่ ให้ตรวจ ไม่ reset password ขณะระบบยังใช้งานอยู่ ถ้า Job จบไปแล้วแต่ response หาย ห้ามอนุมานว่า transaction ล้มเหลว
+
+**บันทึก T04:** Execution name ___ / status ___ / schema message ___ / error+retest ___ / evidence `assets/evidence/T04-bootstrap.txt` (ตรวจว่าไม่มี secret)
+
+### Task 5 — Deploy v1 และเปิด Booking UI
+
+**ทำที่ไหน:** Cloud Shell แล้วเปิด URL ใน Browser
+
+```bash
+cd "$LAB_ROOT"
+.venv/bin/python scripts/deploy-service.py \
+  --project "$PROJECT_ID" --region "$REGION" --image "$IMAGE_PIN" \
+  --auth-version "$AUTH_VERSION" --db-version "$A_VERSION" --suffix v1-a01
+```
+
+ครั้งแรกเป็น **dry-run** อ่าน command ที่แสดง: runtime SA ถูกตัว, Direct VPC/subnetถูก, DB private config, secret versionเป็นเลข, concurrency8, max-instances2, poolใน App4/instance, ไม่มี APP_LOCAL_TEST หรือ admin secret จากนั้นรันชุดเดิมโดยเติม `--execute`:
+
+```bash
+.venv/bin/python scripts/deploy-service.py \
+  --project "$PROJECT_ID" --region "$REGION" --image "$IMAGE_PIN" \
+  --auth-version "$AUTH_VERSION" --db-version "$A_VERSION" --suffix v1-a01 --execute
+export SERVICE_URL="$(gcloud run services describe lab004-booking --region="$REGION" --format='value(status.url)')"
+curl --max-time 15 --fail-with-body "$SERVICE_URL/livez"
+curl --max-time 15 --fail-with-body "$SERVICE_URL/healthz"
+curl --max-time 15 -i "$SERVICE_URL/api/bookings"
+gcloud run services describe lab004-booking --region="$REGION" --format='yaml(status.latestReadyRevisionName,status.traffic)'
+```
+
+**Expected:** livez alive=true/version=v1; healthz ready=true; ไม่ login แล้ว bookings=401 login_required (ตั้งใจให้ curl คำสั่งนี้ไม่ใช้ --fail) Startup/liveness ตรวจ process ไม่บังคับ restart ทุกครั้งที่ DBขัดข้อง การ deploy สำเร็จจึงยังไม่พิสูจน์ DB ต้องตรวจ healthz แยก
+
+เปิด SERVICE_URL → หน้า Booking → เปิด demo-logins.json ใน Editor แบบส่วนตัว → login alice → เห็น5slots → จองช่วงที่เลือก → รายการของฉันมี booking → ยกเลิกแล้วสถานะ cancelled จำนวนที่นั่งกลับคืน Login cookie เป็น Secure/HttpOnly/SameSite=Lax และหมดอายุเมื่อไม่มี activity10นาที ไม่มีการใส่ DB secret ใน Browser
+
+หาก revision เดิมชื่อ v1-a01 มีอยู่แล้ว ให้ตรวจว่า Deploy เดิมสำเร็จหรือไม่ก่อน เลือก suffix ใหม่เช่น v1-a02 เมื่อกำลังสร้าง revisionใหม่ ไม่ลบของเดิมเพื่อให้ชื่อว่าง
+- livezไม่ผ่าน: ดู container import/startup/secret mount/PORT
+- livezผ่านแต่healthz503: ดู database_unavailable, SQLClient/SecretAccessor, VPC/PSA/region, admin bootstrap, DB login และ version ไม่พิมพ์ connection string ที่มีpassword
+- Cloud Run403ก่อนเห็นหน้าlogin: ตรวจ invoker policy และ org policy ไม่ใช่รหัส alice ผิด
+- login401: ตรวจ demo user/password จากbundleเดียวกับ auth version; login403csrf_required: refreshหน้าและรับsessionใหม่ ไม่ปิดCSRF
+
+**บันทึก T05:** URL ___ / Ready revision ___ / Secret versions ___ / livez-healthz-anonymous statuses ___ / Alice booking reference+cancel result ___ / Screenshotหลังloginที่ไม่เห็นรหัส ___
+
+**เกณฑ์ไปต่อ:** Browser journey สำเร็จและ healthz ผ่าน จด revision v1 ไว้สำหรับเปรียบเทียบ v2/rollback ใน Task ถัดไป
+
+## สถานะการจัดทำ
 
 ยืนยัน identity/network/schema/rotation/connection budget → working App + PostgreSQL integration tests + container → deployment/IaC materials → Diagramตามscopeจริง → READMEพาทำครบjourney/negative/ops/change/cleanup → Review/render/Guide-ready
 
-สถานะ Design / Materials: มี App UI/API, schema/seed/invariants, bounded pool, secret generator, bootstrap/grants และ Dockerfile พร้อม PostgreSQL integration tests กำลังตรวจ cloud CI ยังไม่มีคู่มือ Deploy เต็มหรือผล GCP จริง
+สถานะ Authoring: มี App UI/API, schema/seed/invariants, bounded pool, secret generator, bootstrap/grants และ Dockerfile พร้อม PostgreSQL integration tests กำลังตรวจ cloud CI ยังไม่มีคู่มือ Deploy เต็มหรือผล GCP จริง
 
 ไฟล์ประกอบ: [App](app/main.py), [DB pool/connector](app/database.py), [UI](app/templates/index.html), [schema](db/schema.sql), [seed](db/seed.sql), [grants](db/grants.sql), [invariants](db/check-invariants.sql), [secret generator](scripts/create-secrets.py), [bootstrap](scripts/init-db.py), [tests](tests/test_booking.py)
 

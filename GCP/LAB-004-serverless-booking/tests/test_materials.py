@@ -41,6 +41,27 @@ class MaterialsTests(unittest.TestCase):
             self.assertEqual((target/'db-a.json').read_bytes(),old)
             self.assertEqual(snapshot,{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in target.iterdir()})
 
+    def test_deploy_is_dry_run_and_pins_identity_network_and_secrets(self):
+        cmd=[sys.executable,str(ROOT/'scripts/deploy-service.py'),'--project','sandbox-booking',
+             '--image','asia-southeast1-docker.pkg.dev/sandbox-booking/lab004-images/booking@sha256:'+'a'*64,
+             '--auth-version','1','--db-version','2','--suffix','v1-a01']
+        result=subprocess.run(cmd,capture_output=True,text=True,timeout=5)
+        self.assertEqual(result.returncode,0,result.stderr)
+        for expected in ['DRY RUN','lab004-runtime@','private-ranges-only','--max-instances 2',
+                         'lab004-db-a:2','lab004-auth:1','APP_VERSION=v1','/livez']:
+            self.assertIn(expected,result.stdout)
+        self.assertNotIn('APP_LOCAL_TEST',result.stdout)
+        self.assertNotIn('bootstrap-admin',result.stdout)
+        candidate=subprocess.run(cmd+['--candidate','--login','b','--concurrency','16'],
+                                 capture_output=True,text=True,timeout=5)
+        self.assertEqual(candidate.returncode,0,candidate.stderr)
+        self.assertIn('--no-traffic --tag candidate',candidate.stdout)
+        self.assertIn('lab004-db-b:2',candidate.stdout)
+        for flags in [['--db-version','latest'],['--image','untrusted/image:v1'],
+                      ['--concurrency','100'],['--suffix','invalid_suffix']]:
+            rejected=subprocess.run(cmd+flags,capture_output=True,text=True,timeout=5)
+            self.assertNotEqual(rejected.returncode,0)
+
     def test_all_python_materials_compile(self):
         for folder in ['app','scripts','tests']:
             for path in (ROOT/folder).glob('*.py'):

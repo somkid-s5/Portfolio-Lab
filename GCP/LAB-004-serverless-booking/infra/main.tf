@@ -5,7 +5,7 @@ locals {
     "compute.googleapis.com", "servicenetworking.googleapis.com",
     "sqladmin.googleapis.com", "run.googleapis.com",
     "secretmanager.googleapis.com", "artifactregistry.googleapis.com",
-    "cloudbuild.googleapis.com"
+    "iam.googleapis.com", "cloudresourcemanager.googleapis.com"
   ])
   secret_names = toset(["auth", "db-a", "db-b", "bootstrap-admin"])
 }

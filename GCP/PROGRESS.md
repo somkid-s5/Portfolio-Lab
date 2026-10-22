@@ -7,7 +7,7 @@
 | 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 02 | [ระบบ Inventory ภายในองค์กรแบบ Private](LAB-002-private-inventory/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 03 | [เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS](LAB-003-public-docs-cdn/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Design | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 05 | ระบบธุรกรรมสามชั้นบน VM | Planned | Not run | — |
 | 06 | ระบบรับและประมวลผลไฟล์อย่างปลอดภัย | Planned | Not run | — |
 | 07 | ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue | Planned | Not run | — |
@@ -62,3 +62,5 @@ Lab 04 / Design + Materials: เพิ่ม Booking UI/API พร้อม CSRF
 Lab 04 materials checkpoint: [CI 39818762521 / lab004](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39818762521) source dfd14c5 — Booking tests กับ PostgreSQL16, browser JS syntax และ Docker image build ผ่าน ตรวจรายละเอียด logs แล้ว ยังไม่รวม Cloud Run/SQL/IAM networking จริง และยังต้องทำ deployment materials/Guide/Diagram ก่อน Guide-ready
 
 Lab 04 foundation checkpoint: เพิ่ม Terraform สำหรับ VPC/Direct VPC subnet/PSA, PostgreSQL16 Enterprise private-only, Artifact Registry, runtime/bootstrap identities และ secret containers แบบไม่ใส่ค่าลับใน Terraform state; เพิ่ม bootstrap-admin JSON และตรวจ no-overwrite ทั้ง bundle กำลังตรวจ cloud CI ด้วย init/validate เท่านั้น ยังไม่มี GCP plan/apply หรือผล Cloud-verified
+
+Lab 04 / Authoring: [CI 39820536459 / lab004](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39820536459) source ae64609 ผ่าน PostgreSQL16 tests/Docker build/Terraform init+validate ตรวจ logs แล้ว เพิ่ม dry-run deploy helper (digest + numeric secret versions + explicit runtime/network/limits), IAM API prerequisites และ README Tasks0–5 ถึง Browser journey; ยังต้องเติม tests/ops/rotation/change/cleanup/Diagram ก่อน Review ไม่มี GCP provisioning
