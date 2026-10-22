@@ -13,7 +13,9 @@ last_verified: null
 
 สร้างทางเข้าเว็บจุดเดียว กระจายคำขอไปยัง App สอง Zone แล้วพิสูจน์ว่าเมื่อหยุดหนึ่ง App ระบบยังรับงานผ่านอีกเครื่องได้
 
-![Solution: two-zone web application](assets/solution.svg)
+![Solution: two-zone web application](assets/solution-preview.png)
+
+[เปิด Diagram แบบ SVG](assets/solution.svg)
 
 | รูปแบบ | รายละเอียด |
 |---|---|
