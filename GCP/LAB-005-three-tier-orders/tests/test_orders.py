@@ -158,8 +158,9 @@ class OrdersTests(unittest.TestCase):
                 $$ BEGIN RAISE EXCEPTION 'injected test-only ledger failure'; END; $""")
             conn.exec_driver_sql('CREATE TRIGGER reject_event BEFORE INSERT ON stock_events FOR EACH ROW EXECUTE FUNCTION reject_test_event()')
         try:
-            with self.assertRaises(SQLAlchemyError):
+            with self.assertRaises(SQLAlchemyError) as caught:
                 self.place()
+            self.assertIn('injected test-only ledger failure',str(caught.exception))
             with self.admin.connect() as conn:
                 for table in ['orders','order_items','stock_events']:
                     self.assertEqual(conn.exec_driver_sql('SELECT count(*) FROM '+table).scalar_one(),0)
