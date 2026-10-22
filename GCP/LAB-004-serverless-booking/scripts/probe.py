@@ -132,25 +132,31 @@ def capacity_race(base,logins,allow_loopback_http=False):
     return {'mode':'race','checks':'completed','requests':[r for c in clients.values() for r in c.records]}
 
 def read_load(base,logins,requests,workers,allow_loopback_http=False):
-    if not 1<=requests<=200 or not 1<=workers<=8:
-        raise ValueError('Limit requests to 1..200 and workers to 1..8')
-    # One independent cookie jar per worker: urllib opener is not shared across threads.
-    def worker(count):
-        c=Client(base,allow_loopback_http)
-        c.login('alice',logins['alice'])
+    if not 1<=requests<=200 or not 1<=workers<=16:
+        raise ValueError('Limit requests to 1..200 and workers to 1..16')
+    counts=[requests//workers+(i<requests%workers) for i in range(workers)]
+    tasks=[]
+    # Authenticate sequentially before measuring: avoid a parallel password-hash
+    # memory spike and keep the read-load experiment separate from login capacity.
+    for count in counts:
+        if count:
+            c=Client(base,allow_loopback_http)
+            c.login('alice',logins['alice'])
+            tasks.append((c,count))
+    def worker(task):
+        c,count=task
         start=len(c.records)
         for _ in range(count):
             c.request('/api/slots')
         return c.records[start:]
-    counts=[requests//workers+(i<requests%workers) for i in range(workers)]
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        records=[r for batch in pool.map(worker,[n for n in counts if n]) for r in batch]
+        records=[r for batch in pool.map(worker,tasks) for r in batch]
     durations=sorted(r['duration_ms'] for r in records)
     status_counts={str(s):sum(r['status']==s for r in records) for s in sorted({r['status'] for r in records})}
     return {'mode':'read-load','requests':records,'status_counts':status_counts,
             'sample_count':len(records),'p50_ms':statistics.median(durations),
             'p95_ms':durations[max(0,(95*len(durations)+99)//100-1)],
-            'note':'Bounded authenticated reads only; not a production capacity claim'}
+            'note':'Bounded authenticated reads only; sequential login excluded; not a production capacity claim'}
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)

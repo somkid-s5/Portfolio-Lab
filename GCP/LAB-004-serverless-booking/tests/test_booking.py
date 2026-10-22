@@ -224,7 +224,7 @@ class BookingTests(unittest.TestCase):
             loaded=probe.read_load(url,logins,8,2,True)
             self.assertEqual(loaded['sample_count'],8)
             self.assertEqual(loaded['status_counts'],{'200':8})
-            for requests,workers in [(201,1),(1,9),(0,1)]:
+            for requests,workers in [(201,1),(1,17),(0,1)]:
                 with self.assertRaises(ValueError):
                     probe.read_load(url,logins,requests,workers,True)
         finally:

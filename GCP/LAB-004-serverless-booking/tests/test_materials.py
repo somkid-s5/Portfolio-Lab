@@ -62,6 +62,30 @@ class MaterialsTests(unittest.TestCase):
             rejected=subprocess.run(cmd+flags,capture_output=True,text=True,timeout=5)
             self.assertNotEqual(rejected.returncode,0)
 
+
+    def test_runtime_secret_boundary_probe_does_not_read_or_log_payload(self):
+        import importlib.util
+        from unittest.mock import Mock
+        spec=importlib.util.spec_from_file_location('secret_boundary',ROOT/'scripts/check-secret-boundary.py')
+        from google.auth.transport.requests import AuthorizedSession
+        checker=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(checker)
+        response=Mock(status_code=403)
+        session=Mock()
+        session.get.return_value=response
+        self.assertTrue(checker.check(session,'sandbox-booking','1')['denied'])
+        response.json.assert_not_called()
+        response.close.assert_called_once()
+        for status in [200,401,404,500]:
+            response=Mock(status_code=status)
+            session.get.return_value=response
+            with self.assertRaisesRegex(ValueError,'Expected permission denied'):
+                checker.check(session,'sandbox-booking','1')
+            response.json.assert_not_called()
+            response.close.assert_called_once()
+        with self.assertRaises(ValueError):
+            checker.check(session,'sandbox-booking','latest')
+
     def test_all_python_materials_compile(self):
         for folder in ['app','scripts','tests']:
             for path in (ROOT/folder).glob('*.py'):
