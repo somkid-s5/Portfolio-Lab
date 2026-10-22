@@ -21,3 +21,14 @@ jobs:
         run: python3 -m py_compile GCP/LAB-001-multi-zone-web/scripts/probe.py GCP/LAB-001-multi-zone-web/tests/test_materials.py
       - name: Exercise embedded app and bounded probe
         run: python3 -m unittest discover -s GCP/LAB-001-multi-zone-web/tests -v
+      - name: Render baseline diagram at reading width
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y librsvg2-bin
+          mkdir -p diagram-previews
+          rsvg-convert --width 960 GCP/LAB-001-multi-zone-web/assets/solution.svg -o diagram-previews/lab001-solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab001-diagram-preview
+          path: diagram-previews/lab001-solution.png
+          retention-days: 14

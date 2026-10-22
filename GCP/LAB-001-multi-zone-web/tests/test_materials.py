@@ -110,6 +110,27 @@ class MaterialsTests(unittest.TestCase):
             self.assertEqual(self.command('--url', url, '--out',
                              str(self.work / 'invalid')).returncode, 2)
 
+    def test_slow_target_does_not_trigger_catchup_burst(self):
+        from unittest.mock import patch
+        spec = importlib.util.spec_from_file_location('lab001_probe', PROBE)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        submitted = []
+        def slow_request(url, index, timeout):
+            submitted.append(time.perf_counter())
+            if index == 1:
+                time.sleep(.35)
+            return {'request': index, 'started_utc': 'test', 'status': 200,
+                    'backend': 'test-backend', 'latency_ms': 1, 'error': ''}
+        args = ['probe.py', '--url', self.url, '--requests', '4',
+                '--concurrency', '1', '--rate', '10',
+                '--out', str(self.work / 'slow')]
+        with patch.object(module, 'request_once', slow_request), patch.object(sys, 'argv', args):
+            self.assertEqual(module.main(), 0)
+        self.assertEqual(len(submitted), 4)
+        for before, after in zip(submitted, submitted[1:]):
+            self.assertGreaterEqual(after - before, .085)
+
     def test_probe_unreachable_records_errors(self):
         with socket.socket() as listener:
             listener.bind(('127.0.0.1', 0))
