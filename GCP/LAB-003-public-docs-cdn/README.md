@@ -228,3 +228,277 @@ Certificate ยังไม่ ACTIVE เป็นเรื่องที่ค
 Backend bucket logging เปิดอัตโนมัติและปิดไม่ได้ด้วย sample-rate flag ของ backend service หากไม่เห็น logs ภายหลังให้ตรวจช่วงเวลา/forwarding rule และ exclusions ไม่เพิ่มคำสั่ง --enable-logging ที่ไม่มีสำหรับ backend bucket
 
 **บันทึก T04:** frontend IP/scheme [เติม] / proxy/maps/backend bucket [เติม] / cert initial state [เติม] / resource inventory [เติม] / สถานะ PENDING
+
+## Task 5 — ตั้ง DNS และตรวจ HTTPS จริง
+
+**ทำที่:** หน้า DNS ของผู้ให้บริการ domain ที่คุณควบคุม ไม่จำเป็นต้องย้ายทั้ง domain เข้า Cloud DNS
+
+1. เปิด DNS zone ของ domain ตรวจว่า hostname ใหม่ของ Lab ยังไม่ใช้งาน อย่าแก้ record ของระบบจริง
+2. เพิ่ม **A record** ของ HOST ให้ชี้ LB_IP จาก Task 4 ตั้ง TTL 300 วินาที หรือค่าต่ำสุดที่ provider รองรับ
+3. หาก provider มี proxy/CDN อีกชั้น ให้ record Lab นี้เป็น **DNS only** เพื่อทดสอบ Google LB โดยตรง
+4. ถ้า hostname ใหม่นี้มี AAAA/CNAME เดิม ให้ตรวจเจ้าของและ dependencies ก่อนแก้ ค่า DNS ทั้งหมดต้องชี้ frontend ที่ตั้ง certificate จริง อย่าลบ record ที่คุณไม่มีสิทธิ์ดูแล
+5. **Console → Network services → Load balancing → Certificates** หรือค้น certificate lab003-cert ตรวจสถานะ domain/certificate
+
+**Cloud Shell:**
+
+```bash
+dig +short A "$HOST"
+dig +short AAAA "$HOST"
+gcloud compute ssl-certificates describe lab003-cert --global \
+  --format='yaml(name,managed.status,managed.domainStatus,expireTime)'
+```
+
+**Expected:** A ตรง LB_IP, ไม่มี AAAA/CNAME ที่ชี้ระบบอื่น, certificate ACTIVE หลัง DNS/attachment พร้อม การ provision อาจใช้เวลาตาม DNS propagation ไม่ตั้ง deadline ว่าได้แน่ในไม่กี่นาที ถ้า FAILED_NOT_VISIBLE ให้ตรวจ DNS, frontend443 และ cert attachment ก่อนสร้าง cert ใหม่ ถ้า CAA/องค์กรจำกัดผู้ออก certificate ให้ประสานผู้ดูแล ไม่ข้ามด้วย self-signed หรือ -k
+
+เมื่อ ACTIVE แล้ว:
+
+```bash
+curl --connect-timeout 5 --max-time 15 -I "https://$HOST/index.html"
+curl --connect-timeout 5 --max-time 15 -I "http://$HOST/index.html"
+curl --connect-timeout 5 --max-time 15 -I "https://$HOST/"
+openssl s_client -connect "$HOST:443" -servername "$HOST" \
+  -verify_return_error -verify_hostname "$HOST" < /dev/null
+```
+
+**Expected:** HTTPS index=200, HTTP redirect ไป HTTPS, root / redirect ไป /index.html และ TLS verification ผ่านชื่อ HOST จริง ไม่ใช้การเห็นรูปกุญแจอย่างเดียวแทน certificate check
+
+**บันทึก T05 / R1:** DNS ก่อน/หลัง [เติม] / cert ACTIVE และ UTC [เติม] / HTTPS status, redirect Location, certificate subject/SAN/expiry [เติม] / ข้อจำกัด propagation [เติม] / สถานะ PENDING
+
+## Task 6 — ตรวจ Release และพิสูจน์ CDN Cache
+
+**Cloud Shell:**
+
+```bash
+cd "$LAB_DIR"
+python3 scripts/probe-release.py --url "https://$HOST" \
+  --manifest builds/v1/manifest.json --requests 10 --out assets/evidence/t06-v1.json
+```
+
+**Expected:** exit 0, all_checks_passed=true, tls_verified=true; index/asset SHA256 และ Cache-Control ตรง manifest คำสั่งนี้ไม่มี cache-buster และไม่ส่ง Cache-Control:no-cache เพื่อไม่ทำลายการสังเกต cache ถ้ารันซ้ำเปลี่ยน --out ชื่อใหม่ ไม่เขียนทับหลักฐานเดิม
+
+### แยกหลักฐาน content จาก cache hit
+
+1. เปิด **Logging → Logs Explorer**
+2. เลือกช่วงเวลาครอบคลุมการทดสอบและ resource **Cloud HTTP Load Balancer**
+3. ใช้ filter:
+
+```text
+resource.type="http_load_balancer"
+resource.labels.forwarding_rule_name="lab003-https"
+```
+
+4. เปิด entry ที่ requestUrl เป็น URL ของ HOST ในชุดทดสอบ ดู httpRequest.cacheLookup, cacheHit, cacheFillBytes และ jsonPayload.statusDetails/cacheId
+5. รัน probe รอบ warm อีกครั้งชื่อ t06-v1-warm.json รอ log ingestion แล้วหา request ที่ `cacheHit=true` หรือ statusDetails=`response_from_cache` ตาม log จริง
+6. เก็บ entry ของ cache fill/miss และ hit ที่สัมพันธ์กับ URL/เวลา บันทึกถ้าไม่พบ ห้ามแปลว่า latency ต่ำหรือมี Age header อย่างเดียวคือ hit แน่นอน
+
+**Expected R3:** มี metadata ตามชนิดไฟล์และ cache-hit evidence หลัง warmup ถ้า logs ไม่มาให้ตรวจ log exclusions, forwarding rule และเวลาที่เลือก Backend bucket logging เปิดอัตโนมัติ ไม่ใช่กรณี backend service ที่ต้อง enable sample rate การ warm จาก client เดียวไม่รับประกันทุก PoP เป็น hit
+
+**บันทึก T06 / R2–R3:** index release/hash [เติม] / CSS path/hash/TTL [เติม] / cache fill URL/time/field [เติม] / cache hit URL/time/field [เติม] / probe JSON และ sanitized log entries [แนบ] / สถานะ PENDING
+
+## Task 7 — ปล่อย v2 และรับมือ Cache ที่ยังเห็น v1
+
+**Cloud Shell:** อ่าน generation ปัจจุบันทุกครั้งก่อนเปลี่ยน root index:
+
+```bash
+export INDEX_GENERATION="$(gcloud storage objects describe "gs://$BUCKET/index.html" --format='value(generation)')"
+python3 scripts/publish-release.py --release-dir builds/v2 --bucket "$BUCKET" \
+  --expected-generation "$INDEX_GENERATION"
+```
+
+อ่าน dry-run ต้องเป็น assets v2 → archived index v2 → root index ที่คาด generation ล่าสุด ถ้าถูกต้อง:
+
+```bash
+python3 scripts/publish-release.py --release-dir builds/v2 --bucket "$BUCKET" \
+  --expected-generation "$INDEX_GENERATION" --apply
+curl --max-time 10 -i "https://storage.googleapis.com/$BUCKET/index.html"
+python3 scripts/probe-release.py --url "https://$HOST" \
+  --manifest builds/v2/manifest.json --requests 5 --out assets/evidence/t07-v2-transition.json
+```
+
+**Expected ช่วง transition:** origin เป็น v2 แต่ edge อาจยังเป็น v1 จน TTL/convergence ผ่าน Probe อาจ exit 1 เพราะ hash ยังเก่า ให้เก็บผลตามจริง ไม่เปลี่ยน manifest ให้ตรงกับของเก่าที่ edge ส่งมา CSS เป็นชื่อใหม่จึงไม่มีการเขียนทับ bytes ของ asset เดิม
+
+เมื่อยืนยัน origin v2 ถูกแล้ว ถ้าทีมต้องการเปลี่ยนทันทีให้ invalidate เฉพาะ index:
+
+```bash
+gcloud compute url-maps invalidate-cdn-cache lab003-content-map \
+  --host="$HOST" --path="/index.html"
+python3 scripts/probe-release.py --url "https://$HOST" \
+  --manifest builds/v2/manifest.json --requests 10 --out assets/evidence/t07-v2-after.json
+```
+
+การ invalidate ใช้เวลามีผล ไม่ใช่ synchronous global browser refresh ถ้ารอบแรกยังเห็นเก่า ให้บันทึกเวลาและรันชื่อรอบใหม่แบบจำกัดหลังรอ ไม่ใช้ loop ยิงไม่จำกัดและไม่ invalidate /* ซ้ำ ๆ การ invalidate CDN ไม่ล้าง browser cache ของผู้ใช้
+
+### ถ้าเจอ generation precondition failure
+
+อย่าแก้ expected generation เป็น 0 หรือ force overwrite ทันที ตรวจ root generation/release ปัจจุบันและว่าใครเปลี่ยน ถ้าการเปลี่ยนอื่นถูกต้องให้หยุดและตัดสินใจร่วมกับเจ้าของ ถ้าจะ retry ต้องอ่าน generation ใหม่อย่างมีเหตุผลก่อน
+
+หากการอัปโหลดค้างหลัง CSS สำเร็จแต่ archived index ยังไม่มี ให้เก็บ error/dry-run แล้วใช้คำสั่ง upload archived index จาก dry-run ที่มี --if-generation-match=0 โดยไม่อัปโหลดทับ CSS อีก จากนั้นใช้ --index-only เพื่อ verify remote asset/archive ก่อน root publish ถ้าไม่แน่ใจ remote bytes ให้หยุดตรวจ ไม่ข้าม integrity check
+
+**บันทึก T07 / R4:** generation ก่อน/หลัง [เติม] / origin v2 UTC [เติม] / edge transition ที่วัดได้ [เติม] / invalidation operation/time [เติม] / ผล after [เติม] / สถานะ PENDING
+
+## Task 8 — Fault: Bad Release และ Rollback
+
+ทำเฉพาะ demo hostname โดยผู้ทำรู้ว่าชั่วคราวจะเห็นเอกสารผิด ห้ามใช้กับเอกสารลูกค้าจริง
+
+**Cloud Shell:**
+
+```bash
+export INDEX_GENERATION="$(gcloud storage objects describe "gs://$BUCKET/index.html" --format='value(generation)')"
+python3 scripts/publish-release.py --release-dir builds/bad --bucket "$BUCKET" \
+  --expected-generation "$INDEX_GENERATION" --apply
+gcloud compute url-maps invalidate-cdn-cache lab003-content-map --host="$HOST" --path="/index.html"
+python3 scripts/probe-release.py --url "https://$HOST" \
+  --manifest builds/bad/manifest.json --requests 5 --out assets/evidence/t08-bad.json
+```
+
+**Expected:** หลัง edge รับ bad release จริง bytes/hash อาจตรง manifest ทุกไฟล์และ HTTP200 แต่ business_content_ok=false เพราะไม่มี heading Support guide ดังนั้น all_checks_passed=false และ exit1 ระบบส่งไฟล์สำเร็จไม่ได้แปลว่าบริการตอบโจทย์ถูก
+
+### ย้อนกลับ v1 ที่รู้ว่าใช้งานได้
+
+```bash
+export INDEX_GENERATION="$(gcloud storage objects describe "gs://$BUCKET/index.html" --format='value(generation)')"
+python3 scripts/publish-release.py --release-dir builds/v1 --bucket "$BUCKET" \
+  --expected-generation "$INDEX_GENERATION" --index-only
+python3 scripts/publish-release.py --release-dir builds/v1 --bucket "$BUCKET" \
+  --expected-generation "$INDEX_GENERATION" --index-only --apply
+gcloud compute url-maps invalidate-cdn-cache lab003-content-map --host="$HOST" --path="/index.html"
+python3 scripts/probe-release.py --url "https://$HOST" \
+  --manifest builds/v1/manifest.json --requests 10 --out assets/evidence/t08-rollback.json
+```
+
+**Expected:** --index-only อ่าน remote CSS/archive ตรวจ SHA256 ก่อน root publish หากไม่ตรงจะหยุด ไม่อัปโหลดทับ immutable path หลัง invalidate/convergence ต้องกลับมา v1, business content ถูก, asset hash/metadata ตรงและ exit0 เก็บ raw results ที่ fail ก่อนหน้าทั้งหมด
+
+Rollback นี้ย้อน content pointer ไม่ได้ลบ bad release, history หรือ browser cache จด deployment/invalidation/observed recovery UTC เพื่อวัดเวลาที่สังเกตได้ ไม่อ้าง RTO guarantee หรือ zero downtime
+
+**บันทึก T08 / R5:** bad publish time/generation [เติม] / HTTP/hash/business result [เติม] / สาเหตุที่ระบุได้ [เติม] / rollback generation/remote verification [เติม] / observed recovery และข้อจำกัด [เติม] / สถานะ PENDING
+
+## Task 9 — Change Request: Hotfix HTML เร็ว แต่ไม่ทำ Asset Cache เสีย
+
+ทีมขอให้ HTML hotfix สดขึ้นเป็น TTL15 วินาที โดย CSS ยัง immutable หนึ่งปี ไม่แก้เป็น FORCE_CACHE_ALL เพราะจะทับนโยบาย origin ทั้งชุด
+
+**Cloud Shell:** v2 มี archived assets อยู่แล้วจาก Task 7 จึงเปลี่ยน metadata ของ root โดยใช้ --index-only:
+
+```bash
+cd "$LAB_DIR"
+python3 scripts/build-release.py --release v2 --html-ttl 15 --out builds/v2-fast
+export INDEX_GENERATION="$(gcloud storage objects describe "gs://$BUCKET/index.html" --format='value(generation)')"
+python3 scripts/publish-release.py --release-dir builds/v2-fast --bucket "$BUCKET" \
+  --expected-generation "$INDEX_GENERATION" --index-only
+python3 scripts/publish-release.py --release-dir builds/v2-fast --bucket "$BUCKET" \
+  --expected-generation "$INDEX_GENERATION" --index-only --apply
+gcloud compute url-maps invalidate-cdn-cache lab003-content-map --host="$HOST" --path="/index.html"
+python3 scripts/probe-release.py --url "https://$HOST" \
+  --manifest builds/v2-fast/manifest.json --requests 10 --out assets/evidence/t09-fast-html.json
+```
+
+**Expected:** index Cache-Control เป็น public,max-age=15, CSS ยัง public,max-age=31536000,immutable และ URL/hash ของ CSS v2 เหมือนเดิม เป็น metadata change โดยไม่เปลี่ยน asset bytes เก็บก่อน/หลัง header และ cache log ผลต้องไม่อ้างว่า TTL15 ทำให้ทุก browser เปลี่ยนใน15วินาทีทันที เพราะ browser/edge อาจมี representation ตาม TTLเก่าก่อนเปลี่ยน
+
+**Backout:** ใช้ builds/v2 เดิมกับ --index-only/expected-generation ล่าสุดเพื่อคืน HTML TTL60 และ invalidate เฉพาะ index จากนั้นใช้ manifest v2 ตรวจใหม่ หากกังวลเนื้อหาให้เลือก v1 ที่ทราบว่าดีแทนพร้อมบันทึกเหตุผล
+
+**บันทึก T09 / R7:** requirement และทางเลือกที่พิจารณา [เติม] / HTML TTL ก่อน/หลัง [เติม] / CSS path/hash/TTL คงเดิม [เติม] / ข้อจำกัด browser cache [เติม] / backout ทำจริงหรือแผน [เติม] / สถานะ PENDING
+
+## Task 10 — ตรวจ Public-read Boundary และสรุปผลงาน
+
+### Anonymous อ่านได้ แต่เขียนไม่ได้
+
+**Cloud Shell:** ใช้ curl ที่ไม่มี Authorization และไม่เรียก gcloud สำหรับ negative write เพื่อไม่เผลอใช้สิทธิ์ผู้ดูแล:
+
+```bash
+curl --max-time 10 -I "https://storage.googleapis.com/$BUCKET/index.html"
+curl --max-time 10 -i -X PUT --data-binary 'anonymous-write-test' \
+  "https://storage.googleapis.com/$BUCKET/anonymous-write-test.txt"
+gcloud storage ls "gs://$BUCKET/anonymous-write-test.txt"
+gcloud storage buckets get-iam-policy "gs://$BUCKET"
+```
+
+**Expected:** anonymous GET200, PUT ถูกปฏิเสธ และไม่มี test object ถ้า write สำเร็จให้บันทึก FAIL หยุดเผยแพร่ แก้ IAM ที่กว้างเกินและลบเฉพาะ object ทดลองหลังตรวจชื่อ อย่าถือว่า public content หมายถึง public write ถูกต้อง
+
+Origin URL อ่านได้โดยตรงเป็นข้อจำกัด baseline ไม่อ้าง origin isolation หรือบังคับผ่าน CDN ถ้าต้องการ origin private ต้องออกแบบ private bucket access แยก ไม่ใส่คำกล่าวอ้างลงผลงานโดยไม่มี config/negative test รองรับ
+
+### รวบรวมหลักฐานก่อน Cleanup
+
+ผล probe อยู่ assets/evidence/ อยู่แล้ว แต่ log/DNS/cert/invalidation outputs ต้องเก็บแยกชื่อและ redact ข้อมูลที่ไม่ต้องเผยแพร่ ตรวจ git status ก่อน commit ห้ามแนบ credentials, Cloud Shell auth exports หรือสิทธิ์ของ domain ที่ไม่เกี่ยวข้อง
+
+| Requirement | Actual | Evidence | Status |
+|---|---|---|---|
+| R1 DNS/TLS | [เติม] | T05 | PENDING |
+| R2 release/asset consistency | [เติม] | T06/T07 | PENDING |
+| R3 cache metadata + hit | [เติม] | T06 logs/headers | PENDING |
+| R4 safe v2 publish | [เติม] | T07 | PENDING |
+| R5 bad-release recovery | [เติม] | T08 | PENDING |
+| R6 public read/not write | [เติม] | T02/T10 | PENDING |
+| R7 HTML/asset cache change | [เติม] | T09 | PENDING |
+| R8 cleanup/rebuild | [เติม] | T11 | PENDING |
+
+**Case study:** ปัญหาทีม [เติม] / architecture และเหตุผลเลือก CDN+bucket [เติม] / วิธีปล่อยอย่างไม่ปน asset [เติม] / incident และการแยก content correctness จาก HTTP200 [เติม] / rollback evidence [เติม] / cache change trade-off [เติม] / สิ่งที่ยังไม่ได้พิสูจน์ เช่น every-PoP hit, production load, origin isolation [เติม]
+
+## Troubleshooting
+
+| อาการ | ตรวจทีละชั้น | วิธีเดินต่อ |
+|---|---|---|
+| public IAM ถูกปฏิเสธ | PAP/organization policy/ผู้ทำมีสิทธิ์ bucket IAM หรือไม่ | ขอ sandbox ที่อนุญาต ไม่ปิด policy ขององค์กร |
+| TLS name mismatch | HOST/DNS A/AAAA → cert domains → HTTPS proxy attachment | ชื่อถูกและ verifyผ่าน ไม่ใช้ -k |
+| cert provision ไม่เสร็จ | authoritative DNS → LB443 → CAA/validation state | เก็บสถานะและแก้สาเหตุ ไม่สร้าง certซ้ำไม่จำกัด |
+| /index404 หรือ CSS404 | backend bucket name → object path/case → manifest asset reference | ตรวจ origin object ก่อน invalidate |
+| HTTP200 แต่ probe fail | expected release/hash → business heading → Cache-Control | แยก old edge, bad content และ metadata |
+| ไม่พบ cache hit | CDN enabled/cache mode → origin metadata → request URL/key → logs exclusions/time | warmแบบจำกัดและดู cache fieldsจริง |
+| generation mismatch | มี publish อื่นหรือ rootเปลี่ยนแล้ว | ตรวจ current release แล้วตัดสินใจ ไม่force |
+| immutable asset exists | releaseเคยstageแล้วหรือpartial upload | verify bytes/archive ก่อน --index-only; ไม่ทับ asset |
+| invalidateแล้ว browserยังเก่า | browser cache ต่างจาก edge cache | ตรวจ fresh client/headers; บันทึกข้อจำกัด |
+| probe output exists | ชื่อ evidenceซ้ำ | ใช้ชื่อรอบใหม่ เก็บผลfailเดิม |
+
+**บันทึก Incident:** Task/UTC [เติม] / อาการ [เติม] / สมมติฐาน/หลักฐานที่ตรวจ [เติม] / สาเหตุที่พิสูจน์ได้ [เติม] / การแก้ [เติม] / retest [เติม]
+
+## Task 11 — Cleanup และ Rebuild
+
+คำสั่งต่อไปนี้ลบเนื้อหาและทรัพยากรจริงของ Lab ตรวจ PROJECT_ID, BUCKET และ HOST ให้ตรง sandbox และเก็บหลักฐานครบก่อน ห้ามแทนค่าเป็น bucket/domain งานจริง
+
+1. ที่ DNS provider ลบเฉพาะ A record ของ hostname Lab ที่สร้างไว้ ถ้าเคยเปลี่ยน record เดิมต้องคืนค่าที่บันทึก ไม่ลบทั้ง zone หรือ domain
+2. **Cloud Shell:** ลบ frontend/proxies/maps/backend ตาม dependency:
+
+```bash
+gcloud config get-value project
+printf 'Bucket=%s Host=%s\n' "$BUCKET" "$HOST"
+gcloud compute forwarding-rules delete lab003-http lab003-https --global
+gcloud compute target-http-proxies delete lab003-http-proxy
+gcloud compute target-https-proxies delete lab003-https-proxy
+gcloud compute url-maps delete lab003-http-redirect lab003-content-map
+gcloud compute backend-buckets delete lab003-docs-backend
+gcloud compute ssl-certificates delete lab003-cert --global
+gcloud compute ssl-policies delete lab003-tls
+gcloud compute addresses delete lab003-lb-ip --global
+```
+
+3. ตรวจว่า bucket เป็นของ Lab ใหม่และไม่มีไฟล์อื่นแล้วจึงลบทุก object/version รวม archived v1/v2/bad จากนั้นลบ bucket:
+
+```bash
+gcloud storage ls --all-versions "gs://$BUCKET/**"
+gcloud storage rm --recursive --all-versions "gs://$BUCKET"
+```
+
+คำสั่ง recursive ด้านบนลบทั้ง bucket และข้อมูลภายใน ต้องตรวจ resolved BUCKET ก่อนกดยืนยัน หาก retention/soft delete ถูกบังคับและยังมีของเหลือ ให้บันทึก retention/วันหมดอายุ/ต้นทุนที่เหลือ ไม่อ้าง cleanupเสร็จจากการที่ live objectsหายไปอย่างเดียว
+
+4. ตรวจรายการคงเหลือ:
+
+```bash
+gcloud compute forwarding-rules list --filter='name~^lab003-'
+gcloud compute target-http-proxies list --filter='name~^lab003-'
+gcloud compute target-https-proxies list --filter='name~^lab003-'
+gcloud compute url-maps list --filter='name~^lab003-'
+gcloud compute backend-buckets list --filter='name~^lab003-'
+gcloud compute ssl-certificates list --filter='name=lab003-cert'
+gcloud compute ssl-policies list --filter='name=lab003-tls'
+gcloud compute addresses list --filter='name=lab003-lb-ip'
+gcloud storage buckets describe "gs://$BUCKET"
+dig +short A "$HOST"
+```
+
+**Expected:** resource ของ Lab ไม่เหลือ, bucket describe not-found และ DNS record ถูกลบ/คืนค่าที่ authoritative provider DNS cache อาจยังตอบตาม TTLเดิมได้ ต้องแยก authoritative state จาก cached lookup และ billing อาจแสดงช้าตามรอบข้อมูล
+
+**บันทึก T11 / R8:** DNS [เติม] / frontend/proxy/maps/backend [เติม] / cert/policy/IP [เติม] / bucket+versions/retention [เติม] / ของที่จงใจเก็บและเหตุผล [เติม] / UTC/evidence [เติม] / สถานะ PENDING
+
+**Rebuild:** clone commit ที่ T00 บันทึก ใช้ clean sandbox และ hostname/bucket ที่อนุญาตใหม่ ทำ Tasks 0–10 ตามลำดับ อย่าถือว่าดึง index เก่ากลับมาแทนการสร้าง LB/DNS/cert ใหม่ได้ ต้องตรวจ certificate ACTIVE และทุก acceptance ใหม่
+
+## ขอบเขตการตรวจ
+
+ไม่มีการสร้าง GCP resources เปลี่ยน DNS หรืออ้างผล TLS/CDN จริงในขั้นจัดทำเอกสารนี้ CI ที่ใช้ localhost HTTP/fake publish runner พิสูจน์ได้เฉพาะ code/material contracts ไม่ใช่ Cloud-verified ทุกช่อง T00–T11 ยัง PENDING จนผู้เรียนลงมือจริง คู่มือยังอยู่ระหว่าง Authoring/Review และต้องตรวจ Diagram กับผล CI ก่อน Guide-ready
