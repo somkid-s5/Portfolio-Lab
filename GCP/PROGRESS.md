@@ -5,7 +5,7 @@
 | Lab | Solution | Guide status | Cloud verification | PR / checkpoint |
 |---|---|---|---|---|
 | 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 02 | [ระบบ Inventory ภายในองค์กรแบบ Private](LAB-002-private-inventory/README.md) | Brief | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 02 | [ระบบ Inventory ภายในองค์กรแบบ Private](LAB-002-private-inventory/README.md) | Design | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 03 | เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS | Planned | Not run | — |
 | 04 | ระบบจองบริการบน Serverless และ Private Database | Planned | Not run | — |
 | 05 | ระบบธุรกรรมสามชั้นบน VM | Planned | Not run | — |
@@ -37,4 +37,4 @@ M1 / Lab 01: Guide-ready — คู่มือครบ Tasks 0–10/8B, normal
 
 ขอบเขต: ไม่ได้สร้าง GCP resources, ไม่ได้ทดสอบ IAP/firewall/LB health จริง หรือ apt/systemd ใน GCE ผล cloud ทุก Lab ยัง Not run ไม่ใช้ CI เป็นหลักฐาน Cloud-verified
 
-ขั้นถัดไป: M2 / Lab 02 — Brief → Design ก่อนเขียน Tasks โดยคงหนึ่ง README ต่อ Lab
+M2 / Lab 02: Design และ Build materials — บันทึก access matrix, app contract, PostgreSQL schema/seed/invariants และ real-DB integration tests แล้ว กำลังตรวจ cloud CI ก่อนเขียน Tasks คู่มือเต็ม

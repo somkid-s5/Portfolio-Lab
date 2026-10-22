@@ -1,7 +1,7 @@
 ---
 lab: LAB-002
 platform: GCP
-guide_status: brief
+guide_status: design
 cloud_verification: not-run
 last_verified: null
 ---
@@ -55,4 +55,20 @@ NAT/LB/VM/disk/IPv4/router traffic มีต้นทุน ต้องกำ�
 4. เขียน Console/CLI walkthrough ตั้งแต่ clean project พร้อม DNS/NAT/IAP, deploy และบันทึกข้างแต่ละ Task
 5. ตรวจ normal/access/data/fault/change/recovery/cleanup ทุก requirement แล้วจึงเลื่อนเป็น Guide-ready
 
-สถานะ: Brief เท่านั้น ยังไม่มี materials หรือผล GCP จริง
+สถานะ: Design / Build materials — มี App/schema/seed/invariant SQL และ integration tests กำลังตรวจใน cloud CI ยังไม่มีคู่มือ Deploy เต็มหรือผล GCP จริง
+
+## Access matrix ที่ใช้เขียน Tasks
+
+| Source | Destination | Port / policy |
+|---|---|---|
+| client subnet 10.22.30.0/24 | App tag lab002-app | TCP 8080 allow |
+| client2 subnet 10.22.40.0/24 | App tag lab002-app | deny ก่อน change; allow8080 หลัง change |
+| Google health check ranges | App tag lab002-app | TCP 8080 allow |
+| App tag lab002-app | DB tag lab002-db | TCP 5432 allow |
+| client/client2 | DB | deny5432 |
+| IAP 35.235.240.0/20 | VMs tag lab002-admin | TCP22 allow |
+| Private VMs | Internet package mirrors | outbound via Public NAT; ไม่มี unsolicited inbound |
+
+App เปิด /livez สำหรับ process และ /healthz ตรวจ DB/schema; reader อ่าน /api/products และ /api/movements ได้ ส่วน operator POST /api/movements โดยมี Idempotency-Key แต่ละ request เปิด DB connection ใหม่และจำกัด active DB operations 8 ต่อ process, connect/statement/lock timeouts แบบจำกัด ขอบเขตนี้ไม่ใช่ production pool design
+
+ไฟล์ประกอบ: [App](app/server.py), [UI](app/index.html), [schema](db/schema.sql), [seed](db/seed.sql), [reconciliation](db/check-invariants.sql), [tests](tests/test_inventory.py) — ขั้นติดตั้งและ secret generation จะเพิ่มในคู่มือหลัง materials ผ่านการตรวจ

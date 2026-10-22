@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Private Inventory</title>
+<style>body{font:16px/1.6 system-ui;margin:3rem auto;max-width:900px;padding:0 1rem;color:#163346;background:#f4f8fb}section{background:white;padding:24px;margin:16px 0;border:1px solid #cbdae5}input,button,select{font:inherit;padding:8px;margin:4px}table{width:100%;border-collapse:collapse}td,th{padding:10px;text-align:left;border-bottom:1px solid #dde5ea}pre{white-space:pre-wrap}</style>
+<h1>Inventory / Private Service</h1><p>ข้อมูลตัวอย่างเท่านั้น · Token อยู่ในหน่วยความจำของหน้านี้ ไม่บันทึกลง browser storage</p>
+<section><label>Demo token <input id="token" type="password" autocomplete="off"></label>
+<label>ค้นหา <input id="query" placeholder="SKU หรือชื่อ"></label><button id="load">ดูสินค้า</button>
+<table><thead><tr><th>SKU</th><th>สินค้า</th><th>คงเหลือ</th></tr></thead><tbody id="products"></tbody></table></section>
+<section><h2>รับเข้า / เบิกออก (operator)</h2>
+<label>SKU <input id="sku" value="PEN-01"></label><label>จำนวน (+รับเข้า / -เบิก) <input id="delta" type="number" value="-1"></label>
+<label>บันทึก <input id="note" maxlength="200" value="demo movement"></label>
+<p>Key สำหรับคำขอนี้: <code id="key"></code> <button id="newkey">สร้าง Key ใหม่</button></p>
+<button id="move">บันทึก / ลองซ้ำ Key เดิม</button><p>กดซ้ำโดยไม่เปลี่ยน Key คือ retry เดิม ถ้าจะทำรายการใหม่ให้สร้าง Key ใหม่ก่อน</p></section>
+<section><h2>ผลล่าสุด</h2><pre id="result">พร้อมทดสอบ</pre></section>
+<script>
+const makeKey=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');let key=makeKey();const el=id=>document.getElementById(id);
+function showKey(){el('key').textContent=key;}showKey();
+el('newkey').onclick=()=>{key=makeKey();showKey();};
+async function request(path,options={}){
+const response=await fetch(path,{...options,headers:{Authorization:'Bearer '+el('token').value,...options.headers}});
+const body=await response.json();el('result').textContent=JSON.stringify({status:response.status,...body},null,2);return body;
+}
+el('load').onclick=async()=>{try{const body=await request('/api/products?q='+encodeURIComponent(el('query').value));el('products').replaceChildren();for(const p of body.products||[]){const tr=document.createElement('tr');for(const v of [p.sku,p.name,p.quantity]){const td=document.createElement('td');td.textContent=v;tr.append(td);}el('products').append(tr);}}catch(e){el('result').textContent='Network error';}};
+el('move').onclick=async()=>{try{await request('/api/movements',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':key},body:JSON.stringify({sku:el('sku').value,delta:Number(el('delta').value),note:el('note').value})});}catch(e){el('result').textContent='Network error';}};
+</script></html>
