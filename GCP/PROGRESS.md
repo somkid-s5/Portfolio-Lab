@@ -58,3 +58,5 @@ Lab 03 review refinement: เพิ่ม --reuse-assets สำหรับ part
 Lab 03: Guide-ready — [CI 39816792474](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39816792474) source ae9335c ผ่าน 18 tests, render สองภาพ และตรวจจาก cloud log PNG ที่ 960px แล้ว เก็บ PNG/SVG/attribution บน GitHubครบ ไม่เรียก cloud provisioning/DNS จริง เริ่ม Lab 04 Brief ถัดไป
 
 Lab 04 / Design + Materials: เพิ่ม Booking UI/API พร้อม CSRF/signed secure session/role/ownership, capacity + idempotency + cancel ledger, PostgreSQL16 schema/seed/grants, Cloud SQL connector private-IP pool4, secret generator/bootstrap และ Dockerfile CIกำลังตรวจ ยังไม่ใช่Guide-readyและไม่มี GCP provisioning
+
+Lab 04 materials checkpoint: [CI 39818762521 / lab004](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39818762521) source dfd14c5 — Booking tests กับ PostgreSQL16, browser JS syntax และ Docker image build ผ่าน ตรวจรายละเอียด logs แล้ว ยังไม่รวม Cloud Run/SQL/IAM networking จริง และยังต้องทำ deployment materials/Guide/Diagram ก่อน Guide-ready
