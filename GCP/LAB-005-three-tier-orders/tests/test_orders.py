@@ -155,7 +155,7 @@ class OrdersTests(unittest.TestCase):
     def test_ledger_failure_rolls_back_order_items_and_stock(self):
         with self.admin.begin() as conn:
             conn.exec_driver_sql("""CREATE FUNCTION reject_test_event() RETURNS trigger LANGUAGE plpgsql AS
-                $$ BEGIN RAISE EXCEPTION 'injected test-only ledger failure'; END; $""")
+                $$ BEGIN RAISE EXCEPTION 'injected test-only ledger failure'; END; $$""")
             conn.exec_driver_sql('CREATE TRIGGER reject_event BEFORE INSERT ON stock_events FOR EACH ROW EXECUTE FUNCTION reject_test_event()')
         try:
             with self.assertRaises(SQLAlchemyError) as caught:
