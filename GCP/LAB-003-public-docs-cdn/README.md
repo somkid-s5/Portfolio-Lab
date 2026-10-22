@@ -7,6 +7,14 @@ last_verified: null
 ---
 # Lab 03 — เอกสารสาธารณะผ่าน CDN และ HTTPS ที่อัปเดตและย้อนเวอร์ชันได้
 
+![Public docs delivery](assets/solution.svg)
+
+DNS ใช้ provider ที่คุณควบคุม ส่วน certificate เป็น Compute-managed SSL resource ไม่ใช่ Certificate Manager ระบบไม่มี VPC/subnet/VM และ Cloud CDN เป็น feature ของ backend bucket เส้นประคือ cache miss/fill จาก origin ซึ่งเป็น public read ตามขอบเขต Lab
+
+![Safe release and rollback](assets/release-flow.svg)
+
+อัปโหลด asset ก่อน index และใช้ generation fence ทุกครั้งที่เปลี่ยน root การ rollback ตรวจ remote bytes ก่อน ไม่ใช่เพียงคัดลอกไฟล์เก่าทับแล้วถือว่าสำเร็จ
+
 ทีม Support ต้องเผยแพร่คู่มือผลิตภัณฑ์ให้ลูกค้าเปิดผ่าน HTTPS ได้ทั่วถึง ปัญหาไม่ได้จบที่อัปโหลด HTML: เมื่อเปลี่ยนเอกสารต้องไม่เห็นหน้าใหม่กับ CSS เก่าปนกัน และถ้าปล่อยเนื้อหาผิดต้องย้อนกลับได้โดยพิสูจน์จาก version/hash ไม่ใช่แค่กด refresh แล้วคิดว่าหาย
 
 ## Requirements และขอบเขต Solution

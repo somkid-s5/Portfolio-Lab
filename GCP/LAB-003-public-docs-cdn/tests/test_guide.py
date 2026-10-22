@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 import subprocess
 import unittest
+import xml.etree.ElementTree as ET
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -27,6 +28,18 @@ class GuideTests(unittest.TestCase):
         for index,block in enumerate(blocks):
             run=subprocess.run(['bash','-n'],input=block,text=True,capture_output=True,timeout=5)
             self.assertEqual(run.returncode,0,f'block {index}: {run.stderr}')
+
+    def test_architecture_and_release_svg_are_offline_accessible(self):
+        for name in ['solution.svg','release-flow.svg']:
+            root=ET.parse(ROOT/'assets'/name).getroot()
+            self.assertEqual(root.attrib['role'],'img')
+            ns={'s':'http://www.w3.org/2000/svg'}
+            self.assertIsNotNone(root.find('s:title',ns))
+            self.assertIsNotNone(root.find('s:desc',ns))
+            for node in root.iter():
+                for key,value in node.attrib.items():
+                    if key.endswith('href'):
+                        self.assertFalse(value.startswith(('http:','https:')))
 
     def test_materials_compile_and_cloud_state_is_honest(self):
         for folder in ['scripts','tests']:

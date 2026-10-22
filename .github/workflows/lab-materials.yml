@@ -83,10 +83,22 @@ jobs:
 
   lab003:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Verify deterministic releases and safe publish planning
         run: python3 -m unittest discover -s GCP/LAB-003-public-docs-cdn/tests -v
+      - name: Render docs delivery and release views
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y librsvg2-bin
+          mkdir -p lab003-previews
+          rsvg-convert --width 960 GCP/LAB-003-public-docs-cdn/assets/solution.svg -o lab003-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-003-public-docs-cdn/assets/release-flow.svg -o lab003-previews/release-flow.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab003-diagram-preview
+          path: lab003-previews/*.png
+          retention-days: 14
