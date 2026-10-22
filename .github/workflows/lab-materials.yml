@@ -203,6 +203,16 @@ jobs:
         run: .ci-lab005/bin/python GCP/LAB-005-three-tier-orders/tests/bootstrap_check.py
       - name: Verify Orders transactions, API boundaries and Web config
         run: .ci-lab005/bin/python -m unittest discover -s GCP/LAB-005-three-tier-orders/tests -v
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate Orders foundation without provisioning
+        working-directory: GCP/LAB-005-three-tier-orders/infra/foundation
+        run: |
+          terraform fmt -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
       - name: Emit real browser CI preview
         run: python3 -c "import base64,pathlib; print('LAB005_UI_PREVIEW='+base64.b64encode(pathlib.Path('lab005-previews/ui-ci.png').read_bytes()).decode())"
       - uses: actions/upload-artifact@v4
