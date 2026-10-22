@@ -252,6 +252,150 @@ gcloud run services describe lab004-booking --region="$REGION" --format='yaml(st
 
 **เกณฑ์ไปต่อ:** Browser journey สำเร็จและ healthz ผ่าน จด revision v1 ไว้สำหรับเปรียบเทียบ v2/rollback ใน Task ถัดไป
 
+
+### Task 6 — พิสูจน์ Business Rules และตรวจฐานข้อมูล
+
+**ทำที่ไหน:** Cloud Shell และ Cloud Run Jobs ใช้เฉพาะข้อมูลสังเคราะห์ของ Lab
+
+```bash
+cd "$LAB_ROOT"
+mkdir -p assets/evidence
+.venv/bin/python scripts/probe.py --url "$SERVICE_URL" --logins secrets/demo-logins.json \
+  --mode journey > assets/evidence/T06-journey.json
+```
+
+**Expected:** exit0/checks=completed; anonymous401, ไม่มีCSRF403, reserve201 → retrykeyเดิม200/bookingIDเดิม, Bobอ่าน/ยกเลิกAlice404, bookerเข้าoperator403, operatorอ่าน200, cancelครั้งแรกreplayed=falseและครั้งต่อไปtrue Probeยกเลิกเฉพาะรายการที่ตนสร้าง ไม่เปลี่ยนรายการที่ผู้เรียนจองไว้
+
+เปิด Browser ตรวจและยกเลิก **ทุก confirmed booking ใน slot1** ของ Alice/Bob/operator ให้booked=0ก่อนrace ห้ามลบDBrowsเพื่อให้ผ่าน:
+
+```bash
+.venv/bin/python scripts/probe.py --url "$SERVICE_URL" --logins secrets/demo-logins.json \
+  --mode race > assets/evidence/T06-capacity-race.json
+```
+
+**Expected:** seed slot1 capacity2, ผู้ใช้ต่างกัน3คนส่งพร้อมกัน ได้201สองคำขอและ409หนึ่งคำขอ; bookedไม่เกิน2และกลับ0หลังprobeยกเลิก ทั้งนี้ต้องไม่มีผู้ใช้อื่นกำลังแก้slot1พร้อมกัน ถ้าresponseหายหรือprobeล้ม ให้ตรวจรายการในBrowser/DBก่อนยิงซ้ำ ไม่สมมติว่าคำขอที่timeoutไม่เกิดผล
+
+ตรวจDBด้วยJobอ่านอย่างเดียว ใช้bootstrap SA/admin configแยกจากApp เพราะต้องเห็นconnectionและrole metadata ไม่เปิดPostgreSQLผ่านPublic IP:
+
+```bash
+gcloud run jobs create lab004-inspect --region="$REGION" \
+  --image="$IMAGE_PIN" --service-account="$BOOTSTRAP_SA" \
+  --network=lab004-vpc --subnet=lab004-run-subnet --vpc-egress=private-ranges-only \
+  --tasks=1 --parallelism=1 --max-retries=0 --task-timeout=300s \
+  --cpu=1 --memory=512Mi --command=python --args=scripts/inspect-db.py \
+  --set-env-vars="DB_MODE=cloud,DB_CONFIG_FILE=/secrets/admin/config.json,INSTANCE_CONNECTION_NAME=$INSTANCE_CONNECTION_NAME" \
+  --set-secrets="/secrets/admin/config.json=lab004-bootstrap-admin:$ADMIN_VERSION"
+gcloud run jobs execute lab004-inspect --region="$REGION" --wait
+gcloud run jobs logs read lab004-inspect --region="$REGION" --limit=20
+```
+
+**Expected:** invariant_violations=[]; slotsมีcapacity/bookedถูกต้อง; runtime roles rolsuper/rolcreatedb/rolcreaterole=false โดยroleA/BอาจยังLOGINได้ทั้งคู่ ข้อมูล connections เป็น snapshot ในขณะ Jobอ่าน ไม่ใช่ค่าสูงสุดตลอดการทดสอบ ห้ามแปลbooked=0เป็นไม่มีhistoricalbookings เพราะรายการcancelledยังเก็บอยู่
+
+**บันทึก T06:** journeyผล ___ / race HTTPcounts ___ / invariant violations ___ / DBconnections snapshot ___ / exitcodes ___ / requestIDตัวอย่าง ___
+
+### Task 7 — Deploy v2 แล้ว Rollback โดยไม่ย้อนข้อมูล
+
+**ทำที่ไหน:** Browser + Cloud Shell
+
+1. ในBrowser loginAlice จองslotที่ว่างหนึ่งรายการและ **ยังไม่ยกเลิก** จดbookingreference/slot/statusเป็นหลักฐานก่อนDeploy
+2. เก็บชื่อv1และpin trafficกับrevisionจริง ไม่ใช้LATESTลอยตามrevisionถัดไป:
+
+```bash
+export REV_A="$(gcloud run services describe lab004-booking --region="$REGION" --format='value(status.latestReadyRevisionName)')"
+gcloud run services update-traffic lab004-booking --region="$REGION" --to-revisions="$REV_A=100"
+.venv/bin/python scripts/deploy-service.py \
+  --project "$PROJECT_ID" --region "$REGION" --image "$IMAGE_PIN" \
+  --auth-version "$AUTH_VERSION" --db-version "$A_VERSION" \
+  --app-version v2 --suffix v2-a01 --candidate
+```
+
+อ่านdry-runแล้วรันคำสั่งเดิมเพิ่ม --execute ครั้งนี้ใช้imageเดียวกันแต่เปิดv2ผ่านAPP_VERSIONเพื่อแยกการเปลี่ยนพฤติกรรมออกจากschema ไม่มีmigrationลบข้อมูล และยังใช้loginA
+
+```bash
+.venv/bin/python scripts/deploy-service.py \
+  --project "$PROJECT_ID" --region "$REGION" --image "$IMAGE_PIN" \
+  --auth-version "$AUTH_VERSION" --db-version "$A_VERSION" \
+  --app-version v2 --suffix v2-a01 --candidate --execute
+export REV_V2_A="$(gcloud run services describe lab004-booking --region="$REGION" --format='value(status.latestReadyRevisionName)')"
+gcloud run services describe lab004-booking --region="$REGION" --format=json > assets/evidence/T07-service.json
+export CANDIDATE_URL="$(python3 -c 'import json; d=json.load(open("assets/evidence/T07-service.json")); print(next(t["url"] for t in d["status"]["traffic"] if t.get("tag")=="candidate"))')"
+curl --max-time 15 --fail-with-body "$CANDIDATE_URL/healthz"
+```
+
+**Expected:** candidate healthready/version=v2; mainยัง100%REV_A เปิดcandidateURLแล้วloginAlice เห็นbookingเดิม จากนั้น promoteและทดสอบrollback:
+
+```bash
+gcloud run services update-traffic lab004-booking --region="$REGION" --to-revisions="$REV_V2_A=100"
+curl --max-time 15 --fail-with-body "$SERVICE_URL/healthz"
+gcloud run services update-traffic lab004-booking --region="$REGION" --to-revisions="$REV_A=100"
+curl --max-time 15 --fail-with-body "$SERVICE_URL/healthz"
+```
+
+เปิดmainURLหลังแต่ละสลับ: versionเปลี่ยนตามtrafficแต่bookingเดิมยังconfirmedและreferenceเดิม หลังrollbackยกเลิกรายการนั้นบนv1 แล้วpromoteREV_V2_Aกลับ100%เพื่อเตรียมrotation (ใช้คำสั่งpromoteด้านบนอีกครั้ง)
+
+**Expected:** ไม่มองว่าtrafficเปลี่ยนสำเร็จทันทีเท่ากับทุกclientอยู่revisionใหม่แล้ว รอdescribe trafficและprobeตอบversionเป้าหมาย ถ้าจองเดิมหายให้หยุด ตรวจProject/DB_CONFIG_FILE/instance/database ไม่seedใหม่กลบเหตุ
+
+**บันทึก T07:** bookingreferenceก่อน ___ / v1revision ___ / v2revision ___ / before-after-rollback status ___ / คำอธิบายว่าทำไมrollbackไม่ย้อนDB ___
+
+### Task 8 — หมุน Credential A → B และกำหนดจุดที่ถอยไม่ได้
+
+**ทำที่ไหน:** Cloud Shell กับBrowser; ทำหลังT07ผ่าน
+
+Bถูกสร้างและgrantsเท่ากับAตั้งแต่bootstrap แต่ยังไม่มีrevisionบริการใช้B นี่คือการสลับไปloginคนละตัว ไม่resetpasswordของloginที่ยังรับงาน เพิ่มเลขSecret versionสำหรับconfigurationBที่จะใช้รอบนี้ (payloadเป็นBที่เตรียมไว้ ไม่อ้างว่าเป็นการเปลี่ยนpasswordBรอบใหม่):
+
+```bash
+export B_VERSION="$(gcloud secrets versions add lab004-db-b --data-file=secrets/db-b.json --format='value(name)' | awk -F/ '{print $NF}')"
+.venv/bin/python scripts/deploy-service.py \
+  --project "$PROJECT_ID" --region "$REGION" --image "$IMAGE_PIN" \
+  --auth-version "$AUTH_VERSION" --db-version "$B_VERSION" --login b \
+  --app-version v2 --suffix v2-b01 --candidate --execute
+export REV_B="$(gcloud run services describe lab004-booking --region="$REGION" --format='value(status.latestReadyRevisionName)')"
+gcloud run services describe lab004-booking --region="$REGION" --format=json > assets/evidence/T08-service.json
+export B_URL="$(python3 -c 'import json; d=json.load(open("assets/evidence/T08-service.json")); print(next(t["url"] for t in d["status"]["traffic"] if t.get("tag")=="candidate"))')"
+.venv/bin/python scripts/probe.py --url "$B_URL" --logins secrets/demo-logins.json --mode journey > assets/evidence/T08-B-journey.json
+```
+
+**Expected:** Bloginอ่าน/จอง/ยกเลิกได้ ใช้ฐานข้อมูลเดิม ไม่ได้เปิดadminsecretให้runtime หากไม่ผ่านให้คงmaintrafficบนA ตรวจBsecret/grants/DBloginก่อน ไม่ถอนA
+
+เมื่อBผ่านจึงpromote:
+
+```bash
+gcloud run services update-traffic lab004-booking --region="$REGION" --to-revisions="$REV_B=100"
+gcloud run services describe lab004-booking --region="$REGION" --format='yaml(status.traffic)'
+curl --max-time 15 --fail-with-body "$SERVICE_URL/healthz"
+```
+
+ก่อนถอนA ยังสามารถrollbackกลับREV_A/REV_V2_Aได้หลังตรวจhealthของA แต่เมื่อถอนAแล้ว revisionเหล่านั้นจะต่อDBใหม่ไม่ได้ **อย่าสั่งtrafficrollbackกลับAหลังจุดนี้** ทางกู้คือdeploycodeรุ่นเดิมโดยใช้validB/configที่ยังใช้ได้ ไม่ใช่คืนรหัสเก่าที่อาจรั่ว
+
+ตรวจไม่มีtagชี้A แล้วลบเฉพาะสองrevisionAที่เก็บชื่อไว้ (ตรวจdescribeก่อนdelete; ห้ามใช้globหรือลบทุกrevision):
+
+```bash
+gcloud run revisions describe "$REV_A" --region="$REGION" --format='yaml(metadata.name,spec.serviceAccountName,spec.containers)'
+gcloud run revisions describe "$REV_V2_A" --region="$REGION" --format='yaml(metadata.name,spec.serviceAccountName,spec.containers)'
+gcloud run revisions delete "$REV_A" --region="$REGION"
+gcloud run revisions delete "$REV_V2_A" --region="$REGION"
+gcloud run jobs execute lab004-inspect --region="$REGION" --wait
+gcloud run jobs logs read lab004-inspect --region="$REGION" --limit=20
+```
+
+ตอนตรวจcontainersจะเห็นsecret references/envpathsไม่ใช่payload แต่ยังควรredactprojectmetadataตามนโยบาย รอsnapshotไม่มีconnectionของbooking_a; revisionไม่มีtrafficแต่ยังมีtagก็เรียกใช้งานได้ ต้องตรวจtagsจริง หากAยังมีconnectionให้รอการdrain/scale-downและตรวจworkloadที่ใช้A ไม่terminateconnectionเพื่อให้ตัวเลขผ่าน
+
+เมื่อAไม่มีtraffic/tag/live revision/jobและconnectionsเป็น0 จึงเปลี่ยนinspectjobให้ทำคำสั่งถอนAที่มีguard:
+
+```bash
+gcloud run jobs update lab004-inspect --region="$REGION" \
+  --args=scripts/inspect-db.py,--retire-a,--confirm-drained
+gcloud run jobs execute lab004-inspect --region="$REGION" --wait
+gcloud run jobs logs read lab004-inspect --region="$REGION" --limit=20
+gcloud run jobs update lab004-inspect --region="$REGION" --args=scripts/inspect-db.py
+gcloud secrets versions disable "$A_VERSION" --secret=lab004-db-a
+.venv/bin/python scripts/probe.py --url "$SERVICE_URL" --logins secrets/demo-logins.json --mode journey > assets/evidence/T08-after-retire.json
+```
+
+**Expected:** Arolcanlogin=false, B=true, ไม่มีAconnection, businessjourneyBยังผ่าน, invariantว่าง Guardเป็นDBcheckร่วมกับการยืนยันของผู้ทำ ไม่สามารถตรวจCloudRuntrafficให้เอง NOLOGINไม่ฆ่าexistingconnections และไม่พิสูจน์ว่าBcredentialsถูกต้องหากไม่ได้ทำjourneyก่อน อย่าใช้--confirm-drainedแทนการตรวจจริง
+
+**บันทึก T08:** Bversion/revision ___ / ผลก่อนpromote ___ / Atraffic/tags/connection0หลักฐาน ___ / A NOLOGIN ___ / ผลหลังถอนA ___ / rollback boundary ___
+
 ## สถานะการจัดทำ
 
 ยืนยัน identity/network/schema/rotation/connection budget → working App + PostgreSQL integration tests + container → deployment/IaC materials → Diagramตามscopeจริง → READMEพาทำครบjourney/negative/ops/change/cleanup → Review/render/Guide-ready

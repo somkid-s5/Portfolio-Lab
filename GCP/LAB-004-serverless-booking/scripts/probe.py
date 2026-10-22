@@ -100,6 +100,37 @@ def journey(base,logins,allow_loopback_http=False):
             a.request('/api/bookings/'+booking_id+'/cancel','POST',{})
     return {'mode':'journey','checks':'completed','requests':[r for c in clients.values() for r in c.records]}
 
+def capacity_race(base,logins,allow_loopback_http=False):
+    clients={u:Client(base,allow_loopback_http) for u in ['alice','bob','operator']}
+    for user,c in clients.items():
+        c.login(user,logins[user])
+    slot=next(s for s in clients['alice'].request('/api/slots')[1]['slots'] if s['id']==1)
+    expect(slot['capacity']==2 and slot['booked']==0,'race requires empty seeded slot 1 with capacity 2')
+    from threading import Barrier,Lock
+    lock=Lock()
+    barrier=Barrier(3,timeout=15)
+    created=[]
+    def reserve(item):
+        user,c=item
+        barrier.wait()
+        status,data=c.request('/api/bookings','POST',{'slot_id':1},'race-'+secrets.token_hex(12))
+        if status==201:
+            with lock:
+                created.append((c,data['booking']['id']))
+        return user,status,data
+    try:
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            results=list(pool.map(reserve,clients.items()))
+        expect(sorted(status for _,status,_ in results)==[201,201,409],'two seats, three distinct users')
+        final=next(s for s in clients['alice'].request('/api/slots')[1]['slots'] if s['id']==1)
+        expect(final['booked']==2,'booked count at capacity')
+    finally:
+        for c,bid in created:
+            c.request('/api/bookings/'+bid+'/cancel','POST',{})
+    restored=next(s for s in clients['alice'].request('/api/slots')[1]['slots'] if s['id']==1)
+    expect(restored['booked']==0,'race reservations returned')
+    return {'mode':'race','checks':'completed','requests':[r for c in clients.values() for r in c.records]}
+
 def read_load(base,logins,requests,workers,allow_loopback_http=False):
     if not 1<=requests<=200 or not 1<=workers<=8:
         raise ValueError('Limit requests to 1..200 and workers to 1..8')
@@ -125,7 +156,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--url',required=True)
     p.add_argument('--logins',required=True,help='Private demo-logins.json file, never inline passwords')
-    p.add_argument('--mode',choices=['journey','read-load'],default='journey')
+    p.add_argument('--mode',choices=['journey','read-load','race'],default='journey')
     p.add_argument('--requests',type=int,default=40)
     p.add_argument('--workers',type=int,default=4)
     p.add_argument('--allow-loopback-http',action='store_true')
@@ -134,6 +165,8 @@ def main():
         logins=json.loads(Path(args.logins).read_text())
         if args.mode=='journey':
             result=journey(args.url,logins,args.allow_loopback_http)
+        elif args.mode=='race':
+            result=capacity_race(args.url,logins,args.allow_loopback_http)
         else:
             result=read_load(args.url,logins,args.requests,args.workers,args.allow_loopback_http)
         print(json.dumps(result,sort_keys=True))

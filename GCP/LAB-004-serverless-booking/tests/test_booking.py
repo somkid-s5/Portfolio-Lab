@@ -219,6 +219,8 @@ class BookingTests(unittest.TestCase):
             for password in logins.values():
                 self.assertNotIn(password,serialized)
             self.assertNotIn('csrf',serialized.lower())
+            raced=probe.capacity_race(url,logins,True)
+            self.assertEqual(raced['checks'],'completed')
             loaded=probe.read_load(url,logins,8,2,True)
             self.assertEqual(loaded['sample_count'],8)
             self.assertEqual(loaded['status_counts'],{'200':8})
