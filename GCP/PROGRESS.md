@@ -7,7 +7,7 @@
 | 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 02 | [ระบบ Inventory ภายในองค์กรแบบ Private](LAB-002-private-inventory/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 03 | [เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS](LAB-003-public-docs-cdn/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Review | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 05 | ระบบธุรกรรมสามชั้นบน VM | Planned | Not run | — |
 | 06 | ระบบรับและประมวลผลไฟล์อย่างปลอดภัย | Planned | Not run | — |
 | 07 | ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue | Planned | Not run | — |
@@ -68,3 +68,5 @@ Lab 04 / Authoring: [CI 39820536459 / lab004](https://github.com/somkid-s5/Portf
 Lab 04 / Business + Operations authoring: เพิ่ม HTTP journey/3-user capacity race/bounded read-load probe พร้อม real-HTTP integration test และ inspect-db snapshot/invariant checks/retire-A guard มีคู่มือ Tasks6–8 สำหรับ business negative tests, DB review, revision promotion/rollback และ A→B credential rotation รอ CI ตรวจ codeชุดนี้ ยังเหลือ fault/change/cleanup/Diagram และไม่มีผล GCP จริง
 
 Lab 04 / Full guide draft: README ครบ Tasks0–12 รวม runtime→admin secret denial check, no-traffic dependency fault/recovery, bounded concurrency8→16 experiment, evidence/case-study และ cleanup/rebuild เพิ่มการแยก login ออกจาก read-load และจำกัดworkers16/requests200; [CI 39822476778](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39822476778) ผ่านชุดก่อนหน้าที่แก้ connector API failure เป็น sanitized503 แล้ว รอ CI ชุดใหม่/Diagram/Review ก่อน Guide-ready ไม่มี GCP writes
+
+Lab 04 / Review: [CI 39824263202](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39824263202) source df20e6a ผ่าน20 tests (รวม README relative-link/Bash parse), Docker/Terraform และ render2ภาพ ตรวจภาพ960pxรอบปรับเส้น/ป้ายแล้ว เก็บSVG/PNG/official icon attributionบนGitHub คู่มือครบTasks0–12 กำลังตรวจ publication/read-back ก่อนปิดGuide-ready ไม่ได้สร้างGCPจริง

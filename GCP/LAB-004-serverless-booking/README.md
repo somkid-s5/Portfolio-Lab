@@ -1,13 +1,19 @@
 ---
 lab: LAB-004
 platform: GCP
-guide_status: authoring
+guide_status: review
 cloud_verification: not-run
 last_verified: null
 ---
 # Lab 04 — Booking บน Cloud Run ที่ข้อมูลคงอยู่และไม่จองเกินความจุ
 
 ทีมบริการต้องให้ผู้ใช้ดูช่วงเวลา จอง และยกเลิกการจองได้ผ่าน HTTPS เมื่อ Deploy revision ใหม่ข้อมูลต้องยังอยู่ และการเพิ่ม concurrency ต้องไม่ทำให้จองเกินจำนวนที่รับได้หรือเปิด DB connections จนเต็ม
+
+![เส้นทาง Booking ผ่าน Cloud Run และ Direct VPC ไปยัง Cloud SQL Private IP](assets/solution-preview.png)
+
+ภาพแสดง request/data path โดย Cloud Run เป็น regional managed compute ไม่ได้อยู่ใน subnet เหมือน VM ส่วน PSA เป็นเส้นทางไปยังเครือข่ายของ managed service ไม่ใช่ workload subnet อีกชุดหนึ่ง สิทธิ์อ่าน Secret และขั้นตอนส่งมอบ image อยู่ใน Tasks 2–5
+
+[ภาพ SVG ที่แก้ไขได้](assets/solution.svg) · [ที่มาไอคอน](assets/attribution.json)
 
 ## Requirements และ Acceptance
 
@@ -52,7 +58,7 @@ v1/v2 ใช้ schema compatible กันใน baseline ไม่ยัด de
 
 เริ่ม concurrency8, application pool สูงสุด 4 ต่อ instance และ max instance2 เป็นค่าฝึก ไม่ใช่ capacity recommendation สำหรับ production ระหว่าง rollout อาจมีหลาย revision/instance และแพลตฟอร์มอาจเกินเป้าชั่วคราว จึงคำนวณเผื่อ old+new revisions, admin connections และ monitor pg_stat_activity ไม่อ้าง max-instances เป็น hard cap ของ DB connections
 
-Cloud SQL คิดค่าใช้จ่ายแม้ Run scale-to-zero; มี storage/backup/PSA/Artifact Registry/Secret/egress/logs ตามใช้ เลือก machine/region/edition/quota และเวลาปิดใน Guide ก่อนสร้าง Budget เป็น alert ไม่ใช่ hard cap งานจัดทำเอกสารนี้ไม่ provision GCP resources
+Cloud SQL คิดค่าใช้จ่ายแม้ Run scale-to-zero; มี storage/backup/PSA/Artifact Registry/Secret/egress/logs ตามใช้ เลือก machine/region/edition/quota และเวลาปิดใน Guide ก่อนสร้าง Budget เป็น alert ไม่ใช่ hard cap สถานะ Cloud verification ของคู่มือนี้ยังเป็น Not run
 
 ## Rotation และ Failure drill ที่ต้องออกแบบให้ครบ
 
@@ -339,6 +345,10 @@ curl --max-time 15 --fail-with-body "$SERVICE_URL/healthz"
 
 ### Task 8 — หมุน Credential A → B และกำหนดจุดที่ถอยไม่ได้
 
+![ลำดับเตรียม ตรวจ สลับ และถอน DB login พร้อมขอบเขต rollback](assets/credential-rotation-preview.png)
+
+[ภาพกระบวนการ SVG](assets/credential-rotation.svg)
+
 **ทำที่ไหน:** Cloud Shell กับ Browser; ทำหลัง T07 ผ่าน
 
 B ถูกสร้างและ grants เท่ากับ A ตั้งแต่ bootstrap แต่ยังไม่มี revision บริการใช้ B นี่คือการสลับไป login คนละตัว ไม่ resetpassword ของ login ที่ยังรับงาน เพิ่มเลข Secret version สำหรับ configurationB ที่จะใช้รอบนี้ (payload เป็น B ที่เตรียมไว้ ไม่อ้างว่าเป็นการเปลี่ยน passwordB รอบใหม่):
@@ -618,3 +628,8 @@ App pool4/max_overflow0, pool wait3s, statement5s, lock3s ใช้ Gunicorn1wor
 - [Cloud Run Direct VPC egress](https://docs.cloud.google.com/run/docs/configuring/vpc-direct-vpc)
 - [Cloud SQL private services access](https://docs.cloud.google.com/sql/docs/postgres/configure-private-services-access)
 - [Cloud Run Secret Manager integration](https://docs.cloud.google.com/run/docs/configuring/services/secrets)
+
+
+ตรวจชุดเอกสาร/โค้ดใน [GitHub Actions 39824263202](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39824263202): 20 tests กับ PostgreSQL 16, HTTP probe, JS syntax, image build, Terraform init/validate และ render SVG ที่ความกว้าง960px ผลนี้ไม่รวมการ Deploy GCP, IAM/Direct VPC/Secret Manager จริง หรือผลประสิทธิภาพ ผู้ทำ Lab ต้องเติม Actual ในแต่ละ Task เอง
+
+อ้างอิงเพิ่มเติม: [Cloud SQL connection metrics](https://docs.cloud.google.com/monitoring/api/metrics_gcp_c#cloudsql), [Cloud Run traffic controls](https://docs.cloud.google.com/sdk/gcloud/reference/run/services/update-traffic), [Cloud SQL deletion](https://docs.cloud.google.com/sql/docs/postgres/delete-instance)
