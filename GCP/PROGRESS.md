@@ -5,7 +5,7 @@
 | Lab | Solution | Guide status | Cloud verification | PR / checkpoint |
 |---|---|---|---|---|
 | 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 02 | ระบบ Inventory ภายในองค์กรแบบ Private | Planned | Not run | — |
+| 02 | [ระบบ Inventory ภายในองค์กรแบบ Private](LAB-002-private-inventory/README.md) | Brief | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 03 | เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS | Planned | Not run | — |
 | 04 | ระบบจองบริการบน Serverless และ Private Database | Planned | Not run | — |
 | 05 | ระบบธุรกรรมสามชั้นบน VM | Planned | Not run | — |
