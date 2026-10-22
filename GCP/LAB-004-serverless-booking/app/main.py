@@ -24,7 +24,7 @@ def create_app(engine=None,auth_config=None):
     if len(auth.get('session_key',''))<64 or not auth.get('users'):
         raise ValueError('Expected generated session key and hashed demo users')
     local=os.environ.get('APP_LOCAL_TEST')=='1'
-    if local and os.environ.get('K_SERVICE'):
+    if local and (os.environ.get('K_SERVICE') or os.environ.get('CLOUD_RUN_JOB')):
         raise ValueError('Insecure test cookies are not allowed on Cloud Run')
     app=Flask(__name__)
     app.config.update(SECRET_KEY=auth['session_key'],SESSION_COOKIE_HTTPONLY=True,

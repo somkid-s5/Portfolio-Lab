@@ -11,7 +11,7 @@ def create_pool():
     common={'pool_size':4,'max_overflow':0,'pool_timeout':3,'pool_pre_ping':True,
             'pool_recycle':300,'hide_parameters':True}
     if os.environ.get('DB_MODE','cloud')=='local':
-        if os.environ.get('K_SERVICE'):
+        if os.environ.get('K_SERVICE') or os.environ.get('CLOUD_RUN_JOB'):
             raise ValueError('Local DB mode is not allowed on Cloud Run')
         engine=create_engine(URL.create('postgresql+pg8000',username=config['user'],
             password=config['password'],host=config.get('host','127.0.0.1'),

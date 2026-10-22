@@ -169,6 +169,51 @@ class BookingTests(unittest.TestCase):
             self.assertEqual(client.get(route,base_url='https://localhost').status_code,200)
         self.assertIn("script-src 'self'",client.get('/',base_url='https://localhost').headers['Content-Security-Policy'])
 
+    def test_pool_exhaustion_fails_bounded_and_recovers(self):
+        held=[self.pool.connect() for _ in range(4)]
+        try:
+            client,_=self.client()
+            response=client.get('/healthz',base_url='https://localhost')
+            self.assertEqual(response.status_code,503,response.json)
+        finally:
+            for conn in held:
+                conn.close()
+        self.assertEqual(client.get('/healthz',base_url='https://localhost').status_code,200)
+
+    def test_private_dependency_config_failure_does_not_break_liveness(self):
+        bad=create_engine(URL.create('postgresql+pg8000',username='unreachable',
+             password='not-a-real-secret',host='127.0.0.1',port=1,database='booking_ci'),
+             connect_args={'timeout':1},hide_parameters=True)
+        try:
+            broken=create_app(bad,self.auth)
+            client,_=self.client(app=broken)
+            self.assertEqual(client.get('/livez',base_url='https://localhost').status_code,200)
+            self.assertEqual(client.get('/healthz',base_url='https://localhost').status_code,503)
+        finally:
+            bad.dispose()
+        client,_=self.client()
+        self.assertEqual(client.get('/healthz',base_url='https://localhost').status_code,200)
+
+    def test_credential_b_keeps_data_after_a_is_retired(self):
+        client,csrf=self.client('alice')
+        bid=self.reserve(client,csrf).json['booking']['id']
+        with patch.dict(os.environ,{'DB_MODE':'local','DB_CONFIG_FILE':str(self.configs['b'])}):
+            pool_b=create_pool()
+        try:
+            newer=create_app(pool_b,self.auth)
+            second,_=self.client('alice',newer)
+            self.assertEqual(second.get('/api/bookings/'+bid,base_url='https://localhost').status_code,200)
+            with self.admin.begin() as conn:
+                conn.exec_driver_sql('ALTER ROLE booking_a NOLOGIN')
+            self.pool.dispose()
+            self.assertEqual(client.get('/healthz',base_url='https://localhost').status_code,503)
+            self.assertEqual(second.get('/healthz',base_url='https://localhost').status_code,200)
+        finally:
+            with self.admin.begin() as conn:
+                conn.exec_driver_sql('ALTER ROLE booking_a LOGIN')
+            self.pool.dispose()
+            pool_b.dispose()
+
     def test_cloud_run_refuses_local_db_and_insecure_cookie_modes(self):
         with patch.dict(os.environ,{'K_SERVICE':'test-service','DB_MODE':'local','DB_CONFIG_FILE':str(self.configs['a'])}):
             with self.assertRaises(ValueError):
