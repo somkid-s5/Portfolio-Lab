@@ -232,6 +232,28 @@ class BookingTests(unittest.TestCase):
             thread.join(timeout=5)
             server.server_close()
 
+
+    def test_cloud_connector_api_failure_is_sanitized_and_returns_503(self):
+        from unittest.mock import MagicMock
+        connector=MagicMock()
+        connector.connect.side_effect=RuntimeError('secret-sensitive-upstream-details')
+        with patch('google.cloud.sql.connector.Connector',return_value=connector), patch.dict(os.environ,
+             {'DB_MODE':'cloud','DB_CONFIG_FILE':str(self.configs['a']),
+              'INSTANCE_CONNECTION_NAME':'sandbox:asia-southeast1:missing'}):
+            broken=create_pool()
+        try:
+            with self.assertRaises(SQLAlchemyError) as caught:
+                broken.connect()
+            self.assertNotIn('secret-sensitive-upstream-details',str(caught.exception))
+            app=create_app(broken,self.auth)
+            client,_=self.client(app=app)
+            self.assertEqual(client.get('/livez',base_url='https://localhost').status_code,200)
+            response=client.get('/healthz',base_url='https://localhost')
+            self.assertEqual(response.status_code,503)
+            self.assertNotIn('secret-sensitive',response.get_data(as_text=True))
+        finally:
+            broken.dispose()
+
     def test_runtime_role_is_not_db_admin(self):
         with self.pool.connect() as conn:
             self.assertEqual(tuple(conn.execute(text('SELECT rolsuper,rolcreatedb,rolcreaterole FROM pg_roles WHERE rolname=current_user')).one()),(False,False,False))

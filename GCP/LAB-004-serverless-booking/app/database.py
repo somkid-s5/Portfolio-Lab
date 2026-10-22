@@ -22,9 +22,15 @@ def create_pool():
         connector=Connector(refresh_strategy='LAZY')
         atexit.register(connector.close)
         def connection():
-            return connector.connect(os.environ['INSTANCE_CONNECTION_NAME'],'pg8000',
-              user=config['user'],password=config['password'],db=config['database'],
-              ip_type=IPTypes.PRIVATE,timeout=5)
+            from pg8000 import OperationalError
+            try:
+                return connector.connect(os.environ['INSTANCE_CONNECTION_NAME'],'pg8000',
+                  user=config['user'],password=config['password'],db=config['database'],
+                  ip_type=IPTypes.PRIVATE,timeout=5)
+            except Exception as exc:
+                # IAM/API/network failures can precede the DB driver. Normalize them
+                # without leaking connector URLs, tokens or secret-bearing messages.
+                raise OperationalError('Cloud SQL connector unavailable: '+type(exc).__name__) from None
         engine=create_engine('postgresql+pg8000://',creator=connection,**common)
     @event.listens_for(engine,'connect')
     def limits(connection,record):
