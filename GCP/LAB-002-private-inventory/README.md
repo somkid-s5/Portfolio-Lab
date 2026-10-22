@@ -47,16 +47,6 @@ Bearer token demo ใช้ฝึกแยก 401/403 จาก network deny ไ
 
 NAT/LB/VM/disk/IPv4/router traffic มีต้นทุน ต้องกำหนดวงเงินและเวลาปิดก่อนรัน ไม่สร้าง GCP resources ในขั้นจัดทำเอกสาร ตรวจ API, IAM, region/quota, image/แพ็กเกจและ organization constraints ก่อน Guide-ready
 
-## ลำดับงานหลัง Brief
-
-1. ยืนยัน port/source/destination access matrix, subnet/VIP/static addresses และ data/identity flow
-2. สร้าง App, schema/seed, token management และ bounded tests พร้อมทดสอบกับ PostgreSQL ใน cloud CI
-3. ทำ Diagram ที่ตรง private network และชนิด LB จริง
-4. เขียน Console/CLI walkthrough ตั้งแต่ clean project พร้อม DNS/NAT/IAP, deploy และบันทึกข้างแต่ละ Task
-5. ตรวจ normal/access/data/fault/change/recovery/cleanup ทุก requirement แล้วจึงเลื่อนเป็น Guide-ready
-
-สถานะ: Authoring — App/schema และส่วนติดตั้งอยู่ระหว่างตรวจ คู่มือยังไม่ครบทุก Tasks และยังไม่ใช่ Guide-ready ผล GCP จริงยัง Not run
-
 ## Access matrix ที่ใช้เขียน Tasks
 
 | Source | Destination | Port / policy |
@@ -71,7 +61,23 @@ NAT/LB/VM/disk/IPv4/router traffic มีต้นทุน ต้องกำ�
 
 App เปิด /livez สำหรับ process และ /healthz ตรวจ DB/schema; reader อ่าน /api/products และ /api/movements ได้ ส่วน operator POST /api/movements โดยมี Idempotency-Key แต่ละ request เปิด DB connection ใหม่และจำกัด active DB operations 8 ต่อ process, connect/statement/lock timeouts แบบจำกัด ขอบเขตนี้ไม่ใช่ production pool design
 
-ไฟล์ประกอบ: [App](app/server.py), [UI](app/index.html), [schema](db/schema.sql), [seed](db/seed.sql), [reconciliation](db/check-invariants.sql), [tests](tests/test_inventory.py) — ขั้นติดตั้งและ secret generation จะเพิ่มในคู่มือหลัง materials ผ่านการตรวจ
+ไฟล์ประกอบ: [App](app/server.py), [UI](app/index.html), [schema](db/schema.sql), [seed](db/seed.sql), [reconciliation](db/check-invariants.sql), [tests](tests/test_inventory.py) — ขั้นติดตั้งและ secret generation อยู่ใน Tasks ด้านล่าง
+
+## สารบัญการลงมือทำ
+
+- [Task 0 — ตั้ง Project และเตรียมไฟล์](#task-0)
+- [Task 1 — สร้าง Private Network และ NAT](#task-1)
+- [Task 2 — เปิดเฉพาะเส้นทางที่ใช้](#task-2)
+- [Task 3 — สร้าง VM ที่ไม่มี External IP](#task-3)
+- [Task 4 — ติดตั้ง PostgreSQL และตั้งสิทธิ์](#task-4)
+- [Task 5 — Deploy App A/B](#task-5)
+- [Task 6 — สร้าง Internal LB และ Private DNS](#task-6)
+- [Task 7 — ทดสอบจาก Client และเปิด UI](#task-7)
+- [Task 8 — พิสูจน์การเขียนซ้ำและการเบิกพร้อมกัน](#task-8)
+- [Task 9 — ตรวจขอบเขต Network และจำลอง Database outage](#task-9)
+- [Task 10 — Change request: เพิ่ม Client network](#task-10)
+- [Task 11 — เก็บหลักฐานและสรุป Solution](#task-11)
+- [Task 12 — Cleanup และ Rebuild](#task-12)
 
 ## เตรียมลงมือทำ
 
@@ -102,6 +108,8 @@ App เปิด /livez สำหรับ process และ /healthz ตรว�
 
 ทุกคำสั่งที่ระบุ **Cloud Shell** รันบน terminal ของ Console ไม่ใช่ใน VM เมื่อ SSH เข้า VM ให้ดู hostname ก่อนทำ และใช้ exit กลับ Cloud Shell ไม่ตั้ง PROJECT_ID บนเครื่องส่วนตัวเพื่อใช้แทนโดยไม่ระบุ
 
+<a id="task-0"></a>
+
 ## Task 0 — ตั้ง Project และเตรียมไฟล์
 
 **Console:** เลือก sandbox project ที่ผูก Billing เปิด **Billing → Budgets & alerts** ตั้งวงเงินแจ้งเตือนที่ยอมรับได้ ตรวจ **IAM & Admin → Quotas & System Limits** ให้เหลือ resource ตามตารางก่อนสร้าง ถ้าไม่มีสิทธิ์ให้บันทึก BLOCKED และขอผู้ดูแล ไม่เปิด public SSH แทน IAP
@@ -129,6 +137,8 @@ mkdir -p assets/evidence
 
 **บันทึก T00:** Project alias [เติม] / commit [เติม] / API/IAM/quota [เติม] / งบและเวลาปิด [เติม] / สถานะ PENDING
 
+<a id="task-1"></a>
+
 ## Task 1 — สร้าง Private Network และ NAT
 
 **Cloud Shell:** คำสั่งต่อไปนี้สร้างทรัพยากรใน project ที่ตั้งไว้ ตรวจค่าก่อนรัน ไม่ใช้ชื่อซ้ำกับของที่มีอยู่:
@@ -151,6 +161,8 @@ gcloud compute routers nats create lab002-nat --router=lab002-router \
 ถ้า apt ติดตั้งไม่ได้ภายหลัง ตรวจ NAT coverage, default route และ egress policy ก่อนเพิ่ม external IP การเรียก Google APIs ใช้เส้นทาง Private Google Access ตาม configuration ของบริการ ไม่สรุปจาก NAT ว่าทุก packet วิ่งเส้นเดียวกัน
 
 **บันทึก T01:** network/subnets [เติม] / router/NAT [เติม] / ภาพ subnet และ NAT config [แนบ assets/evidence/t01-network.png] / สถานะ PENDING
+
+<a id="task-2"></a>
 
 ## Task 2 — เปิดเฉพาะเส้นทางที่ใช้
 
@@ -177,6 +189,8 @@ gcloud compute firewall-rules list --filter='network:lab002-vpc'
 Internal passthrough LB รักษา client source IP จึง allow client subnet ที่ App ไม่ใช่เปิดเฉพาะ proxy subnet แบบ Application LB Client ที่ได้รับอนุญาตอาจเข้า private App IP:8080 โดยตรงได้ในแบบนี้ ไม่อ้างว่า LB เป็น security boundary หรือยืนยันตัวตนแทน App
 
 **บันทึก T02:** rule/source/target/port จริง [เติม] / inherited policy ที่พบ [เติม] / assets/evidence/t02-firewall.txt [แนบ] / สถานะ PENDING
+
+<a id="task-3"></a>
 
 ## Task 3 — สร้าง VM ที่ไม่มี External IP
 
@@ -214,6 +228,8 @@ gcloud compute ssh lab002-client --zone=asia-southeast1-b --tunnel-through-iap
 **ใน client VM:** รัน `hostname` ต้องเป็น lab002-client แล้ว `sudo apt-get update` เพื่อตรวจ outbound ผ่าน NAT จากนั้น `exit` กลับ Cloud Shell หาก SSH ไม่ได้แยก IAP role/firewall/OS Login ก่อน ไม่เพิ่ม external IP
 
 **บันทึก T03:** VM/Zone/IP/image version ที่ใช้ [เติม] / IAP และ apt ผลจริง [เติม] / assets/evidence/t03-private-vms.txt [แนบ] / สถานะ PENDING
+
+<a id="task-4"></a>
 
 ## Task 4 — ติดตั้ง PostgreSQL และตั้งสิทธิ์
 
@@ -253,6 +269,8 @@ Script เพิ่ม host authentication เฉพาะ inventory/inventory_a
 
 **บันทึก T04:** version/listener/5 seed rows [เติม] / role privileges [เติม] / invariant result [เติม] / ปัญหาและ retest [เติม] / สถานะ PENDING
 
+<a id="task-5"></a>
+
 ## Task 5 — Deploy App A/B
 
 **Cloud Shell:** ส่ง code พร้อม DB password และ token hashes เท่านั้น ไม่ส่ง plaintext reader/operator tokens ไป App:
@@ -289,6 +307,8 @@ exit
 **Expected:** active, /livez=200 และ /healthz=200 ทั้งคู่; DB ไม่พร้อมจะได้ /healthz=503 แต่ /livez ยัง 200 ตรวจ connection source IP/firewall/pg_hba/password/SQL grants ตามลำดับ อย่าพิมพ์ /etc/lab002/app.env ลง log หรือ screenshot
 
 **บันทึก T05:** A service/health [เติม] / B service/health [เติม] / sanitized request IDs และ logs [แนบ] / สถานะ PENDING
+
+<a id="task-6"></a>
 
 ## Task 6 — สร้าง Internal LB และ Private DNS
 
@@ -329,6 +349,8 @@ gcloud compute backend-services get-health lab002-backend --region="$REGION"
 **Expected:** Healthy สอง backend; อาจรอหลายรอบ probe อย่าเริ่ม business test ตอนยัง Unhealthy ถ้าไม่พร้อมให้ตรวจ App localhost → DB → health firewall → group membership ตามลำดับ Private DNS นี้มองเห็นจาก VM ใน authorized VPC ไม่ใช่ DNS สาธารณะหรือเครื่องส่วนตัว
 
 **บันทึก T06:** LB/VIP/region [เติม] / health A/B และเวลา [เติม] / DNS A/TTL/visibility [เติม] / assets/evidence/t06-lb-dns.txt [แนบ] / สถานะ PENDING
+
+<a id="task-7"></a>
 
 ## Task 7 — ทดสอบจาก Client และเปิด UI
 
@@ -376,6 +398,8 @@ gcloud compute ssh lab002-client --project="$PROJECT_ID" --zone=asia-southeast1-
 
 **บันทึก T07 / R1–R3:** DNS [เติม] / UI screenshot ไม่เห็น token [แนบ] / reads, 401/403 และ backend IDs [เติม] / หลักฐาน t07-read.json [แนบ] / สถานะ PENDING
 
+<a id="task-8"></a>
+
 ## Task 8 — พิสูจน์การเขียนซ้ำและการเบิกพร้อมกัน
 
 **ก่อนทดสอบ:** ใช้ seed sandbox เท่านั้น ให้ทุกคนหยุดเขียน PEN-01 ชั่วคราว ยอดต้องอยู่ 1–1000 เครื่องมือจะเปลี่ยนยอดแล้วสร้างรายการชดเชย ไม่ลบประวัติ หากคำขอ timeout ต้องตรวจ ledger ก่อนลองใหม่ เพราะ client ไม่ได้รับ response ไม่ได้แปลว่า transaction rollback แล้ว
@@ -417,6 +441,8 @@ exit
 **Expected:** invariant query ได้ 0 rows; การเปลี่ยนยอดแต่ละครั้งมี movement และ replay ไม่สร้าง movement ซ้ำ ตรวจด้วย Key/movement ID ในผลจริง ไม่สรุป exactly-once ทุกชนิด failure จาก Lab นี้
 
 **บันทึก T08 / R2–R4:** ยอดก่อน/หลัง [เติม] / first/replay movement ID [เติม] / concurrent statuses [เติม] / SQL reconciliation [เติม] / เหตุการณ์ timeout/วิธีกู้ถ้ามี [เติม] / t08-business.json + sanitized SQL [แนบ] / สถานะ PENDING
+
+<a id="task-9"></a>
 
 ## Task 9 — ตรวจขอบเขต Network และจำลอง Database outage
 
@@ -484,6 +510,8 @@ python3 ~/lab002/scripts/probe-inventory.py \
 
 **บันทึก T09 / R5–R6:** client→DB [เติม] / App→DB [เติม] / external IP inventory [แนบ] / stop/start UTC [เติม] / อาการระหว่าง down [เติม] / เวลากลับ Healthy และผล retest [เติม] / ข้อจำกัด single DB [เติม] / สถานะ PENDING
 
+<a id="task-10"></a>
+
 ## Task 10 — Change request: เพิ่ม Client network
 
 ทีมใหม่ต้องใช้ Inventory จาก subnet ใหม่ แต่ยังห้ามเข้าฐานข้อมูลโดยตรง การแก้คือเพิ่ม client subnet และ allow เฉพาะ App:8080 ไม่ขยาย rule เป็น allow all internal
@@ -543,6 +571,8 @@ exit
 
 **บันทึก T10 / R7:** เหตุผล/ขอบเขตที่อนุมัติ [เติม] / before DNS, App, DB [เติม] / after App, DB [เติม] / client1 regression [เติม] / backout ทำจริงหรือเป็นแผน [เติม] / หลักฐานก่อน/หลัง [แนบ] / สถานะ PENDING
 
+<a id="task-11"></a>
+
 ## Task 11 — เก็บหลักฐานและสรุป Solution
 
 **ใน client และ client2 VM:** สร้าง archive เฉพาะ evidence ไม่รวม token หรือ source secrets:
@@ -595,6 +625,8 @@ git status --short
 | probe output exists | หลักฐานชื่อซ้ำ | เปลี่ยน --out; ไม่ลบผลที่ fail |
 
 **บันทึกเหตุการณ์:** Task/time [เติม] / อาการ [เติม] / สมมติฐานและสิ่งที่ตรวจ [เติม] / สาเหตุที่พิสูจน์ได้ [เติม] / สิ่งที่แก้ [เติม] / retest+evidence [เติม]
+
+<a id="task-12"></a>
 
 ## Task 12 — Cleanup และ Rebuild
 
