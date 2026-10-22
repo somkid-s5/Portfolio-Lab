@@ -1,7 +1,7 @@
 ---
 lab: LAB-004
 platform: GCP
-guide_status: review
+guide_status: guide-ready
 cloud_verification: not-run
 last_verified: null
 ---
@@ -630,6 +630,6 @@ App pool4/max_overflow0, pool wait3s, statement5s, lock3s ใช้ Gunicorn1wor
 - [Cloud Run Secret Manager integration](https://docs.cloud.google.com/run/docs/configuring/services/secrets)
 
 
-ตรวจชุดเอกสาร/โค้ดใน [GitHub Actions 39824263202](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39824263202): 20 tests กับ PostgreSQL 16, HTTP probe, JS syntax, image build, Terraform init/validate และ render SVG ที่ความกว้าง960px ผลนี้ไม่รวมการ Deploy GCP, IAM/Direct VPC/Secret Manager จริง หรือผลประสิทธิภาพ ผู้ทำ Lab ต้องเติม Actual ในแต่ละ Task เอง
+ตรวจชุดเอกสาร/โค้ดใน [GitHub Actions 39824671111](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39824671111): 20 tests กับ PostgreSQL 16, HTTP probe, JS syntax, image build, Terraform init/validate และ render SVG ที่ความกว้าง960px ผลนี้ไม่รวมการ Deploy GCP, IAM/Direct VPC/Secret Manager จริง หรือผลประสิทธิภาพ ผู้ทำ Lab ต้องเติม Actual ในแต่ละ Task เอง
 
 อ้างอิงเพิ่มเติม: [Cloud SQL connection metrics](https://docs.cloud.google.com/monitoring/api/metrics_gcp_c#cloudsql), [Cloud Run traffic controls](https://docs.cloud.google.com/sdk/gcloud/reference/run/services/update-traffic), [Cloud SQL deletion](https://docs.cloud.google.com/sql/docs/postgres/delete-instance)
