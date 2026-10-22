@@ -172,17 +172,17 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_DB: orders_ci
-          POSTGRES_USER: orders_admin
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: disposable-orders-ci
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U orders_admin -d orders_ci"
+          --health-cmd "pg_isready -U postgres -d orders_ci"
           --health-interval 5s --health-timeout 3s --health-retries 10
     env:
       PGHOST: 127.0.0.1
       PGDATABASE: orders_ci
-      PGUSER: orders_admin
+      PGUSER: postgres
       PGPASSWORD: disposable-orders-ci
       LAB005_UI_PREVIEW: lab005-previews/ui-ci.png
     steps:
@@ -199,6 +199,8 @@ jobs:
           .ci-lab005/bin/pip install -r GCP/LAB-005-three-tier-orders/requirements.txt -r GCP/LAB-005-three-tier-orders/tests/requirements.txt
       - name: Check Orders browser script syntax
         run: node --check GCP/LAB-005-three-tier-orders/web/app.js
+      - name: Verify isolated real bootstrap and refusal to reset existing login
+        run: .ci-lab005/bin/python GCP/LAB-005-three-tier-orders/tests/bootstrap_check.py
       - name: Verify Orders transactions, API boundaries and Web config
         run: .ci-lab005/bin/python -m unittest discover -s GCP/LAB-005-three-tier-orders/tests -v
       - name: Emit real browser CI preview

@@ -389,6 +389,9 @@ class OrdersTests(unittest.TestCase):
                     if preview:
                         target=Path(preview)
                         target.parent.mkdir(parents=True,exist_ok=True)
+                        height=min(2400,driver.execute_script('return document.documentElement.scrollHeight')+150)
+                        driver.set_window_size(1280,height)
+                        driver.execute_script('window.scrollTo(0,0)')
                         self.assertTrue(driver.save_screenshot(str(target)))
                     driver.find_element(By.XPATH,"//tbody[@id='orders']//button[normalize-space()='ยกเลิก']").click()
                     wait.until(lambda d:'cancelled' in d.find_element(By.ID,'orders').text)
