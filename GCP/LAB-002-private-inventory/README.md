@@ -239,7 +239,7 @@ sudo apt-get update
 sudo apt-get install -y postgresql-15 python3
 sudo python3 ~/lab002/scripts/configure-db.py --password-file ~/db-password.txt
 sudo -u postgres psql -d inventory -c 'SELECT sku,quantity FROM stock ORDER BY sku;'
-sudo -u postgres psql -d inventory -f ~/lab002/db/check-invariants.sql
+sudo -u postgres psql -d inventory < ~/lab002/db/check-invariants.sql
 sudo ss -lntp | grep 5432
 rm -- ~/db-password.txt
 exit
