@@ -32,6 +32,8 @@ class InventoryTests(unittest.TestCase):
         with psycopg2.connect() as conn:
             with conn.cursor() as cur:
                 cur.execute((ROOT / 'db/schema.sql').read_text())
+                cur.execute("DO $ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='inventory_app') THEN CREATE ROLE inventory_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD 'disposable-app-ci'; END IF; END $;")
+                cur.execute((ROOT / 'db/grants.sql').read_text())
         cls.processes, cls.urls = [], []
         for backend in ['app-a','app-b']:
             with socket.socket() as listener:
@@ -40,7 +42,7 @@ class InventoryTests(unittest.TestCase):
             cls.urls.append(f'http://127.0.0.1:{port}')
             cls.processes.append(subprocess.Popen(
                 [sys.executable,str(ROOT / 'app/server.py')],
-                env={**os.environ,'PORT':str(port),'TOKEN_HASH_FILE':str(tokens),'BACKEND_ID':backend},
+                env={**os.environ,'PORT':str(port),'TOKEN_HASH_FILE':str(tokens),'BACKEND_ID':backend,'PGUSER':'inventory_app','PGPASSWORD':'disposable-app-ci'},
                 stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL))
         for url in cls.urls:
             for _ in range(100):
@@ -146,6 +148,23 @@ class InventoryTests(unittest.TestCase):
             with conn.cursor() as cur:
                 cur.execute((ROOT/'db/seed.sql').read_text())
         self.assertEqual(self.call('/api/products?q=PEN-01')[1]['products'][0]['quantity'],19)
+
+    def test_runtime_role_cannot_administer_or_rewrite_ledger(self):
+        env={**os.environ,'PGUSER':'inventory_app','PGPASSWORD':'disposable-app-ci'}
+        conn=psycopg2.connect(host=env['PGHOST'],dbname=env['PGDATABASE'],
+                             user=env['PGUSER'],password=env['PGPASSWORD'])
+        try:
+            with conn.cursor() as cur:
+                cur.execute('SELECT rolsuper,rolcreatedb,rolcreaterole FROM pg_roles WHERE rolname=current_user')
+                self.assertEqual(cur.fetchone(),(False,False,False))
+            for statement in ['CREATE TABLE forbidden(id int)', 'DELETE FROM movements',
+                              "UPDATE products SET name='tampered'"]:
+                with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
+                    with conn.cursor() as cur:
+                        cur.execute(statement)
+                conn.rollback()
+        finally:
+            conn.close()
 
     def test_health_and_search_injection(self):
         self.assertEqual(self.call('/healthz',None)[0],200)
