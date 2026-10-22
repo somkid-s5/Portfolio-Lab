@@ -203,22 +203,6 @@ jobs:
         run: .ci-lab005/bin/python GCP/LAB-005-three-tier-orders/tests/bootstrap_check.py
       - name: Verify Orders transactions, API boundaries and Web config
         run: .ci-lab005/bin/python -m unittest discover -s GCP/LAB-005-three-tier-orders/tests -v
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.9.8
-          terraform_wrapper: false
-      - name: Validate Orders foundation without provisioning
-        working-directory: GCP/LAB-005-three-tier-orders/infra/foundation
-        run: |
-          terraform fmt -recursive
-          terraform init -backend=false -input=false
-          terraform validate -no-color
-      - name: Validate Orders workloads without provisioning
-        working-directory: GCP/LAB-005-three-tier-orders/infra/workloads
-        run: |
-          terraform fmt -recursive
-          terraform init -backend=false -input=false
-          terraform validate -no-color
       - name: Emit real browser CI preview
         run: python3 -c "import base64,pathlib; print('LAB005_UI_PREVIEW='+base64.b64encode(pathlib.Path('lab005-previews/ui-ci.png').read_bytes()).decode())"
       - uses: actions/upload-artifact@v4
@@ -227,3 +211,22 @@ jobs:
           path: lab005-previews/ui-ci.png
           if-no-files-found: error
           retention-days: 14
+
+  lab005-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate all Orders Terraform roots without credentials or provisioning
+        run: |
+          for root in foundation bootstrap workloads; do
+            terraform -chdir="GCP/LAB-005-three-tier-orders/infra/$root" fmt -recursive
+            terraform -chdir="GCP/LAB-005-three-tier-orders/infra/$root" init -backend=false -input=false
+            terraform -chdir="GCP/LAB-005-three-tier-orders/infra/$root" validate -no-color
+          done

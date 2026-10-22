@@ -49,3 +49,8 @@ variable "api_replicas" {
     error_message = "Lab budget allows API baseline2 or change4."
   }
 }
+variable "enable_diagnostic" {
+  type = bool
+  default = false
+  description = "Temporary negative-access client; disable after evidence capture."
+}
