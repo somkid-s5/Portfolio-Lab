@@ -1,0 +1,23 @@
+name: Lab materials verification
+on:
+  pull_request:
+    paths:
+      - 'GCP/**'
+      - '.github/workflows/lab-materials.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lab001:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check startup script syntax
+        run: bash -n GCP/LAB-001-multi-zone-web/scripts/startup.sh
+      - name: Compile Python materials
+        run: python3 -m py_compile GCP/LAB-001-multi-zone-web/scripts/probe.py GCP/LAB-001-multi-zone-web/tests/test_materials.py
+      - name: Exercise embedded app and bounded probe
+        run: python3 -m unittest discover -s GCP/LAB-001-multi-zone-web/tests -v
