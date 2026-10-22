@@ -11,6 +11,8 @@ from sqlalchemy.exc import SQLAlchemyError
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'app'))
 from orders import Orders,Problem,cart
+from werkzeug.security import generate_password_hash
+from unittest.mock import patch
 
 class OrdersTests(unittest.TestCase):
     @classmethod
@@ -43,6 +45,10 @@ class OrdersTests(unittest.TestCase):
         cls.engines=[engine('orders_app','disposable-orders-ci') for _ in range(2)]
         # Distinct pools model two API processes sharing one PostgreSQL DB.
         cls.services=[Orders(e) for e in cls.engines]
+        # Low-cost hashes are CI fixtures only; deployed generator uses defaults.
+        cls.auth={'session_key':'z'*64,'users':{
+            u:{'role':role,'password_hash':generate_password_hash('test-'+u,method='pbkdf2:sha256:1000')}
+            for u,role in [('alice','customer'),('bob','customer'),('operator','operator')]}}
 
     @classmethod
     def tearDownClass(cls):
@@ -177,6 +183,100 @@ class OrdersTests(unittest.TestCase):
                 if statement.strip():
                     conn.exec_driver_sql(statement)
             self.assertEqual(conn.execute(text("SELECT available FROM products WHERE sku='BOOK-01'")).scalar_one(),8)
+
+
+    def http_client(self,username=None,app=None,index=0):
+        from main import create_app
+        app=app or create_app(self.engines[index],self.auth)
+        app.config['TESTING']=True
+        client=app.test_client()
+        response=client.get('/api/session',base_url='https://localhost')
+        csrf=response.json['csrf']
+        if username:
+            response=client.post('/api/login',base_url='https://localhost',
+                json={'username':username,'password':'test-'+username},headers={'X-CSRF-Token':csrf})
+            self.assertEqual(response.status_code,200,response.json)
+            csrf=response.json['csrf']
+        return client,csrf
+
+    def test_http_session_cookie_csrf_and_identity(self):
+        from main import create_app
+        app=create_app(self.engines[0],self.auth)
+        client=app.test_client()
+        response=client.get('/api/session',base_url='https://localhost')
+        for flag in ['Secure','HttpOnly','SameSite=Lax']:
+            self.assertIn(flag,response.headers['Set-Cookie'])
+        self.assertEqual(client.get('/api/orders',base_url='https://localhost').status_code,401)
+        self.assertEqual(client.post('/api/login',json={},base_url='https://localhost').status_code,403)
+        csrf=response.json['csrf']
+        response=client.post('/api/login',json={'username':'alice','password':'wrong'},
+            headers={'X-CSRF-Token':csrf},base_url='https://localhost')
+        self.assertEqual(response.status_code,401)
+        self.assertTrue(response.json['request_id'])
+        response=client.post('/api/login',json={},headers={'X-CSRF-Token':'ทดสอบ'},base_url='https://localhost')
+        self.assertEqual(response.status_code,403)
+
+    def test_http_order_journey_ownership_operator_and_replay(self):
+        a,csrf=self.http_client('alice')
+        payload={'items':[{'sku':'BOOK-01','quantity':2}]}
+        headers={'X-CSRF-Token':csrf,'Idempotency-Key':'http-key-001'}
+        first=a.post('/api/orders',json=payload,headers=headers,base_url='https://localhost')
+        self.assertEqual(first.status_code,201,first.json)
+        order_id=first.json['order']['id']
+        replay=a.post('/api/orders',json=payload,headers=headers,base_url='https://localhost')
+        self.assertEqual(replay.status_code,200,replay.json)
+        self.assertEqual(replay.json['order']['id'],order_id)
+        b,bcsrf=self.http_client('bob',index=1)
+        self.assertEqual(b.get('/api/orders/'+order_id,base_url='https://localhost').status_code,404)
+        self.assertEqual(b.post('/api/orders/'+order_id+'/cancel',json={},
+            headers={'X-CSRF-Token':bcsrf},base_url='https://localhost').status_code,404)
+        self.assertEqual(b.get('/api/operator/orders',base_url='https://localhost').status_code,403)
+        operator,_=self.http_client('operator')
+        self.assertEqual(len(operator.get('/api/operator/orders',base_url='https://localhost').json['orders']),1)
+        other,_=self.http_client('alice',index=1)
+        self.assertEqual(other.get('/api/orders/'+order_id,base_url='https://localhost').status_code,200)
+        for expected_replay in [False,True]:
+            response=a.post('/api/orders/'+order_id+'/cancel',json={},
+                           headers={'X-CSRF-Token':csrf},base_url='https://localhost')
+            self.assertEqual(response.status_code,200,response.json)
+            self.assertEqual(response.json['replayed'],expected_replay)
+        bad=a.post('/api/orders',json={'items':payload['items'],'username':'bob'},
+                   headers=headers,base_url='https://localhost')
+        self.assertEqual(bad.status_code,400)
+
+    def test_http_release_compatibility_and_startup_guard(self):
+        from main import create_app
+        first,_=self.place()
+        with patch.dict(os.environ,{'APP_VERSION':'v2'}):
+            newer=create_app(self.engines[1],self.auth)
+        client,_=self.http_client('alice',app=newer)
+        self.assertEqual(client.get('/api/orders/'+first['id'],base_url='https://localhost').status_code,200)
+        response=client.get('/api/products',base_url='https://localhost')
+        self.assertEqual(response.json['version'],'v2')
+        self.assertTrue(all('low_stock' in row for row in response.json['products']))
+        with patch.dict(os.environ,{'APP_VERSION':'broken'}):
+            with self.assertRaises(ValueError):
+                create_app(self.engines[0],self.auth)
+        with patch.dict(os.environ,{'DEPLOYMENT_TARGET':'gce','APP_LOCAL_TEST':'1'}):
+            with self.assertRaises(ValueError):
+                create_app(self.engines[0],self.auth)
+
+    def test_http_dependency_failure_reconnect_and_liveness(self):
+        client,_=self.http_client('alice')
+        try:
+            with self.admin.begin() as conn:
+                conn.exec_driver_sql('ALTER ROLE orders_app NOLOGIN')
+            for pool in self.engines:
+                pool.dispose()
+            self.assertEqual(client.get('/livez',base_url='https://localhost').status_code,200)
+            response=client.get('/healthz',base_url='https://localhost')
+            self.assertEqual(response.status_code,503)
+            self.assertEqual(response.json['error'],'database_unavailable')
+            self.assertNotIn('disposable-orders-ci',response.get_data(as_text=True))
+        finally:
+            with self.admin.begin() as conn:
+                conn.exec_driver_sql('ALTER ROLE orders_app LOGIN')
+        self.assertEqual(client.get('/healthz',base_url='https://localhost').status_code,200)
 
     def test_runtime_is_not_admin_or_ledger_deleter(self):
         with self.engines[0].connect() as conn:

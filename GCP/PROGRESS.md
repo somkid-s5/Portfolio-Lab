@@ -74,3 +74,5 @@ Lab 04: Guide-ready — [publication CI 39824671111](https://github.com/somkid-s
 Lab 05 / Brief: กำหนดOrder UI/Web/API/SQLHA solution, R1–R8, private two-zone MIGs, globalHTTPSedge + internal passthroughL4, transactional stock/idempotency ledger, rollout/failover/change scenarios และcost/domain/access prerequisitesแล้ว ยังต้องทำDesignก่อนMaterials/Tasks ไม่มีGCP provisioning
 
 Lab 05 / Design + transaction materials: ระบุresource/ports/SA firewall matrix, PSA/connector3307, two-zone rollout surge2, health/failoverและconnectionbudgetแล้ว เพิ่มOrder domain/schema/seed/grants/invariants พร้อม9testsกับPostgreSQL16และ2independent pools; รอcloud CI ยังต้องต่อHTTP/UI/installer/IaC/Guide/Diagram ไม่ใช่Guide-readyหรือCloud-verified
+
+Lab 05 / API + Web materials: เพิ่มsession/CSRF/ownership/operator API, compatible v2 low-stock field, dependency503/liveness, bounded private CloudSQL pool และWeb UI/Nginx config renderer UIเก็บเฉพาะpendingcart/keyในsessionStorageเพื่อretryคำขอเดิมหลังresponseหาย ไม่เก็บรหัสผ่าน/cookie แก้PostgreSQLsigned-deltaและPL/pgSQLfault-fixtureจากCIที่พบจริงแล้ว รอCIตรวจ15tests/JS/Nginx ยังไม่ใช่Guide-readyและไม่มีGCP writes
