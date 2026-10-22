@@ -24,6 +24,13 @@ class MaterialsTests(unittest.TestCase):
             for name,password in logins.items():
                 self.assertTrue(check_password_hash(auth['users'][name]['password_hash'],password))
                 self.assertNotIn(password,result.stdout+result.stderr)
+            admin=json.loads((target/'bootstrap-admin.json').read_text())
+            self.assertEqual(admin['user'],'postgres')
+            self.assertEqual(admin['database'],'booking')
+            self.assertEqual(admin['password'],(target/'sql-admin-password.txt').read_text().strip())
+            self.assertNotIn(admin['password'],result.stdout+result.stderr)
+            self.assertNotEqual(admin['password'],json.loads((target/'db-a.json').read_text())['password'])
+            snapshot={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in target.iterdir()}
             old=(target/'db-a.json').read_bytes()
             self.assertNotEqual(json.loads(old)['password'],json.loads((target/'db-b.json').read_text())['password'])
             if os.name=='posix':
@@ -32,6 +39,7 @@ class MaterialsTests(unittest.TestCase):
                     self.assertEqual(path.stat().st_mode & 0o777,0o600)
             self.assertNotEqual(subprocess.run(command,capture_output=True,text=True,timeout=5).returncode,0)
             self.assertEqual((target/'db-a.json').read_bytes(),old)
+            self.assertEqual(snapshot,{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in target.iterdir()})
 
     def test_all_python_materials_compile(self):
         for folder in ['app','scripts','tests']:

@@ -29,7 +29,10 @@ def main():
                                    'password':secrets.token_urlsafe(32)})
     with (root/'sql-admin-password.txt').open('x') as handle:
         os.chmod(handle.name,0o600)
-        handle.write(secrets.token_urlsafe(32)+'\n')
+        admin_password=secrets.token_urlsafe(32)
+        handle.write(admin_password+'\n')
+    write('bootstrap-admin.json',{'database':'booking','user':'postgres',
+                                 'password':admin_password})
     print('Created new private bundle. No secret values printed. Do not commit secrets/.')
 
 if __name__=='__main__':
