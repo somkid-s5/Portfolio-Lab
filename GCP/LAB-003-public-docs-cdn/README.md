@@ -1,7 +1,7 @@
 ---
 lab: LAB-003
 platform: GCP
-guide_status: brief
+guide_status: design
 cloud_verification: not-run
 last_verified: null
 ---
@@ -26,7 +26,7 @@ last_verified: null
 
 Global external Application LB + Cloud CDN + Cloud Storage backend bucket + public DNS + Google-managed certificate ไม่มี VM/VPC/subnet ในเส้นทางนี้ ไม่ใส่กรอบ network ที่ไม่ได้สร้าง
 
-ชนิด LB และ frontend scheme ต้องยึดเอกสาร backend-bucket ปัจจุบัน ไม่เอาคำสั่ง EXTERNAL ของ classic ปนกับ EXTERNAL_MANAGED ใน resource ชุดเดียว คู่มือจะเลือกแบบเดียวและระบุเหตุผล/ข้อจำกัดก่อน Authoring
+เลือก **Global external Application Load Balancer รุ่น EXTERNAL_MANAGED** กับ backend bucket ตาม [คู่มือ setup รุ่น global](https://docs.cloud.google.com/load-balancing/docs/https/setup-global-ext-https-buckets) ใช้ HTTP proxy สำหรับ redirect และ HTTPS proxy สำหรับ content ไม่มีการปน EXTERNAL ของ classic ในชุดเดียวกัน
 
 Cloud Storage origin baseline เป็น public-readable สำหรับเอกสารสาธารณะ จึงอาจอ่าน origin URL โดยตรงได้ ไม่อ้างว่าใครต้องผ่าน CDN เสมอ TLS termination ที่ LB ไม่ทำให้ origin private โดยอัตโนมัติ ไม่เปิด signed URL/private bucket complexity มาปะปนกับ baseline
 
@@ -55,7 +55,11 @@ Cloud Storage origin baseline เป็น public-readable สำหรับเ
 
 ยืนยัน stack/certificate/DNS/access model → สร้าง deterministic release materials/test contracts → Diagram ที่ไม่มี VPC ปลอม → คู่มือ Console/CLI พร้อม publish/fault/rollback/cache change → review/render/cleanup evidence
 
-สถานะ Brief: ยังไม่มีคู่มือเต็มหรือผล Deploy จริง
+สถานะ Design / Materials: มี deterministic builder, manifest integrity validator, dry-run publisher และ bounded content probe พร้อม tests กำลังตรวจ cloud CI ยังไม่มีคู่มือเต็มหรือผล Deploy จริง
+
+ไฟล์: [releases](content/releases.json), [build](scripts/build-release.py), [publish](scripts/publish-release.py), [probe](scripts/probe-release.py), [tests](tests/test_release.py)
+
+Publisher upload asset/archived index ด้วย generation=0 ก่อนเปลี่ยน root index ด้วย expected generation ที่ผู้ทำป้อน การ rollback ใช้ --index-only และ verify remote bytes ของ asset/archive ก่อนเปลี่ยน index ไม่ลบ asset เก่า ไม่ invalidate cache โดยอัตโนมัติ ไม่เรียก cloud ถ้าไม่ใส่ --apply
 
 ## แหล่งอ้างอิงขอบเขต
 

@@ -77,3 +77,13 @@ jobs:
           name: lab002-diagram-preview
           path: lab002-previews/*.png
           retention-days: 14
+
+  lab003:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify deterministic releases and safe publish planning
+        run: python3 -m unittest discover -s GCP/LAB-003-public-docs-cdn/tests -v
