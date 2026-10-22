@@ -4,7 +4,7 @@
 
 | Lab | Solution | Guide status | Cloud verification | PR / checkpoint |
 |---|---|---|---|---|
-| 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Review | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 02 | ระบบ Inventory ภายในองค์กรแบบ Private | Planned | Not run | — |
 | 03 | เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS | Planned | Not run | — |
 | 04 | ระบบจองบริการบน Serverless และ Private Database | Planned | Not run | — |
@@ -31,8 +31,8 @@ Cloud verification: Not run → In progress → Verified / Failed / Blocked (ต
 
 ## Current checkpoint
 
-M0 เสร็จแล้ว; M1 / Lab 01 อยู่ระหว่าง Authoring มี Brief และ app/startup/probe พร้อม integration tests แล้ว คู่มือเต็มและ diagram/review ยังไม่ครบ จึงยังไม่เป็น Guide-ready
+M0 เสร็จแล้ว; M1 / Lab 01 อยู่ระหว่าง Review มีคู่มือเต็ม Tasks 0–10 และ Change request 8B, App/startup/probe, Diagram baseline พร้อม PNG และ Diagram หลังเพิ่ม C แล้ว ยังต้องตรวจภาพหลังเปลี่ยนและผล documentation checks รอบล่าสุดก่อน Guide-ready
 
-ตรวจ materials บน [GitHub Actions run 39808594467](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39808594467): startup shell syntax, Python compile และ integration tests 5 tests ผ่านบน Ubuntu runner สำหรับ commit `273cdbd138d31ebf7b5fe82d34bead97ec3e02fc` ทดสอบ exact App ที่ฝังใน startup script และ probe จริง ไม่ได้รัน apt/systemd บน GCE หรือสร้าง LB/firewall/IAP จึงไม่ใช่ Cloud-verified
-
-ปรับ probe scheduling ให้เว้นระยะ submission หลัง request ช้า ไม่เร่งส่งชดเชยจนเกิด burst เกิน rate ที่ตั้งไว้ ยังต้องเพิ่ม regression test สำหรับ slow-target scheduling ในรอบ review
+- [CI 39809105744](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39809105744): shell syntax, Python compile, 6 materials tests และ render baseline ผ่าน ตรวจภาพ PNG ที่ความกว้าง 960px แล้ว
+- [CI 39809433657](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39809433657): 6 materials tests ผ่าน แต่ documentation anchor validator ไม่รองรับ combining marks ภาษาไทย แก้ตัวตรวจแล้วใน commit d52cfe4 และรันทดสอบใหม่ ไม่ข้าม test หรือทำเครื่องหมายผ่านย้อนหลัง
+- Cloud verification ยัง Not run: ไม่ได้รัน apt/systemd บน GCE หรือสร้าง LB/firewall/IAP การทดสอบบน Ubuntu CI ไม่แทนผล GCP
