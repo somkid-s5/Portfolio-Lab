@@ -213,6 +213,12 @@ jobs:
           terraform fmt -recursive
           terraform init -backend=false -input=false
           terraform validate -no-color
+      - name: Validate Orders workloads without provisioning
+        working-directory: GCP/LAB-005-three-tier-orders/infra/workloads
+        run: |
+          terraform fmt -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
       - name: Emit real browser CI preview
         run: python3 -c "import base64,pathlib; print('LAB005_UI_PREVIEW='+base64.b64encode(pathlib.Path('lab005-previews/ui-ci.png').read_bytes()).decode())"
       - uses: actions/upload-artifact@v4
