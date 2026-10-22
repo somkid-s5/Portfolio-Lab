@@ -7,7 +7,7 @@
 | 01 | [เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 02 | [ระบบ Inventory ภายในองค์กรแบบ Private](LAB-002-private-inventory/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 03 | [เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS](LAB-003-public-docs-cdn/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 04 | ระบบจองบริการบน Serverless และ Private Database | Planned | Not run | — |
+| 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Brief | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 05 | ระบบธุรกรรมสามชั้นบน VM | Planned | Not run | — |
 | 06 | ระบบรับและประมวลผลไฟล์อย่างปลอดภัย | Planned | Not run | — |
 | 07 | ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue | Planned | Not run | — |
