@@ -8,7 +8,7 @@
 | 02 | [ระบบ Inventory ภายในองค์กรแบบ Private](LAB-002-private-inventory/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 03 | [เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS](LAB-003-public-docs-cdn/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 05 | ระบบธุรกรรมสามชั้นบน VM | Planned | Not run | — |
+| 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Brief | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 06 | ระบบรับและประมวลผลไฟล์อย่างปลอดภัย | Planned | Not run | — |
 | 07 | ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue | Planned | Not run | — |
 | 08 | ระบบรายงานตามเวลาและงาน Batch รายวัน | Planned | Not run | — |
@@ -70,3 +70,5 @@ Lab 04 / Business + Operations authoring: เพิ่ม HTTP journey/3-user ca
 Lab 04 / Full guide draft: README ครบ Tasks0–12 รวม runtime→admin secret denial check, no-traffic dependency fault/recovery, bounded concurrency8→16 experiment, evidence/case-study และ cleanup/rebuild เพิ่มการแยก login ออกจาก read-load และจำกัดworkers16/requests200; [CI 39822476778](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39822476778) ผ่านชุดก่อนหน้าที่แก้ connector API failure เป็น sanitized503 แล้ว รอ CI ชุดใหม่/Diagram/Review ก่อน Guide-ready ไม่มี GCP writes
 
 Lab 04: Guide-ready — [publication CI 39824671111](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39824671111) source395043b ผ่าน20 tests, README29 Bash blocks/relative links, browser JS, Docker image build, Terraform init/validate และ2SVG renders ตรวจภาพ960pxและอ่านกลับSVG/README/attributionจากGitHubแล้ว คู่มือTasks0–12ครอบคลุมR1–R8พร้อมcode/probes/evidence/cleanup/rebuild; GCP networking/IAM/SecretAPI/Run/SQLHAไม่ได้รันจริง (Lab04SQLเป็นZONAL) ทุกLabยังCloud Not run เริ่มBrief Lab05ถัดไป
+
+Lab 05 / Brief: กำหนดOrder UI/Web/API/SQLHA solution, R1–R8, private two-zone MIGs, globalHTTPSedge + internal passthroughL4, transactional stock/idempotency ledger, rollout/failover/change scenarios และcost/domain/access prerequisitesแล้ว ยังต้องทำDesignก่อนMaterials/Tasks ไม่มีGCP provisioning

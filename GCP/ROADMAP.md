@@ -135,7 +135,7 @@
 
 **Change request:** ปรับ app replicas/connection pool โดยวัดผลก่อน–หลัง
 
-**วิธีหลักที่วางไว้:** Console → Terraform
+**วิธีหลักที่วางไว้:** Terraform + Console/CLI สำหรับตรวจ rollout/failover (ยืนยันใน Lab brief; ไม่สร้าง manual ซ้ำทับ state)
 
 **ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
 
