@@ -9,7 +9,9 @@ ROOT=Path(__file__).resolve().parents[1]
 HTML_CACHE='public,max-age=60'
 ASSET_CACHE='public,max-age=31536000,immutable'
 
-def build(release,out):
+def build(release,out,html_ttl=60):
+    if html_ttl not in (15,60,600):
+        raise ValueError('HTML TTL must be 15, 60 or 600 seconds')
     catalog=json.loads((ROOT/'content/releases.json').read_text())
     if release not in catalog:
         raise ValueError('Unknown release')
@@ -40,7 +42,7 @@ def build(release,out):
 '</details></article><footer>Demo content only. This page contains no customer data or credentials.</footer></main></html>').encode()
     (out/'index.html').write_bytes(page)
     files=[]
-    for name,mime,cache in [(asset,'text/css',ASSET_CACHE),('index.html','text/html; charset=utf-8',HTML_CACHE)]:
+    for name,mime,cache in [(asset,'text/css',ASSET_CACHE),('index.html','text/html; charset=utf-8',f'public,max-age={html_ttl}')]:
         payload=(out/name).read_bytes()
         files.append({'path':name,'size':len(payload),'sha256':hashlib.sha256(payload).hexdigest(),
                       'content_type':mime,'cache_control':cache})
@@ -52,8 +54,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--release',required=True,choices=['v1','v2','bad'])
     parser.add_argument('--out',required=True,help='New directory only')
+    parser.add_argument('--html-ttl',type=int,choices=[15,60,600],default=60)
     args=parser.parse_args()
-    manifest=build(args.release,args.out)
+    manifest=build(args.release,args.out,args.html_ttl)
     print(json.dumps({'release':manifest['release'],'out':args.out,'files':len(manifest['files'])}))
 
 if __name__=='__main__':

@@ -29,10 +29,11 @@ def load_release(directory):
         if local.is_symlink() or root not in local.resolve().parents:
             raise ValueError('Symlink or outside release directory')
         raw=local.read_bytes()
-        expected_cache=HTML_CACHE if name=='index.html' else ASSET_CACHE
+        cache_ok=(entry['cache_control'] in ('public,max-age=15','public,max-age=60','public,max-age=600')
+                  if name=='index.html' else entry['cache_control']==ASSET_CACHE)
         expected_type='text/html; charset=utf-8' if name=='index.html' else 'text/css'
         if (entry['size']!=len(raw) or entry['sha256']!=hashlib.sha256(raw).hexdigest()
-            or entry['cache_control']!=expected_cache or entry['content_type']!=expected_type):
+            or not cache_ok or entry['content_type']!=expected_type):
             raise ValueError('Manifest integrity or metadata mismatch')
     if 'index.html' not in seen:
         raise ValueError('Missing index')

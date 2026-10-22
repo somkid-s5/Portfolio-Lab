@@ -37,6 +37,18 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             builder.build('v1',self.out)
 
+    def test_html_ttl_can_change_without_renaming_assets(self):
+        fast=self.work/'fast'
+        builder.build('v1',fast,15)
+        _,manifest=publisher.load_release(fast)
+        self.assertEqual((self.out/'index.html').read_bytes(),(fast/'index.html').read_bytes())
+        index=next(e for e in manifest['files'] if e['path']=='index.html')
+        self.assertEqual(index['cache_control'],'public,max-age=15')
+        _,plan=publisher.commands(fast,'lab003-example-docs','100',True)
+        self.assertIn('--cache-control=public,max-age=15',plan[-1]['command'])
+        with self.assertRaises(ValueError):
+            builder.build('v1',self.work/'unsafe',9999)
+
     def test_v2_and_bad_are_distinct(self):
         for release in ['v2','bad']:
             out=self.work/release
