@@ -81,6 +81,7 @@ resource "google_compute_health_check" "tier" {
   }
 }
 resource "google_compute_region_instance_group_manager" "tier" {
+  provider = google-beta
   for_each = local.tiers
   name = "lab005-${each.key}-mig"
   base_instance_name = "lab005-${each.key}"
