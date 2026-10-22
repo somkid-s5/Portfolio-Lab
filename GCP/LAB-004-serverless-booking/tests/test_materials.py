@@ -107,6 +107,28 @@ class MaterialsTests(unittest.TestCase):
             result=subprocess.run(['bash','-n'],input=script,capture_output=True,text=True,timeout=5)
             self.assertEqual(result.returncode,0,'Bash block '+str(index)+': '+result.stderr)
 
+
+    def test_bootstrap_entrypoint_hides_secret_bearing_sql_errors(self):
+        import contextlib
+        import importlib.util
+        import io
+        from unittest.mock import patch
+        spec=importlib.util.spec_from_file_location('booking_bootstrap',ROOT/'scripts/init-db.py')
+        bootstrap=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(bootstrap)
+        for error in [RuntimeError('CREATE ROLE PASSWORD ci-only-sensitive-marker'),
+                      ValueError('untrusted ci-only-sensitive-marker')]:
+            output=io.StringIO()
+            with patch.object(bootstrap,'main',side_effect=error),contextlib.redirect_stderr(output):
+                code=bootstrap.run()
+            self.assertEqual(code,2)
+            self.assertNotIn('ci-only-sensitive-marker',output.getvalue())
+            self.assertNotIn('CREATE ROLE PASSWORD',output.getvalue())
+        output=io.StringIO()
+        with patch.object(bootstrap,'main',side_effect=ValueError('Runtime role exists; stop and inspect instead of resetting a live password')),contextlib.redirect_stderr(output):
+            self.assertEqual(bootstrap.run(),2)
+        self.assertIn('Runtime role exists',output.getvalue())
+
     def test_all_python_materials_compile(self):
         for folder in ['app','scripts','tests']:
             for path in (ROOT/folder).glob('*.py'):

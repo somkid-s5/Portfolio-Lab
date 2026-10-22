@@ -36,5 +36,23 @@ def main():
     finally:
         engine.dispose()
 
+def run():
+    try:
+        main()
+        return 0
+    except Exception as exc:
+        # SQL exceptions can retain CREATE ROLE statements containing passwords.
+        # Only our exact non-secret validation messages may be shown.
+        safe_messages={
+            'Expected the two dedicated booking_a/booking_b logins',
+            'Use the generated sandbox DB bundle',
+            'Runtime role exists; stop and inspect instead of resetting a live password'
+        }
+        if isinstance(exc,ValueError) and str(exc) in safe_messages:
+            print(str(exc),file=sys.stderr)
+        else:
+            print('Bootstrap failed: '+type(exc).__name__+'; inspect configuration, IAM, networking and schema without exposing secrets.',file=sys.stderr)
+        return 2
+
 if __name__=='__main__':
-    main()
+    raise SystemExit(run())

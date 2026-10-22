@@ -177,3 +177,14 @@ Failoverprobe ต้องมี boundeddeadline/requests และ idempotencyk
 [Orders API](app/main.py), [private DB pool](app/database.py), [Web UI](web/index.html), [browser script](web/app.js), [Nginx template](web/nginx.conf.template) และ [config renderer](scripts/render-web-config.py) แยก Web static tier ออกจาก API โดยใช้ session/CSRF/owner/role และแชร์ข้อมูลผ่าน PostgreSQL ไม่ใช้ in-memory stock
 
 UI เก็บเฉพาะ pending cart + idempotency key ใน sessionStorage ของแท็บนั้นเพื่อใช้คำขอเดิมหลัง response หาย ไม่เก็บรหัสผ่าน/cookie/CSRF ใน storage การทดสอบเบราว์เซอร์จำลอง response หายหลัง DB commit แล้ว reload/retry และตรวจ order/stock จาก DB จริง เป็นการทดสอบใน CI ไม่ใช่ผล Deploy GCP หรือ SQL HA failover
+
+
+## ภาพ UI และผลตรวจ App ใน CI
+
+![Orders UI จาก Chrome บน GitHub Actions หลัง retry คำขอเดิม](assets/ui-ci-preview.png)
+
+ภาพนี้มาจาก App ที่รันจริงในฐานข้อมูลชั่วคราวของ CI ไม่ใช่ภาพ Console หรือผล Deploy GCP: จำลอง response หายหลัง commit → reload → ส่ง key เดิม → ได้ order เดิมหนึ่งรายการ แล้วทดสอบ cancel คืน stock ผ่าน Browser/Nginx/API/PostgreSQL
+
+[CI 39830356415](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39830356415) source146bb2e ผ่าน18 tests พร้อมตรวจ bootstrap จริง: failure rollback ไม่ทิ้ง role, schema/seed/grants, runtime login และ rerun ไม่เปลี่ยนรหัสเดิม [ที่มาภาพ](assets/ui-ci-provenance.json)
+
+ไฟล์เตรียมระบบ: [สร้าง Secret bundle](scripts/create-secrets.py), [bootstrap ฐานข้อมูล](scripts/init-db.py) ยังต้องใช้ตามลำดับ Foundation/Secret/init ที่จะระบุใน Tasks ไม่ใช้ admin credential เป็น App runtime
