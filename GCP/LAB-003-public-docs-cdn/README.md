@@ -59,6 +59,8 @@ Cloud Storage origin baseline เป็น public-readable สำหรับเ
 
 ไฟล์: [releases](content/releases.json), [build](scripts/build-release.py), [publish](scripts/publish-release.py), [probe](scripts/probe-release.py), [tests](tests/test_release.py)
 
+URL map ใช้ [renderer](scripts/render-config.py) แยก content map (HTTPS; / redirect ไป /index.html) ออกจาก HTTP→HTTPS map ไม่ใส่ httpsRedirect บน map ที่ใช้กับ HTTPS proxy Backend bucket logging เปิดให้อัตโนมัติและไม่มีสวิตช์ sample-rate แบบ backend service ตาม [เอกสาร logging](https://docs.cloud.google.com/load-balancing/docs/https/https-logging-monitoring)
+
 Publisher upload asset/archived index ด้วย generation=0 ก่อนเปลี่ยน root index ด้วย expected generation ที่ผู้ทำป้อน การ rollback ใช้ --index-only และ verify remote bytes ของ asset/archive ก่อนเปลี่ยน index ไม่ลบ asset เก่า ไม่ invalidate cache โดยอัตโนมัติ ไม่เรียก cloud ถ้าไม่ใส่ --apply
 
 ## แหล่งอ้างอิงขอบเขต

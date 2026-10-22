@@ -5,6 +5,9 @@ on:
       - 'GCP/**'
       - '.github/workflows/lab-materials.yml'
   workflow_dispatch:
+concurrency:
+  group: lab-materials-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
