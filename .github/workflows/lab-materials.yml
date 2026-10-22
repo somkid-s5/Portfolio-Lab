@@ -148,3 +148,18 @@ jobs:
           terraform fmt -recursive
           terraform init -backend=false -input=false
           terraform validate -no-color
+      - name: Generate official-icon architecture and rotation SVG
+        run: .ci-lab004/bin/python GCP/LAB-004-serverless-booking/scripts/render-diagrams.py
+      - name: Render Booking diagrams at reading width
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y librsvg2-bin
+          mkdir -p lab004-previews
+          rsvg-convert --width 960 GCP/LAB-004-serverless-booking/assets/solution.svg -o lab004-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-004-serverless-booking/assets/credential-rotation.svg -o lab004-previews/credential-rotation.png
+          python3 -c "import base64,pathlib; [print('LAB004_PREVIEW_'+p.stem.upper().replace('-','_')+'='+base64.b64encode(p.read_bytes()).decode()) for p in sorted(pathlib.Path('lab004-previews').glob('*.png'))]"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab004-diagram-preview
+          path: lab004-previews/*.png
+          retention-days: 14
