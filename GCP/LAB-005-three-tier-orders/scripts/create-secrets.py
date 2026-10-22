@@ -23,6 +23,7 @@ def generate(target):
     write('db.json',{'database':'orders','user':'orders_app','password':secrets.token_urlsafe(32)})
     admin_password=secrets.token_urlsafe(32)
     write('bootstrap-admin.json',{'database':'orders','user':'postgres','password':admin_password})
+    write('sql-admin-flags.json',{'--password':admin_password})
     with os.fdopen(os.open(root/'sql-admin-password.txt',os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'w') as handle:
         handle.write(admin_password+'\n')
 

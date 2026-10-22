@@ -52,6 +52,7 @@ class MaterialsTests(unittest.TestCase):
             self.assertEqual(runtime['user'],'orders_app')
             self.assertEqual(runtime['database'],'orders')
             self.assertEqual(admin['user'],'postgres')
+            self.assertEqual(json.loads((target/'sql-admin-flags.json').read_text()),{'--password':admin['password']})
             self.assertEqual(admin['password'],(target/'sql-admin-password.txt').read_text().strip())
             self.assertFalse(admin['password']==runtime['password'])
             self.assertGreaterEqual(len(auth['session_key']),64)

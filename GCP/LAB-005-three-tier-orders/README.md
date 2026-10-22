@@ -191,7 +191,7 @@ UI เก็บเฉพาะ pending cart + idempotency key ใน sessionStor
 
 ## เริ่มทำ Lab — จาก Cloud Shell ถึง release ที่ตรวจสอบได้
 
-**สถานะคู่มือ: กำลังเขียน** ส่วนด้านล่างครอบคลุม Tasks 0–2 เท่านั้น ยังต้องต่อ Secret/bootstrap/เปิดระบบ/ทดสอบ/operations/change/cleanup ก่อนใช้เป็นคู่มือจบทั้ง Solution ไม่มีผล GCP จริงถูกบันทึกไว้ล่วงหน้า
+**สถานะคู่มือ: กำลังเขียน** ส่วนด้านล่างครอบคลุม Tasks 0–4 เท่านั้น ยังต้องต่อ Secret/bootstrap/เปิดระบบ/ทดสอบ/operations/change/cleanup ก่อนใช้เป็นคู่มือจบทั้ง Solution ไม่มีผล GCP จริงถูกบันทึกไว้ล่วงหน้า
 
 ### Task 0 — เตรียมพื้นที่ฝึกและบันทึกเวอร์ชัน
 
@@ -313,3 +313,101 @@ gcloud storage ls --long "gs://$ARTIFACT_BUCKET/releases/**"
 | ผล archive verification และหลักฐานที่ไม่มี secrets | … |
 
 **เกณฑ์ไปต่อ:** Web/API archives ที่ใช้งานจริงตรง hash และ source commit ที่บันทึก ไม่ใช่แค่มีไฟล์ชื่อคล้ายกันใน bucket ขั้นต่อไปจะสร้าง Secret versions และ initialize DB ก่อนเปิด API MIG
+
+### Task 3 — สร้าง Secret bundle และตั้งรหัสผู้ดูแล SQL
+
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR บน checkout เดิม ห้ามเปิด shell tracing (`set -x`) หรือ `gcloud --log-http` ระหว่างทำ Secret และห้ามถ่ายภาพเนื้อหาไฟล์ private
+
+```bash
+cd "$LAB_DIR"
+umask 077
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python scripts/create-secrets.py --out secrets
+gcloud sql users set-password postgres --instance=lab005-sql   --flags-file=secrets/sql-admin-flags.json
+```
+
+ไฟล์ sql-admin-flags.json ถูกสร้าง mode600 และมีเฉพาะ flagรหัสที่ตรงกับ bootstrap-admin.json คำสั่งอ้าง path จึงไม่มี password literal ใน shell history/argv แต่ process gcloud และผู้ดูแลเครื่องยังเป็น trusted boundary เช่นเดิม ไม่เปิด debug logs หรือแชร์ไฟล์นี้ รายละเอียด [gcloud flags-file](https://docs.cloud.google.com/sdk/gcloud/reference/topic/flags-file)
+
+**Expected:** generator แจ้งว่าสร้าง bundle โดยไม่พิมพ์รหัส; คำสั่ง set-password จบ operation สำเร็จ ถ้า secrets มีอยู่แล้ว generator จะปฏิเสธ อย่าสร้างชุดใหม่แล้วเปลี่ยนรหัสเดิมซ้ำโดยไม่รู้ว่าฐานข้อมูล initialize ไปแล้วหรือยัง
+
+เพิ่ม versions จากไฟล์ ไม่พิมพ์ payload:
+
+```bash
+export AUTH_VERSION_NAME="$(gcloud secrets versions add lab005-auth   --data-file=secrets/auth.json --format='value(name)')"
+export DB_VERSION_NAME="$(gcloud secrets versions add lab005-db   --data-file=secrets/db.json --format='value(name)')"
+export ADMIN_VERSION_NAME="$(gcloud secrets versions add lab005-bootstrap-admin   --data-file=secrets/bootstrap-admin.json --format='value(name)')"
+export AUTH_VERSION="${AUTH_VERSION_NAME##*/}"
+export DB_VERSION="${DB_VERSION_NAME##*/}"
+export ADMIN_VERSION="${ADMIN_VERSION_NAME##*/}"
+printf 'Auth version=%s; DB version=%s; admin version=%s\n'   "$AUTH_VERSION" "$DB_VERSION" "$ADMIN_VERSION"
+gcloud secrets versions list lab005-db --format='table(name,state)'
+gcloud secrets get-iam-policy lab005-db --format=json
+gcloud secrets get-iam-policy lab005-bootstrap-admin --format=json
+```
+
+**ตรวจ:** versionsเป็นเลขและ ENABLED; DBsecret ให้ API/bootstrap เท่านั้น, adminsecretให้ bootstrap ไม่ใช่Web/API ตรวจ inherited project/organization IAM ร่วมด้วย เพราะ per-secret policy ไม่ได้ลบสิทธิ์กว้างที่มีอยู่เดิม Secretcontainersสร้างใน Task1 แล้วจึงใช้ versions add ไม่ใช่สร้างSecretชื่อใหม่
+
+หาก upload บางรายการล้ม อย่ารันทั้งblockซ้ำจนได้เลขversionหลายชุดโดยไม่รู้ว่าใช้ชุดไหน ตรวจ list ของแต่ละSecret แล้วจดเลขที่payloadตรงกับbundleนี้ ถ้าไม่ทราบให้หยุดก่อนเปิดVM ห้ามใช้latestเพื่อเลี่ยงการตัดสินใจ
+
+**จุดบันทึก T03:** authversion …; DBversion …; adminversion …; SQL password operation …; identity matrixที่ตรวจแล้ว …; inherited grantsที่แก้/ยอมรับ …; เหตุขัดข้องและวิธีแก้ …  
+ไม่บันทึกรหัส/session key/password hashes/demo-logins หรือSecretpayloadลงช่องนี้
+
+**เกณฑ์ไปต่อ:** SQLpostgresรหัสตรงกับadminbundle, versionsครบและสิทธิ์ถูกต้อง ยังไม่สร้าง orders_app ด้วย gcloud เพราะ bootstrapต้องสร้างroleพร้อมgrantsในtransaction
+
+### Task 4 — Initialize ฐานข้อมูลผ่าน private VM ชั่วคราว
+
+**ทำที่ไหน:** เริ่มจาก Cloud Shell; initializer startupทำงานบน lab005-init ด้วย bootstrapSA ไม่ใช่บัญชี API/Web
+
+ตรึง OSimage เป็นชื่อจริง ไม่ใช้familyในtemplate และอ่านAPIarchivehashจากmanifestของTask2:
+
+```bash
+cd "$LAB_DIR"
+export DEBIAN_IMAGE_NAME="$(gcloud compute images describe-from-family debian-12   --project=debian-cloud --format='value(name)')"
+export TF_VAR_debian_image="projects/debian-cloud/global/images/$DEBIAN_IMAGE_NAME"
+export TF_VAR_api_sha256="$(python3 -c 'import json; print(json.load(open(".build/v1/manifest.json"))["artifacts"]["api"]["sha256"])')"
+export TF_VAR_secret_versions="{\"db\":\"$DB_VERSION\",\"admin\":\"$ADMIN_VERSION\"}"
+terraform -chdir=infra/bootstrap init -input=false
+terraform -chdir=infra/bootstrap validate
+terraform -chdir=infra/bootstrap plan -out=bootstrap.tfplan
+terraform -chdir=infra/bootstrap show -no-color bootstrap.tfplan
+```
+
+ตรวจplanต้องสร้างlab005-initเครื่องเดียว ไม่มีexternalIP ใช้lab005-bootstrap SA และmetadataมีเฉพาะreferencesกับcode ไม่มีpassword/payload หากเห็นresourceฐานข้อมูล/networkใหม่ แปลว่าอยู่ผิดTerraformroot ให้หยุด
+
+```bash
+terraform -chdir=infra/bootstrap apply bootstrap.tfplan
+gcloud compute ssh lab005-init --zone=asia-southeast1-a --tunnel-through-iap   --command='sudo journalctl -u google-startup-scripts.service --no-pager -n 100'
+```
+
+**Expected:** startupมีverified_bundle, bootstrapสำเร็จ และinstall_complete tierinit อาจต้องรอgueststartupติดตั้งpackagesก่อน `terraform apply` สำเร็จหมายถึงVMสร้างแล้ว ไม่ใช่DBพร้อม ถ้าstartupยังทำงานอยู่ให้รอและตรวจprocess/logเดิม ไม่รีบrebootหรือสร้างinitializerอีกเครื่อง
+
+เปิด Console → Compute Engine → VM instances → lab005-init ตรวจattachedSA, internalIP และไม่มีexternalIP จากนั้นดูSQL → Databases ว่ามีorders (ตัวนี้สร้างโดยfoundation ไม่ใช่หลักฐานว่าschema/seedครบ) ผลbootstrapตรวจschema/seed/grants/invariantsในtransactionและต้องexit0ก่อนเดินต่อ
+
+**ถ้าไม่สำเร็จ**
+
+| อาการ | ตรวจอย่างไร / ทำอะไรต่อ |
+|---|---|
+| SSHผ่านIAPไม่ได้ | ตรวจIAP/OSLogin/actAsและfirewall22 ไม่เปิดSSHสาธารณะเพื่อแก้ |
+| Artifact403/404 | ตรวจattachedbootstrapSA, bucketIAM, objectpath/hashจากT02 ไม่ให้StorageAdminทั้งproject |
+| Secret403 | ตรวจbootstrapSecretAccessorที่db/admin และnumericversionenabled; ไม่แก้โดยให้Web/APIอ่านadmin |
+| apt/pip timeout | ตรวจNAT/route/packageavailabilityและstartupstage ไม่ใช่เปลี่ยนSecret |
+| bootstrapFailed | ตรวจerror_typeและstage/SQLstateที่ปลอดภัย ห้ามพิมพ์rawSQLexceptionที่อาจมีpassword |
+| roleexists | bootstrapตั้งใจปฏิเสธการresetรหัส/ทับschema ให้ตรวจประวัติว่าทำสำเร็จแล้วหรือสร้างroleนอกขั้นตอน อย่าลบrole/tableเพื่อบังคับให้ผ่าน |
+
+**จุดบันทึก T04:** imageชื่อจริง …; APIhash …; initVM/zone/SA …; startupเริ่ม/จบ …; bootstrapresult …; ปัญหา/การแก้ …; หลักฐานไม่มีค่าลับ …  
+ห้ามคัดลอกไฟล์ /var/lib/lab005/*/admin.json หรือ db.json มาใส่evidence
+
+หลังบันทึกสำเร็จ ให้reviewและลบเฉพาะinitializerด้วยrootเดิม:
+
+```bash
+terraform -chdir=infra/bootstrap plan -destroy -out=bootstrap-cleanup.tfplan
+terraform -chdir=infra/bootstrap show -no-color bootstrap-cleanup.tfplan
+terraform -chdir=infra/bootstrap apply bootstrap-cleanup.tfplan
+gcloud compute instances list --filter='name=lab005-init' --format='table(name,zone,status)'
+unset TF_VAR_api_sha256 TF_VAR_secret_versions
+```
+
+**Expected:** planลบVM/diskของinitializerเท่านั้น ไม่ลบfoundation/SQL/SA; listไม่เหลือlab005-init การลบVMไม่ถอนbootstrapSAสิทธิ์Secretอัตโนมัติ จึงต้องคุมสิทธิ์actAsของผู้ดูแลและจัดการSecret/SAตามcleanupท้ายLabอีกครั้ง
+
+**เกณฑ์ไปต่อ:** bootstrapสำเร็จจริง, มีหลักฐานsanitizedและinitializerถูกนำออกแล้ว ก่อนเปิดAPI/Web MIG ในขั้นถัดไป
