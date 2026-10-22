@@ -163,3 +163,34 @@ jobs:
           name: lab004-diagram-preview
           path: lab004-previews/*.png
           retention-days: 14
+
+  lab005:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: orders_ci
+          POSTGRES_USER: orders_admin
+          POSTGRES_PASSWORD: disposable-orders-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U orders_admin -d orders_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGDATABASE: orders_ci
+      PGUSER: orders_admin
+      PGPASSWORD: disposable-orders-ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Orders dependencies
+        run: |
+          python3 -m venv .ci-lab005
+          .ci-lab005/bin/pip install -r GCP/LAB-005-three-tier-orders/requirements.txt
+      - name: Verify Orders transactions across independent pools
+        run: .ci-lab005/bin/python -m unittest discover -s GCP/LAB-005-three-tier-orders/tests -v

@@ -1,7 +1,7 @@
 ---
 lab: LAB-005
 platform: GCP
-guide_status: brief
+guide_status: design
 cloud_verification: not-run
 last_verified: null
 ---
@@ -30,7 +30,7 @@ last_verified: null
 
 Optional extensions ที่ไม่ใช้แทน baseline: mTLS ระหว่าง Web/API, managed login/SSO, autoscaling policy, Cloud Armor, cross-region recovery และ destructive schema migration ต้องออกแบบ/ทดสอบแยก ไม่อ้างว่ามีแล้ว
 
-## Candidate architecture ที่จะยืนยันใน Design
+## Architecture ที่เลือก
 
 - Region asia-southeast1; Web และ API เป็น regional managed instance groups คนละกลุ่ม กลุ่มละ 2VM กระจายสอง zone ไม่ใช่ unmanaged groups จาก Lab01
 - Public global external Application Load Balancer รับ HTTPS ด้วย domain ที่ผู้เรียนควบคุม DNS ได้ ส่งไป Web Nginx บน private VMs
@@ -70,7 +70,7 @@ App user ใช้ hashed demo passwords, secure session/CSRF/ownership/role ม
 
 ต้องมี Sandbox ที่เปิด Billing, compute/SQL/NAT/LB quotas, สิทธิ์ IAM/OSLogin/IAP/DNS ที่จำเป็น และ domain/subdomain ของผู้เรียนเอง หากไม่มี domain/สิทธิ์ DNS จะยังไม่ผ่าน R1 แบบ HTTPS ห้ามเปลี่ยนเป็น publicHTTP แล้วอ้างว่าครบ baseline
 
-SQL HA, VMs หลายเครื่อง, NAT, LB, disks/backups/logs และ IP มีค่าใช้จ่ายระหว่างฝึก ต้องประมาณงบและเวลาปิดก่อน provision Budget เป็น alert ไม่ใช่ hard cap การจัดทำเอกสารนี้ยังไม่สร้าง GCPresource หรือเปลี่ยน DNS จริง
+SQL HA, VMs หลายเครื่อง, NAT, LB, disks/backups/logs และ IP มีค่าใช้จ่ายระหว่างฝึก ต้องประมาณงบและเวลาปิดก่อน provision Budget เป็น alert ไม่ใช่ hard cap Cloud verification ยังเป็น Not run
 
 ## แหล่งอ้างอิงที่ใช้ปิดขอบเขต
 
@@ -80,3 +80,95 @@ SQL HA, VMs หลายเครื่อง, NAT, LB, disks/backups/logs แ�
 - [External Application Load Balancer](https://docs.cloud.google.com/load-balancing/docs/https)
 
 ขั้นถัดไป: ยืนยัน ports/source identities/routes/health policy, tier placement, SQL sizing/connection budget และ data invariants → working App/installer/tests/IaC → Diagram → Tasks พาทำ → Review/Guide-ready ยังไม่ถือว่า Brief นี้เป็น Lab ที่ทำเสร็จ
+
+
+## Design — ขอบเขตที่ใช้ทำ Materials
+
+### Resource map และ placement
+
+| ส่วน | Baseline |
+|---|---|
+| Region / zones | asia-southeast1; เลือก zone a/b ให้ทั้งสอง MIG อย่างชัดเจน ไม่ปล่อย regional MIG ใช้สาม zone โดยไม่คำนวณ surge |
+| VPC | lab005-vpc แบบ custom; Web subnet10.55.10.0/24 และ API subnet10.55.20.0/24 เป็น regional subnets ไม่แยก subnet ซ้ำตาม zone |
+| Public edge | global EXTERNAL_MANAGED HTTPS LB, managed certificate, reserved public IP และ DNS record ของผู้เรียน; Web backend port80 |
+| Web | regional MIG2 replicas; Nginx static UI/reverse proxy, e2-small เบื้องต้น, private IP เท่านั้น, Web SA เฉพาะ |
+| Private API VIP | regional INTERNAL passthrough TCP8080 ใน API subnet, allow_global_access=false; backend เป็น API MIG ไม่มี proxy-only subnet |
+| API | regional MIG2 replicas → change4; private IP, Gunicorn1worker/8threads, pool4/overflow0, API SA เฉพาะ |
+| SQL | orders database, PostgreSQL16 Enterprise REGIONAL, private services access10.85.0.0/16, ไม่มี publicIP; baseline tier db-custom-1-3840 ต้องตรวจ quota/ราคา/region ก่อน provision |
+| SQL HA | primary/secondary คนละ zone ภายใน region เดียวกัน ไม่วาดเป็นสอง database ที่ App ต้องเลือกเองหรือ read replica ที่ใช้กระจายอ่าน |
+| Outbound / admin | regional NAT และ Router, OS Login/IAP; diagnostic/init VM ชั่วคราวคนละ SA และไม่มี externalIP ใช้เท่าที่ต้องตรวจ/initialize แล้วลบ |
+| Release | private versioned GCS artifact bucket, Web/API archives แยกและตรึง SHA256, Secret containers แยก auth/runtimeDB/admin ไม่ใส่ payload ใน Terraformstate |
+
+PublicLB เป็น global, MIG/subnets/internalLB เป็น regional, VM เป็น zonal และ SQLHA เป็น regional managed resource เส้นทาง SQL ไป service-producer network ไม่ใช่ VM ใน API subnet
+
+### Network / identity matrix
+
+| Source → destination | Port / path | เกณฑ์ |
+|---|---|---|
+| Browser → publicLB | HTTPS443 | เปิด login/UI แต่ business endpoints ต้อง Appsession/CSRF/owner/role |
+| GFE/health → WebSA VMs | TCP80; ranges35.191.0.0/16,130.211.0.0/22 | แยก rule จาก API sourceidentity; ยืนยันชนิด LB ก่อนใช้ ranges |
+| WebSA primary NIC → API SA VMs ผ่าน privateVIP | TCP8080 | source_service_accounts=WebSA,target_service_accounts=APISA ใน VPC เดียวกัน ไม่ผสม networktags กับ SA |
+| Health probers → API SA VMs | TCP8080 จาก health ranges เท่านั้น | เป็น exception สำหรับ health ไม่ใช่การยืนยัน Appidentity จาก IP |
+| Diagnostic SA VM → API VIP/backend | TCP8080 | ต้องถูกปฏิเสธโดย ingresspolicy; อ่าน default/organization rules ก่อนสรุป |
+| API → SQLprivateIP | TCP3307 สำหรับ connectorTLS + HTTPS443 สำหรับ Admin API/certificate | native5432 ใช้เฉพาะกรณีที่เลือก driverdirect แยก ไม่วาด connector เป็น 5432; SQLClient ไม่แทน DBlogin/grants |
+| Web → SQL PSA range | egress deny ทั้ง range สำหรับ WebSA | กัน Web ข้าม API tier; ยังต้องทดสอบ Web อ่าน DBsecret ไม่ได้แยกอีกชั้น |
+| IAP → Web/API/diagnostic/init | SSH22 จาก 35.235.240.0/20 | OSLogin/IAPIAM และ actAs ต้องถูกต้อง ไม่ใช่มี firewall แล้วใครก็ SSH ได้ |
+| VMs → metadata/DNS/GoogleAPI/package sources | ตาม startup/runtime จำเป็น | ไม่มี default allow-internal; baselineegress ส่วนอื่นไม่ได้อ้างเป็น allowlist สมบูรณ์หรือ NAT เป็น firewall |
+
+ใช้ sourceSA และ sourceCIDR ใน rule เดียวกันจะเป็น union ไม่ใช่ AND จึงแยก Web-client rule กับ health-check rule และ target ด้วย SA สอดคล้องกัน ทั้งนี้ SA ใน firewall คือ identity ของ VM primaryNIC ไม่ใช่ signed JWT ของผู้ใช้
+
+### Health, startup และการดูแล
+
+- Web /livez ตอบเฉพาะ Nginx/staticrelease พร้อมใช้ ไม่เรียก DB ผ่าน API; API /livez ตรวจ process และ releaseconfig ส่วน /healthz query schema/DB
+- LB/autohealing ใช้ processhealth ไม่ทำให้ SQLfailover กลายเป็น massVMreplacement ตรวจ DBhealth ผ่าน probe/log/metrics แยก
+- Baselinehealth interval10s/timeout3s/threshold2; autohealing initial delay300s, rolling minReady30s เป็นค่าฝึกที่จะตรวจใน materials ไม่อ้างว่าเก็บ error ได้ทันทีหรือไม่มี connection ขาด
+- App poolwait3s, SQLstatement5s/lock3s, connectorconnectiontimeout5s, Gunicornrequesttimeout30s; dependencyerror ตอบ sanitized503 และ requestID ไม่ส่ง rawDBerror ถึง Browser
+- Installer ต้องดาวน์โหลด archive ตาม hash, ปฏิเสธ path traversal/symlink ที่ไม่คาดหมาย, ติดตั้ง release แบบ immutable, ดึง numericsecretversions ด้วย attachedSA และเขียน privatefile ให้ daemon เท่านั้น Startupmetadata มี references ไม่ใช่ password
+- Bootstrap ใช้ init VM/identity ชั่วคราวกับ adminsecret เท่านั้น API MIG เปิดหลัง schema/seed/runtimegrants ตรวจแล้ว Web ไม่มี admin/DBsecret ไม่เอา initcredential ไปใช้ใน APIservice
+
+### Data invariants และ request contract
+
+POST /api/orders รับ items1–10SKU, quantity เป็น integer1–20 (ไม่รับ bool), SKU ซ้ำใน cart ถูกปฏิเสธ, Idempotency-Key8–80 ตัวอักษร; normalizeSKU order ก่อน hashpayload และ lockproducts ตาม SKU order เพื่อลด deadlock
+
+Transaction: advisory lock ตาม owner+key → ตรวจ replay/fingerprint → SELECTproductsFORUPDATE ตามลำดับ → ตรวจ stock และ snapshotprice → INSERTorder/items/events + UPDATEavailable → commit ถ้าขั้นใดล้มทุก mutation ต้อง rollback
+
+Cancellation: lockorder ของ owner → lockproducts ตาม SKU order → เปลี่ยน status/cancelled_at+คืน stock+event ครั้งเดียวใน transaction Operator อ่านภาพรวมได้แต่ไม่เป็น owner แทนลูกค้า
+
+ต้องตรวจอย่างน้อย:
+- available = initial + sum(stock_events.delta) และไม่ติดลบ/เกิน initial
+- order.total_satang = sum(item.quantity × price_snapshot_satang)
+- ทุก item มี reserved event หนึ่งรายการ; confirmed ไม่มี cancelled event; cancelled มี cancelled หนึ่งรายการเท่าจำนวนเดิม
+- ไม่มี order ว่าง, key หนึ่งชุดของ owner เดียวไม่มี order ซ้ำ และ replaypayload ต่างต้อง 409
+
+ราคาหน่วยเป็นจำนวนเต็มสตางค์ ไม่ใช้ float และไม่อ้างว่านี่คือระบบรับชำระเงินจริง เปลี่ยนราคาภายหลังไม่แก้ snapshot ของ order ที่สร้างแล้ว
+
+### Connection / rollout budget และ change
+
+| สถานะ | API VMs ตามแผน | pool สูงสุดเชิงคำนวณ |
+|---|---:|---:|
+| Baseline | 2 | 8 |
+| Baseline rolling: surge2 / unavailable0 | 4 | 16 |
+| Change steady state | 4 | 16 |
+| Change rolling: surge2 / unavailable0 | 6 | 24 |
+
+เลือก SQL max_connections64 เบื้องต้นและจอง headroom สำหรับ admin/health/connection ที่กำลังปิด ต้องตรวจ pg_stat_activity และ metrics จริง ไม่อ้างตัวเลขในตารางเป็น hard cap ระหว่าง recreate/failover หรือใช้ worker หลายตัวต้องคำนวณใหม่ เผื่อ computequota รวม Web/API surges ด้วย ไม่ rollout สอง tier พร้อมกันระหว่างทดลอง
+
+ใช้ regional rolling policyfixed maxSurge2,maxUnavailable0 เพราะมีสอง zone พร้อม healthcheck/minReady ไม่ใช้ maxSurge1 ซึ่งไม่เข้ากับ regionalconstraint หาก healthyreplicas ไม่เพิ่มจาก badtemplate ให้หยุด/กลับ template เดิม ไม่เพิ่ม maxUnavailable เพื่อบังคับให้ผ่าน
+
+Failoverprobe ต้องมี boundeddeadline/requests และ idempotencykey คงเดิมสำหรับ logicalorder หนึ่งรายการ ถ้า response หายหลัง commit การ retry ต้องคืน reference เดิม ไม่สร้าง key ใหม่เพื่อให้ request สำเร็จ แยกเวลาตรวจพบ error, operationstart/end และเวลาที่ App กลับมาทำ journey ได้ จึงไม่ใช้ HA label แทนหลักฐาน applicationrecovery
+
+### ลำดับส่งมอบ
+
+1. Domainservice/schema/seed/grants/invariants + PostgreSQL16 tests (หลาย pool, races, replay, cancel, rollback, privilege)
+2. HTTPS-facing UI/session API/health/logs และ HTTPprobes แยก Webstatic จาก API
+3. Immutable artifacts + installer/systemd + secret/bootstrap/inspection tooling
+4. Terraformfoundation → seed/init → workloads/LBs/TLS และ syntax/config checks ใน cloudCI
+5. Diagram ตาม scope จริง + READMETasks/Expected/record/fault/change/cleanup
+6. Review/read-back/render/Guide-ready; GCPverification ยัง Not run จนผู้เรียนรันจริง
+
+อ้างอิง Design เพิ่มเติม: [VPC firewall source/target service accounts](https://docs.cloud.google.com/firewall/docs/firewalls#service-accounts), [LB firewall ranges](https://docs.cloud.google.com/load-balancing/docs/firewall-rules), [connector v1.18.5 implementation](https://github.com/GoogleCloudPlatform/cloud-sql-python-connector/blob/v1.18.5/google/cloud/sql/connector/connector.py)
+
+
+## Materials ที่กำลังตรวจ
+
+[Order domain](app/orders.py), [schema](db/schema.sql), [seed](db/seed.sql), [runtime grants](db/grants.sql), [invariants](db/check-invariants.sql) และ [PostgreSQL transaction tests](tests/test_orders.py) เป็นแกนธุรกรรมก่อนต่อ HTTP/UI ยังไม่ใช่คู่มือ Deploy หรือผล Cloud SQL HA จริง
