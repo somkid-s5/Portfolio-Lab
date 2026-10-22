@@ -166,6 +166,27 @@ class InventoryTests(unittest.TestCase):
         finally:
             conn.close()
 
+    def test_real_client_probe_writes_and_preserves_evidence(self):
+        reader=self.work/'reader.token'
+        operator=self.work/'operator.token'
+        reader.write_text(READER)
+        operator.write_text(OPERATOR)
+        output=self.work/'business-evidence.json'
+        command=[sys.executable,str(ROOT/'scripts/probe-inventory.py'),
+                 '--url',self.urls[0],'--reader-file',str(reader),
+                 '--operator-file',str(operator),'--allow-writes',
+                 '--requests','2','--out',str(output)]
+        run=subprocess.run(command,capture_output=True,text=True,timeout=20)
+        self.assertEqual(run.returncode,0,run.stdout+run.stderr)
+        raw=output.read_text()
+        self.assertTrue(json.loads(raw)['all_checks_passed'])
+        for token in [READER,OPERATOR]:
+            self.assertNotIn(token,raw+run.stdout+run.stderr)
+        again=subprocess.run(command,capture_output=True,text=True,timeout=10)
+        self.assertNotEqual(again.returncode,0)
+        self.assertEqual(output.read_text(),raw)
+        self.assertEqual(self.call('/api/products?q=PEN-01')[1]['products'][0]['quantity'],20)
+
     def test_health_and_search_injection(self):
         self.assertEqual(self.call('/healthz',None)[0],200)
         self.assertEqual(self.call('/api/products?q=%27%20OR%201%3D1--')[1]['products'],[])
