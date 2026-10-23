@@ -361,3 +361,12 @@ Portalตอบ202พร้อมdispatchacknowledgedหรือunconfirmed; �
 CORSincomingเริ่มว่างและจะตั้งเฉพาะportal_originจริงหลังรู้CloudRunURL ไม่ใช้wildcard ไม่มีCloudRun/Eventarctriggerในrootนี้และยังไม่มีGCPapply หน่วยCIตรวจTerraform1.9.8/provider6.50.0ด้วยfmt/init-backendfalse/validateเท่านั้น ไม่ใช้การvalidateแทนIAMหรือserviceavailabilityจริง
 
 TTLและlifecycleไม่ลบทันที softdeleteยังเก็บและคิดค่าใช้จ่ายตามนโยบาย ต้องบันทึก7วันในcleanup ส่วนidempotencyมีขอบเขตเก็บ48ชั่วโมง หลังrecordถูกTTLลบไม่อ้างdedupeถาวร [Database IAM conditions](https://firebase.google.com/docs/firestore/manage-databases), [provider schemaที่ตรึง](https://github.com/hashicorp/terraform-provider-google/blob/v6.50.0/website/docs/r/firestore_database.html.markdown)
+
+
+### Workloads และ Eventarc checkpoint
+
+เพิ่มinfra/workloadsสำหรับCloudRunPortal/workerและincoming-finalizedtriggerในregionเดียวกัน imageต้องตรึงsha256และauthversionต้องเป็นเลข Portalอ่านSecretmountเฉพาะruntime, workerไม่มีauthSecret/signBlob; workerinvokerให้portal/triggerSAเท่านั้น ไม่มีallUsers ส่วนPortalเปิดให้เข้าloginผ่านAppauth
+
+maxinstances2/Portalconcurrency8/worker1, startup/livenessใช้/livezไม่ผูกกับFirestorehealth และfaultflagfalseเป็นdefault มีกำแพงdeletionprotectionก่อนcleanup CORSยังอยู่foundationให้updateด้วยportal_uriจริงหลังworkloadsพร้อม ไม่ใส่wildcardเพื่อแก้ปัญหาbrowser
+
+CI39937892197ชุดfoundation/containerก่อนหน้านี้สำเร็จแล้ว ส่วนworkloadsชุดใหม่รอfmt/init-backendfalse/validate ไม่ได้plan/applyหรือพิสูจน์CloudRunIAM/triggerdeliveryจริง Secretmountmode292คือ0444สำหรับnonrootcontainerอ่านได้; ไม่ใช่per-processIAMisolation ต้องถือruntimecontainerเป็นtrustedboundary

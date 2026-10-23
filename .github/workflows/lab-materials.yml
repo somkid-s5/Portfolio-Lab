@@ -380,9 +380,10 @@ jobs:
         with:
           terraform_version: 1.9.8
           terraform_wrapper: false
-      - name: Validate file-processing foundation without credentials or provisioning
-        working-directory: GCP/LAB-006-private-file-processing/infra/foundation
+      - name: Validate both file-processing roots without credentials or provisioning
         run: |
-          terraform fmt -recursive
-          terraform init -backend=false -input=false
-          terraform validate -no-color
+          for root in foundation workloads; do
+            terraform -chdir="GCP/LAB-006-private-file-processing/infra/$root" fmt -recursive
+            terraform -chdir="GCP/LAB-006-private-file-processing/infra/$root" init -backend=false -input=false
+            terraform -chdir="GCP/LAB-006-private-file-processing/infra/$root" validate -no-color
+          done

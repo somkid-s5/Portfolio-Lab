@@ -204,3 +204,6 @@ Lab06 / Browser verified checkpoint: CI39936909967 lab006-firestoreสำเร�
 
 
 Lab06 / Foundation IaC draft: เพิ่มprivatebuckets/lifecycle2d-softdelete7d/namedFirestoreTTL+destructiongates/5SAs/database-scopedIAM/customget-create-signroles/authcontainer/AR/Eventarcprerequisites พร้อมTerraformcloudCIไม่ใช้credentials ชุดใหม่รอvalidateยังไม่ใช่GCPplan/apply ต้องต่อworkloads/trigger/CORSphase+Guide/Diagram ไม่มีGCPwrites
+
+
+Lab06 / Workloads IaC draft: CI39937892197ครบsuccess เพิ่มdigestpinnedCloudRunPortal/worker+numericSecretmount/specificworkerinvokers/Eventarctype-bucketfilter+path,limits/probes/deletiongates/faultdefaultfalse ปรับCIvalidateทั้ง2roots ยังไม่GCPplan/apply ไม่มีGCPwrites เหลือtools/Guide/Diagram/fullreviewและภาพรอบแก้ก่อนGuide-ready
