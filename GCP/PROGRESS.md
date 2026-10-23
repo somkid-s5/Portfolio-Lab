@@ -159,3 +159,6 @@ Lab06 / Verified first Firestore transactions + create draft: CI39932700165 lab0
 
 
 Lab06 / Worker orchestration draft: CI39932999988สำเร็จทั้งworkflowของcreate/quota (8Firestoretests+19puretests) เพิ่มprocessor/durableoncefaultmarkerและ4emulator-backedworker testsสำหรับoutput-metadatagaprecovery/singlelogicaloutput/rejectedfile/integrityfailure/ignoreunknowngeneration ชุดใหม่รอCI Storageยังเป็นtestdoubleในชุดนี้ ต้องต่อGCSadapter/HTTP/UI/IaC/Guide/Diagram ไม่ใช่Guide-ready ไม่มีGCPwrites
+
+
+Lab06 / GCS adapter draft: เพิ่มpinnedgeneration boundedrawreads/no-decompressionและcreate-onlyCRC32Coutput/verify-existingbytes+hash+metadata พร้อม7SDKautospec/mocktransporttestsและCIstep ชุดworkerก่อนCI39933281841ยังตรวจตามhandle ไม่อ้างGCSจริง ชุดใหม่นี้รอCI ยังต้องsignedaccess/CloudEvent/HTTP/UI/IaC/Guide/Diagram ไม่มีGCPwrites
