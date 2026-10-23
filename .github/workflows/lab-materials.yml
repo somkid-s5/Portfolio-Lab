@@ -266,3 +266,13 @@ jobs:
           persist-credentials: false
       - name: Parse guide examples and check committed links without executing commands
         run: python3 -m unittest discover -s GCP/LAB-005-three-tier-orders/tests -p test_guide.py -v
+
+  lab006-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify bounded CSV processing and deterministic business summaries
+        run: python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_csv_domain.py -v

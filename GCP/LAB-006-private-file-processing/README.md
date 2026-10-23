@@ -1,7 +1,7 @@
 ---
 lab: LAB-006
 platform: GCP
-guide_status: design
+guide_status: authoring
 cloud_verification: not-run
 last_verified: null
 ---
@@ -207,3 +207,12 @@ Retention: incoming/results lifecycledeleteหลัง2วันและบั
 แหล่งอ้างอิงDesign: [Eventarc Storage routing/location](https://docs.cloud.google.com/eventarc/standard/docs/run/route-trigger-cloud-storage), [Eventarc identities](https://docs.cloud.google.com/eventarc/docs/roles-permissions), [Python signed POST policy API](https://docs.cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.client.Client), [Firestore database locations](https://docs.cloud.google.com/firestore/native/docs/locations), [Firestore transaction retries](https://firebase.google.com/docs/firestore/manage-data/transactions)
 
 **Design checkpoint:** contractsนี้เป็นเป้าหมายที่Materialsต้องทำให้จริง ไม่ใช่ผลว่าระบบถูกสร้างแล้ว ขั้นถัดไปสร้างparser/fixtures/transactionrepositoryและtestsก่อนต่อHTTP/UI/Storage/IaC หากข้อจำกัดSDK/APIเปลี่ยนให้แก้Designพร้อมเหตุผลก่อนเขียนTask
+
+
+## Materials — CSV domain checkpoint
+
+[ตัวตรวจและคำนวณรายงาน](app/csv_domain.py) รับbytesแบบจำกัดขนาด ตรวจheader/จำนวนคอลัมน์/UTF-8/identifiers/ตัวเลข/duplicate sale_id/จำนวนแถว และคืนcanonicalJSONที่เรียงSKU พร้อมSHA256ของbytesต้นฉบับ ไม่มีstorage/networkหรือการเขียนไฟล์ในdomain layer
+
+รับUTF-8 BOMหนึ่งชุดที่ต้นไฟล์, LF/CRLFและquotedfieldsตามCSV แต่ไม่รับnewlineในfield, blankrecord, whitespaceรอบตัวเลข, leadingzeroเช่น01, exponent, floatหรือformulaเป็นidentifier ตัวเลขราคา0ได้แต่quantityต้องมากกว่า0 ชื่อSKUต้องuppercaseตามallowlist
+
+[ไฟล์ตัวอย่าง](fixtures/valid-sales.csv) มี3รายการ/6หน่วย/72,400สตางค์ เทียบกับ [expected business summary](fixtures/valid-sales.expected.json); inputSHAคำนวณจากไฟล์จริงไม่ตรึงhashที่อาจเปลี่ยนตามlineendings มี [duplicate fixture](fixtures/duplicate-sale-id.csv) และ [10 domain tests](tests/test_csv_domain.py) รวมboundedstream/max+1, inputผิดและchange1→5MiB/10k→50krows กำลังรอcloudCIยืนยันผล ไม่ใช่ผลGCPหรือFirestoretransaction verification
