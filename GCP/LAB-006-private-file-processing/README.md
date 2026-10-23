@@ -304,3 +304,10 @@ build_appเลือกnamedFirestoredatabaseอย่างชัดเจน,
 เพิ่มprepare_operator_retryที่hashoperator+requestkeyและเพิ่มepochในFirestoretransactionเดียว คำขอซ้ำคืนepochเดิม ไม่เปิดรอบเพิ่ม มีไม่เกิน2manualepochsต่อjob; read_retry_dispatchตรวจepochปัจจุบัน/การเตรียมคำขอ/expiryและgenerationเดิมก่อนส่งworker เก็บinput_finalized_atตั้งแต่bindครั้งแรกเพื่อreplayตามเวลาไฟล์จริง ไม่เดาจากเวลาoperatorกดretry
 
 เพิ่ม2emulatortestsสำหรับคำขอretryพร้อมกัน/responseหายจำลองด้วยsamekey และoldrequestที่ห้ามdispatchepochใหม่ ชุดใหม่นี้รอCI ยังไม่ใช่HTTPmanualretryครบวงจร ต้องต่อoperatorrole+CSRFrouteและauthenticatedworkerdispatchก่อนใช้จริง
+
+
+### Manual retry HTTP dispatch
+
+เพิ่มoperator+CSRFrouteที่prepareepochก่อนnetworkcallและworker/events/retryที่อ่านgeneration/finalizedtimeจากstoredjob ไม่รับobjectpathจากPortal มี [boundeddispatcher](app/retry_dispatch.py) ส่งIDtokenกับaudienceตรงworkerHTTPSrun.apporiginเท่านั้น, timeout10s, ไม่ตามredirect/ไม่อ่านresponsebodyและไม่retryอัตโนมัติ
+
+Portalตอบ202พร้อมdispatchacknowledgedหรือunconfirmed; ทั้งสองไม่ใช่ผลธุรกิจว่าสำเร็จ ต้องอ่านjobstatusต่อ ถ้าresponseหายใช้requestkeyเดิมเพื่อไม่เพิ่มepoch callback/token supplierยังต้องผูกกับattachedruntimecredentialsก่อนdeploy มี3testsใหม่ของPortal/worker/transport ชุดใหม่รอCI ไม่พิสูจน์CloudRunIAMจากheadersในtestclient

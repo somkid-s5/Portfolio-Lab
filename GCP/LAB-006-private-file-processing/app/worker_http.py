@@ -6,10 +6,11 @@ import os
 import uuid
 from flask import Flask, g, jsonify, request
 from werkzeug.exceptions import HTTPException
+from job_state import Conflict
 from storage_events import InvalidEvent, parse_event
 
 
-def create_app(processor, incoming_bucket, *, metadata_health=None, emit=None):
+def create_app(processor, incoming_bucket, *, metadata_health=None, retry_jobs=None, emit=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = 65536
     emit = emit or (lambda record: print(json.dumps(record, sort_keys=True), flush=True))
@@ -35,6 +36,10 @@ def create_app(processor, incoming_bucket, *, metadata_health=None, emit=None):
     @app.errorhandler(InvalidEvent)
     def invalid(_):
         return jsonify(error="invalid_storage_event"), 400
+
+    @app.errorhandler(Conflict)
+    def retry_conflict(_):
+        return jsonify(error="retry_not_allowed"), 409
 
     @app.errorhandler(HTTPException)
     def http_error(exc):
@@ -69,6 +74,29 @@ def create_app(processor, incoming_bucket, *, metadata_health=None, emit=None):
             raise RuntimeError("unexpected_processor_status")
         return jsonify(error="retry_event"), 503
 
+    @app.post("/events/retry")
+    def retry_event():
+        if retry_jobs is None:
+            return jsonify(error="retry_unavailable"), 503
+        data = request.get_json(silent=True)
+        if (not isinstance(data, dict) or set(data) != {"job_id", "epoch"} or
+                not isinstance(data["job_id"], str) or
+                len(data["job_id"]) != 32 or
+                any(c not in "0123456789abcdef" for c in data["job_id"]) or
+                type(data["epoch"]) is not int or not 1 <= data["epoch"] <= 2):
+            return jsonify(error="invalid_retry_request"), 400
+        try:
+            job = retry_jobs.read_retry_dispatch(data["job_id"], data["epoch"])
+        except KeyError:
+            return jsonify(error="job_not_found"), 404
+        g.job_id, g.generation = job["job_id"], job["input_generation"]
+        g.event_id = "manual-epoch-" + str(data["epoch"])
+        result = processor.run(job["job_id"], job["input_generation"],
+                               job["input_finalized_at"])
+        if result["status"] == 204:
+            return "", 204
+        return jsonify(error="retry_event"), 503
+
     return app
 
 
@@ -96,4 +124,4 @@ def build_app():
     processor = Processor(jobs, objects, fail_after_output_once=fault == "true")
     def health():
         client.collection("_health").document("probe").get(timeout=3)
-    return create_app(processor, incoming, metadata_health=health)
+    return create_app(processor, incoming, metadata_health=health, retry_jobs=jobs)

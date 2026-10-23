@@ -183,3 +183,6 @@ Lab06 / Operator inspection draft: เพิ่มboundedoperatorlist/detailแ�
 
 
 Lab06 / Idempotent manual-retry preparation: เพิ่มoperator-requesthash→epoch transaction, 2epochbudget, stale-epochdispatchguardและimmutableinputfinalizedtime พร้อม2emulatorraces/replaytests ชุดใหม่รอCI; operatorinspectionชุด39935199632ยังติดตามhandleเดิม ไม่อ้างHTTPdispatchสำเร็จ ไม่มีGCPwrites
+
+
+Lab06 / Manual retry HTTP draft: เพิ่มoperatorCSRFprepare→boundedIDtokenworkerdispatch→storedgeneration/epochguard เส้นทางส่งresponseหายเก็บepochเดิมและตอบunconfirmedไม่อ้างbusinessfailure พร้อม3HTTP/transporttests ชุดใหม่รอCI ยังต้องruntimecredentialwiring/UI/browser/IaC/Guide/Diagram ไม่มีGCPwrites

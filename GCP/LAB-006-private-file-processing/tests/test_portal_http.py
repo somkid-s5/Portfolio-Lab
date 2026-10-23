@@ -149,5 +149,34 @@ class PortalTests(unittest.TestCase):
         self.access.download_link.assert_not_called()
 
 
+
+    def test_operator_retry_is_durable_before_dispatch_and_timeout_is_unconfirmed(self):
+        dispatch = Mock(side_effect=TimeoutError("no business outcome known"))
+        self.app = create_app(self.jobs, self.access, self.auth, clock=lambda: NOW,
+                              retry_dispatch=dispatch, emit=self.logs.append)
+        self.client = self.app.test_client()
+        self.csrf = self.get("/api/session").json["csrf"]
+        self.login("alice")
+        url = f"/api/operator/jobs/{JOB_ID}/retry"
+        self.assertEqual(self.post(url, {"request_key": "retry-request-1"}).status_code, 403)
+        self.jobs.prepare_operator_retry.assert_not_called()
+        self.post("/api/logout", {})
+        self.csrf = self.get("/api/session").json["csrf"]
+        self.login("operator")
+        self.jobs.prepare_operator_retry.return_value = {"epoch": 1, "replayed": False}
+        response = self.post(url, {"request_key": "retry-request-1"})
+        self.assertEqual((response.status_code, response.json["dispatch"]),
+                         (202, "unconfirmed"))
+        self.jobs.prepare_operator_retry.assert_called_once_with(
+            JOB_ID, "operator", "retry-request-1")
+        dispatch.assert_called_once_with(JOB_ID, 1)
+        self.jobs.prepare_operator_retry.return_value = {"epoch": 1, "replayed": True}
+        dispatch.side_effect = None
+        dispatch.return_value = True
+        replay = self.post(url, {"request_key": "retry-request-1"})
+        self.assertEqual((replay.json["epoch"], replay.json["replayed"],
+                          replay.json["dispatch"]), (1, True, "acknowledged"))
+
+
 if __name__ == "__main__":
     unittest.main()

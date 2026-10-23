@@ -11,7 +11,7 @@ from job_state import Conflict
 
 
 def create_app(jobs, access, auth, *, clock=None, metadata_health=None,
-               limits=(1048576, 10000), emit=None):
+               limits=(1048576, 10000), retry_dispatch=None, emit=None):
     key = auth.get("session_key")
     users = auth.get("users")
     if (not isinstance(key, str) or len(key) < 64 or not isinstance(users, dict) or
@@ -198,6 +198,27 @@ def create_app(jobs, access, auth, *, clock=None, metadata_health=None,
             for entry in item.get("history", [])[-100:]]
         result["history_truncated"] = item.get("history_truncated", False)
         return jsonify(result)
+
+    @app.post("/api/operator/jobs/<job_id>/retry")
+    def operator_retry(job_id):
+        if not operator_allowed():
+            return jsonify(error="operator_required"), 403
+        data = body(("request_key",))
+        if retry_dispatch is None:
+            return jsonify(error="retry_unavailable"), 503
+        try:
+            prepared = jobs.prepare_operator_retry(job_id, identity(), data["request_key"])
+        except KeyError:
+            return jsonify(error="job_not_found"), 404
+        # The epoch is durable before network I/O. Unknown delivery is not business failure.
+        delivery = "unconfirmed"
+        try:
+            if retry_dispatch(job_id, prepared["epoch"]):
+                delivery = "acknowledged"
+        except Exception:
+            pass
+        return jsonify(job_id=job_id, epoch=prepared["epoch"],
+                       replayed=prepared["replayed"], dispatch=delivery), 202
 
     @app.post("/api/jobs/<job_id>/upload-policy")
     def upload(job_id):

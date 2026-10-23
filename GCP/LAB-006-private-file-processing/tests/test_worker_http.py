@@ -5,6 +5,9 @@ import unittest
 from unittest.mock import Mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 from worker_http import create_app
+from retry_dispatch import RetryDispatcher
+from job_state import Conflict
+from datetime import datetime, timezone
 
 BUCKET = "lab006-test-incoming"
 NAME = "incoming/" + "a"*32 + "/source.csv"
@@ -76,6 +79,46 @@ class WorkerHttpTests(unittest.TestCase):
         self.assertEqual(self.client.get("/healthz").status_code, 503)
         self.assertEqual(self.client.get("/livez").status_code, 200)
         self.assertNotIn("secret", json.dumps(self.logs))
+
+
+
+    def test_manual_retry_dispatch_uses_stored_generation_and_finalized_time(self):
+        jobs = Mock()
+        time = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        jobs.read_retry_dispatch.return_value = {
+            "job_id": "a"*32, "input_generation": "123", "input_finalized_at": time}
+        client = create_app(self.processor, BUCKET, retry_jobs=jobs,
+                            emit=self.logs.append).test_client()
+        response = client.post("/events/retry", json={"job_id": "a"*32, "epoch": 1})
+        self.assertEqual(response.status_code, 204)
+        jobs.read_retry_dispatch.assert_called_once_with("a"*32, 1)
+        self.processor.run.assert_called_once_with("a"*32, "123", time)
+        jobs.read_retry_dispatch.side_effect = Conflict("stale_epoch")
+        self.assertEqual(client.post("/events/retry",
+                                     json={"job_id": "a"*32, "epoch": 1}).status_code, 409)
+        self.assertEqual(client.post("/events/retry",
+                                     json={"job_id": "a"*32, "epoch": True}).status_code, 400)
+
+    def test_dispatcher_binds_id_token_audience_and_never_reads_response_body(self):
+        supplier, opener = Mock(return_value="identity.token"), Mock()
+        response = Mock(status=204)
+        opener.open.return_value.__enter__ = Mock(return_value=response)
+        opener.open.return_value.__exit__ = Mock(return_value=False)
+        dispatch = RetryDispatcher("https://worker-123.asia-southeast1.run.app",
+                                   supplier, opener=opener)
+        self.assertTrue(dispatch("a"*32, 1))
+        supplier.assert_called_once_with("https://worker-123.asia-southeast1.run.app")
+        request = opener.open.call_args.args[0]
+        self.assertEqual(request.get_header("Authorization"), "Bearer identity.token")
+        self.assertEqual(json.loads(request.data), {"job_id": "a"*32, "epoch": 1})
+        self.assertEqual(opener.open.call_args.kwargs["timeout"], 10)
+        response.read.assert_not_called()
+        opener.open.side_effect = TimeoutError("uncertain delivery")
+        self.assertFalse(dispatch("a"*32, 1))
+        for url in ("http://worker.run.app", "https://evil.invalid",
+                    "https://worker.run.app/?token=x"):
+            with self.assertRaises(ValueError):
+                RetryDispatcher(url, supplier)
 
 
 if __name__ == "__main__":
