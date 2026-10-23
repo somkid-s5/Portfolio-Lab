@@ -269,3 +269,10 @@ CI39933281841ของworkerชุดก่อนผ่านlab006-domainแล
 เพิ่ม [Flask receiver](app/worker_http.py) ที่ /events/storage รับbinaryCloudEventแบบจำกัด64KiB ตรวจeventก่อนเรียกprocessor, ack204เฉพาะterminal/success/ignored และคืน503ให้retryเมื่อbusy/dependencyerror มีrequestID/structuredlogsที่ไม่บันทึกpayload/query/credentials แยกprocess/liveกับmetadatahealth
 
 build_appเลือกnamedFirestoredatabaseอย่างชัดเจน, ปฏิเสธemulatorenvในruntime และผูกObjects/Jobs/Processorจริง มี [6HTTPtests](tests/test_worker_http.py) สำหรับdispatch/retry/sanitization/foreignevents/bodylimit/health เป็นFlasktestclientไม่ใช่CloudRunIAMverification **ต้องdeployworkerโดยไม่grantallUsersInvoker** ส่วนce-headersไม่ใช่หลักฐานauthentication [CI39933551789](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39933551789) GCScontract/emulatorชุดก่อนผ่านแล้ว HTTPชุดใหม่นี้ยังรอCI
+
+
+### Signed access checkpoint
+
+เพิ่ม [signed access service](app/signed_access.py) ตรวจowner/state/expiryก่อนขอtokenและsign: V4POSTpolicyตรึงbucket/key/text-csv/size/201พร้อมdeadlineไม่เกิน300s ส่วนGETตรึงoutputgenerationและอายุไม่เกิน60sหรือเวลางานที่เหลือ ใช้service_account_email+runtimeaccess_tokenสำหรับkeylesssignBlob ไม่ใช้privatekeyfile
+
+[5tests](tests/test_signed_access.py) เรียกSDKจริงเพื่อdecodepolicyและตรวจGETquery แต่แทนsignBlobtransportด้วยdummy signature จึงยังไม่พิสูจน์GoogleIAM/signaturevalidity/actualupload/expiryenforcement ต้องต่อportaltoken supplierและrouteที่ไม่logpolicy/URLก่อนใช้งาน ชุดใหม่นี้รอCI [SDK3.4.1 policy implementation](https://github.com/googleapis/python-storage/blob/v3.4.1/google/cloud/storage/client.py)

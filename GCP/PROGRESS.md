@@ -168,3 +168,6 @@ Lab06 / CloudEvent parser draft: CI39933281841 workerชุดก่อนผ่
 
 
 Lab06 / Worker HTTP draft: CI39933551789 lab006-domain/firestoreสำเร็จรวม7GCScontracttests เพิ่มFlaskreceiver/boundedCloudEventdispatch/safe503-vs204/requestIDlogs/livez-healthzและruntimefactoryเลือกnamedDB+refuseemulators พร้อม6HTTPtestclienttests/CIstep ชุดใหม่รอCI ยังไม่พิสูจน์CloudRunIAMหรือStorageeventdeliveryจริง เหลือsignedaccess/portal/UI/IaC/Guide/Diagram ไม่มีGCPwrites
+
+
+Lab06 / Signed access draft: เพิ่มowner/state/deadlinecheckedV4POSTpolicy(size/exactkey/MIME)และgeneration-pinnedshortGETพร้อม5realSDK/dummysignaturetests ไม่เรียกIAMsignBlob/GCSจริง ต้องต่อruntimecredentialssupplierและportalHTTP ชุดใหม่รอCI ไม่มีGCPwrites ไม่ใช่Guide-ready
