@@ -258,3 +258,6 @@ Lab07 / SQL materials draft: เพิ่มPGschema/seed/constraints+NOLOGINlea
 
 
 Lab07 / Domain CI repair: run135 CI39997198051 job120566760448 พบdeepJSONtestไม่rejectเพราะruntimejsonรับ2000nestedcontainersได้ แก้parserให้ตรวจcontainerdepth≤8แบบiterativeไม่พึ่งPythonrecursionlimit และเพิ่มexact8/9boundarytestโดยคงmalformed/deepinputcasesเดิม รวม11domaintests ชุดใหม่รอCI SQLชุด5074f4fเพิ่ม12testsยังรอrun136 ไม่อ้างผ่าน/ไม่มีGCPwrites
+
+
+Lab07 / PG harness repair: run136 CI39998517007 job120568813797สร้างschema/rolesสำเร็จแต่ทั้ง12testsยังไม่ถึงbusinessassertions เพราะtestadminhelperส่งNoneให้pg8000.executeซึ่งdriverต้องการsequence แก้เป็นtupleparametersเดิม (emptytupleเมื่อไม่มีparams) ไม่เปลี่ยนSQLlogic/ลดassertions ยังรอCIยืนยันผลจริง Domainfailureของrun136เป็นsourceเก่าก่อนexplicitdepthrepair0da997a8 ไม่restartliveworkflow ไม่มีGCPwrites

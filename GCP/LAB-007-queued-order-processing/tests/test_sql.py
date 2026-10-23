@@ -66,7 +66,7 @@ class SQLTests(unittest.TestCase):
         con=connection()
         cur=con.cursor()
         try:
-            cur.execute(sql, parameters or None)
+            cur.execute(sql, parameters)
             value=cur.fetchall() if cur.description else None
             con.commit()
             return value
