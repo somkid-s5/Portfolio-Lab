@@ -475,5 +475,9 @@ jobs:
         run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_queue_http.py -v
       - name: Verify private Cloud SQL runtime and bounded pool contracts without cloud calls
         run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_database.py -v
+      - name: Verify Portal auth CSRF owner and role API boundaries
+        run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_portal_http.py -v
+      - name: Verify private bundles and Portal runtime wiring
+        run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_auth_config.py -v
       - name: Verify real transactions races rollback and DB role boundaries
         run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_sql.py -v

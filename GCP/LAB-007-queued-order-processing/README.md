@@ -359,4 +359,16 @@ Catalog อ่าน SKU/ราคา/สต็อกด้วยขอบเข
 
 [pagination.py](app/pagination.py) ใช้ opaque cursor ของ created_at/ID เรียงใหม่ไปเก่า จำกัดครั้งละ 1–20 รายการและ query เพิ่มหนึ่งแถวเพื่อบอก next cursor ไม่ใช้ cursor เป็น authorization แม้ส่ง cursor ของบัญชีอื่น query ยังต้องกรอง owner จาก session ของผู้เรียก
 
-เพิ่ม [3 cursor tests](tests/test_pagination.py) และ PostgreSQL tests อีก 4 กรณี (SQL suite30): catalog/detail projection, owner pagination/foreign cursor, operator safe views และ invalid limit/cursor ชุดใหม่รอ CI ยังไม่มีหน้า Portal/login ที่พร้อมใช้
+เพิ่ม [3 cursor tests](tests/test_pagination.py) และ PostgreSQL tests อีก 4 กรณี (SQL suite30): catalog/detail projection, owner pagination/foreign cursor, operator safe views และ invalid limit/cursor ข้อมูลและ pagination ผ่าน [CI 40006125391](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40006125391) แล้ว รวม 76 tests ณ source นั้น ยังไม่มีหน้า Portal ที่พร้อมใช้
+
+## Portal API, session และข้อมูลส่วนตัว
+
+[Portal API](app/portal_http.py) ใช้ login/session/CSRF, owner จาก session และ role จากบัญชีฝั่ง server ไม่รับ owner หรือราคาขายจาก client การสร้าง order ใหม่ตอบ 202; replay คำขอเดิมตอบ 200 พร้อม order เดิม ไม่ถือว่า order confirmed เพียงเพราะ HTTP รับคำขอแล้ว
+
+Cookie เป็น Secure/HttpOnly/SameSite=Lax มีอายุ 30 นาทีและปิด automatic refresh จากการเปิดดูหน้า ล้าง session/หมุน CSRF เมื่อ login/logout แต่ signed-cookie session ไม่ใช่ระบบ revoke ทุกสำเนาที่ถูกขโมย: logout ล้าง cookie ของ client นี้ สำเนาเก่าอาจใช้ได้จนหมดอายุหรือเปลี่ยน signing key หากนำไปใช้จริงต้องเพิ่ม SSO/central session/revocation/abuse controls ตามโจทย์ทีม
+
+Customer เห็น catalog และ order ของตน Operator ดู order/outbox metadata ที่ whitelist ได้ แต่สร้างคำสั่งซื้อแทน customer ไม่ได้ และยังไม่มี replay mutation ใน API ชุดนี้ CSP อนุญาตเฉพาะ same-origin assets/connect และ logs ไม่มี password/hash/cookie/CSRF/query/payload/lease token
+
+[create-secrets.py](scripts/create-secrets.py) สร้างโฟลเดอร์ใหม่ mode700/ไฟล์600: auth.json กับ hash scrypt ที่กำหนด cost ชัดเจน, demo-logins.json สำหรับผู้เรียน และ DB bundles แยก Portal/worker/dispatcher/bootstrap ไม่มี cloud call ไม่พิมพ์รหัสและไม่เขียนทับ หากสร้างไปแล้วต้องเก็บชุดเดิมจน resolve ผลการติดตั้ง ไม่สร้างใหม่เพื่อกลบคำตอบ network ที่หาย
+
+[Portal runtime](app/portal_runtime.py) อ่าน auth mount แบบ bounded/numeric version และใช้ DB role Portal เท่านั้น ไม่โหลด admin bundle [12 API tests](tests/test_portal_http.py) และ [5 auth/runtime tests](tests/test_auth_config.py) ชุดใหม่รอ CI ยังไม่มี browser UI/การพิสูจน์ Cloud login/Secret IAM จริง

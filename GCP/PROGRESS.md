@@ -285,3 +285,6 @@ Lab07 / HTTP58 verified + runtime draft: run144 CI40003675282 sourced2c8a2d534c2
 
 
 Lab07 / Runtime69 verified + Portal data draft: CI40005157659 source199faed2c0d925a85f8d8e0f34c306c49db544b8 jobs120591090859/120591091047ผ่าน69tests อ่านlogsยืนยันrealConnectorconstructor-mockedRPC/privatekwargs/boundedpool+realPGrollbackreuseแล้ว เพิ่มcatalog/owneditems+dispatchdetail/owner-filteredpagination/operatororder-outboxsafeviews/indexes พร้อม3cursorunit+4PGtests (SQL30/รวม76) รอCI cursorเป็นpositionไม่ใช่auth ไม่มีPortalHTTP/UIหรือGCPwrites
+
+
+Lab07 / Portal data76 verified + auth API draft: CI40006125391 sourced1a0088ec08941ccf5cdb3b641ca92818c9e59eb jobs120594363019/120594363092ผ่าน76tests อ่านlogsยืนยันownerpagination/foreigncursor/operatorview/SQL30แล้ว เพิ่มPortalAPI(session30mnoauto-refresh/CSRFrotate/customer-opowner/serverrolechecks/safeprojections/errorlogs), fixedscryptauthconfig/readonlymount/runtimePortal และprivateNEWbundleauth+DBrole generator/nooverwrite พร้อม12API+5auth-runtime tests (รวม93รอCI) ไม่มีUI/replaymutationหรือGCPwrites

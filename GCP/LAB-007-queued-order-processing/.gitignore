@@ -1,0 +1,14 @@
+secrets/
+.build/
+.venv/
+__pycache__/
+*.pyc
+auth.json
+demo-logins.json
+db-*.json
+*.key
+*.pem
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform/
