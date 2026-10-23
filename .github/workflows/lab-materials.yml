@@ -278,6 +278,7 @@ jobs:
         run: |
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_csv_domain.py -v
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_job_state.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_storage_events.py -v
 
   lab006-firestore:
     runs-on: ubuntu-latest

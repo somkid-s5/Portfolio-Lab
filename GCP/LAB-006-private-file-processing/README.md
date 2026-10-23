@@ -253,3 +253,12 @@ Quota5active/20newjobsต่อUTCdayถูกอ่านและปรับ�
 เพิ่ม [GCS adapter](app/gcs_objects.py) สำหรับgeneration-pinnedrawrange reads พร้อมmetadata-size check/boundedbuffer และrejectcontent-encoding/MIMEผิด; outputเขียนif_generation_match=0พร้อมCRC32C ถ้ามีอยู่แล้วจะตรึงgenerationและเทียบbytes/SHA/processor metadataก่อนreuse ไม่overwriteผลที่ไม่ตรง จำกัดoutputต่ำกว่า8MiBและปิดSDKretryเพื่อให้workerคุมdeadlineได้
 
 [7SDKcontracttests](tests/test_gcs_objects.py) ใช้autospecของBlobที่ติดตั้งจริงแต่mocktransport ตรวจprecondition/range/bounds/mismatch/nooverwrite ยังไม่ใช่ผลGCSจริง ต้องผู้เรียนพิสูจน์IAM/preconditions/CRC/latencyในการทำLab และยังรอCIชุดนี้ [Blob API](https://docs.cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.blob.Blob)
+
+
+### CloudEvent validation checkpoint
+
+เพิ่ม [binary CloudEvent parser](app/storage_events.py) และ [5tests](tests/test_storage_events.py) ตรวจspec/type/id/contenttype/body64KiB, bucket/source/subject/objectnamespace, numericgenerationและtimeCreatedแบบUTC ปฏิเสธduplicateJSONkeys/NaN/invalidencoding ไม่ตามmediaLinkและไม่ใช้eventIDเป็นbusinessdeduplicationkey
+
+Parserนี้ไม่ใช่authentication ต้องใช้หลังCloudRunIAMเท่านั้น โดยjobIDจากservernamespace/generationจะถูกตรวจซ้ำในFirestoreclaim ส่วนforeignbucket/namespaceคืนignored ไม่สร้างjobจากmetadataที่clientใส่เอง [Eventarc HTTP binding](https://docs.cloud.google.com/eventarc/docs/cloudevents)
+
+CI39933281841ของworkerชุดก่อนผ่านlab006-domainและlab006-firestoreแล้ว; GCScontractชุด39933551789ยังin_progressตอนตรวจ CloudEventชุดใหม่นี้ยังรอCI และยังต้องต่อHTTPreceiverจริง

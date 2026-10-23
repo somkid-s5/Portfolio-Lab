@@ -162,3 +162,6 @@ Lab06 / Worker orchestration draft: CI39932999988สำเร็จทั้งw
 
 
 Lab06 / GCS adapter draft: เพิ่มpinnedgeneration boundedrawreads/no-decompressionและcreate-onlyCRC32Coutput/verify-existingbytes+hash+metadata พร้อม7SDKautospec/mocktransporttestsและCIstep ชุดworkerก่อนCI39933281841ยังตรวจตามhandle ไม่อ้างGCSจริง ชุดใหม่นี้รอCI ยังต้องsignedaccess/CloudEvent/HTTP/UI/IaC/Guide/Diagram ไม่มีGCPwrites
+
+
+Lab06 / CloudEvent parser draft: CI39933281841 workerชุดก่อนผ่านpure+12Firestoreintegrationtests เพิ่มstrictbinaryCloudEventparser+5testsสำหรับenvelope/source/bucket/key/generation/timeCreated/duplicateJSON/bodybounds พร้อมCIstep ไม่มีการตามURLในevent; GCSชุด39933551789ยังlab006-firestorein_progressตอนตรวจ ชุดใหม่ยังรอCI ไม่อ้างIAMหรือGCPdeliveryจริง
