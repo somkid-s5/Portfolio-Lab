@@ -349,9 +349,9 @@ Portalตอบ202พร้อมdispatchacknowledgedหรือunconfirmed; �
 
 ![Portal หลัง resume งานเดิมใน Chrome บน GitHub Actions](assets/ui-ci-preview.png)
 
-[CI39936909967](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39936909967) / job120358985515 ผ่านBrowserlost-create-response→reload→samekey→onejob/oneoutput รวมถึง17FirestoreintegrationtestsและชุดSDK/HTTP/runtimeที่อยู่ในjobเดียวกัน ภาพนี้ใช้HTTPSloopback/Firestoreemulatorจริง ส่วนStorage/signingเป็นtestdouble ไม่ใช่GoogleCloudConsoleหรือGCS/IAMverification [รายละเอียดที่มาภาพ](assets/ui-ci-provenance.json)
+[CI39991195096](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39991195096) / job120543077262 ผ่านBrowserlost-create-response→reload→samekey→onejob/oneoutput รวมถึง18FirestoreintegrationtestsและชุดSDK/HTTP/runtimeที่อยู่ในjobเดียวกัน ภาพนี้ใช้HTTPSloopback/Firestoreemulatorจริง ส่วนStorage/signingเป็นtestdouble ไม่ใช่GoogleCloudConsoleหรือGCS/IAMverification [รายละเอียดที่มาภาพ](assets/ui-ci-provenance.json)
 
-ตรวจภาพแล้วอ่านข้อความไทยและแถวsucceededได้ แต่viewportเดิมตัดรายละเอียดล่างและbannerยังบอกรอworker จึงแก้terminalbannerและขยายcaptureheightในsourceถัดไป ต้องรอภาพรอบใหม่ก่อนอ้างว่าpreviewตรงUIล่าสุด ContainerbuildยังรอCIแยก ไม่ถือว่าBrowserPASSแทนimagebuild
+ตรวจภาพรอบนี้แล้ว: แถบสถานะและแถวงานแสดงsucceededตรงกัน อ่านรายละเอียดjob/limits/attemptได้ครบ ภาพไม่แสดงsignedURL/password ส่วนcontainerbuild/import/nonroot/privatefileexclusionและTerraformvalidateทั้งสองrootsผ่านในworkflowเดียวกัน ผลเหล่านี้ยังไม่พิสูจน์CloudRunIAM/Eventarc/GCSจริง
 
 
 ### Terraform foundation checkpoint
