@@ -267,3 +267,6 @@ CI network bound: run136ยังliveที่lab006-firestore/InstallThaiFonts�
 
 
 Lab07 / First SQL verified + outbox draft: CI39999204524 source10bace2db521edd3a1cc2be87eaf0b9ad86e4dca jobs120571400843/120571400868ผ่าน11domain+12realPG16tests อ่านlogsยืนยันrace/rollback/grants/price/bindingแล้ว (wholeworkflowยังติดตามแยก) เพิ่มOutboxshortclaimSKIPLOCKED/120slease-tokenfencing/finish/release/10attemptbudget/canonicalintegrityquarantine และ6PGtestsใหม่ รวมSQL18ชุดใหม่รอCI ยังไม่มีactualPubSubpublisher/Cloudผลจริง
+
+
+Lab07 / Outbox verified + publisher draft: run140 CI40000048463 source50884b294e0ea478812e1570dcc0e44617b490ed completed success ทั้งworkflow อ่านjob120573981066ยืนยัน18realPGtestsรวมclaim/fencing/unconfirmedpublish/budget/integrity และ11domainผ่าน เพิ่มsyncGAPICsinglepublish(retryNone/RPC5s), boundedDispatcher20claims/cooperative40s/no-tight-retry/finishunknownไม่releaseทับ พร้อม8unit+5SDKcontract+4PGintegrationใหม่ (SQL22) รอCI ไม่เรียกPubSub/GCPจริง ไม่มีprovisioning

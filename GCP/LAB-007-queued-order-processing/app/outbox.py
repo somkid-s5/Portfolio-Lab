@@ -2,7 +2,7 @@
 import hashlib
 import uuid
 
-from order_domain import Rejected, identifier, parse_event
+from order_domain import Rejected, event_bytes, identifier, parse_event
 from orders import Orders, Conflict, row
 
 LEASE_SECONDS = 120
@@ -36,7 +36,8 @@ class Outbox(Orders):
                     hashlib.sha256(payload).hexdigest() == candidate["payload_sha256"]
                     and event.event_id == event_id
                     and event.order_id == candidate["order_id"]
-                    and event.order_fingerprint == candidate["expected_fingerprint"])
+                    and event.order_fingerprint == candidate["expected_fingerprint"]
+                    and payload == event_bytes(event.event_id,event.order_id,event.order_fingerprint))
             except (UnicodeError, Rejected):
                 pass
             if not valid:

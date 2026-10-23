@@ -1,6 +1,7 @@
 """Real PostgreSQL integration. Refuses all non-loopback/non-disposable targets."""
 from concurrent.futures import ThreadPoolExecutor
 import json
+import hashlib
 import os
 from pathlib import Path
 import sys
@@ -15,6 +16,7 @@ sys.path.insert(0, str(LAB/"app"))
 from order_domain import OrderEvent, canonical, parse_event
 from orders import Orders, Conflict, IntegrityFailure
 from outbox import Outbox
+from dispatch import Dispatcher
 
 
 def connection(role=None):
@@ -317,6 +319,81 @@ class SQLTests(unittest.TestCase):
         with self.assertRaisesRegex(Conflict,"stale_dispatch_claim"):
             self.dispatcher.finish(claim["event_id"],claim["token"],published=False)
         self.assertEqual(self.dispatcher.claim()["attempts"],2)
+
+
+    def test_dispatcher_publish_runs_after_outbox_lock_is_released(self):
+        order=self.create()
+        test=self
+        class WorkerPublisher:
+            def publish(self,payload):
+                event=parse_event(payload)
+                # NOWAIT proves no claim transaction still holds this outbox row.
+                test.admin("SELECT event_id FROM lab007.outbox WHERE event_id=%s FOR UPDATE NOWAIT",
+                           (event.event_id,))
+                test.worker.process(event)
+                return "synthetic-123"
+        result=Dispatcher(self.dispatcher,WorkerPublisher()).drain()
+        self.assertEqual((result["status"],result["finished"]),(200,1))
+        self.assertEqual(self.api.read_owned("alice",order["order_id"])["state"],"confirmed")
+        self.assert_stock()
+
+    def test_dispatcher_unknown_publish_reply_reuses_committed_business_result(self):
+        self.create()
+        test=self
+        published=[]
+        class LostReplyPublisher:
+            def publish(self,payload):
+                event=parse_event(payload)
+                published.append(event.event_id)
+                test.worker.process(event)
+                if len(published)==1:
+                    raise TimeoutError("private-secret")
+                return "synthetic-123"
+        dispatcher=Dispatcher(self.dispatcher,LostReplyPublisher())
+        first=dispatcher.drain()
+        self.assertEqual((first["status"],first["reason"]),(503,"publish_unconfirmed"))
+        before=self.worker.stock_snapshot()
+        second=dispatcher.drain()
+        self.assertEqual((second["status"],second["finished"]),(200,1))
+        self.assertEqual(published[0],published[1])
+        self.assertEqual(before,self.worker.stock_snapshot())
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.orders")[0][0],1)
+        self.assertNotIn("private-secret",json.dumps(first))
+        self.assert_stock()
+
+    def test_dispatcher_unknown_finish_commit_does_not_release_or_publish_again(self):
+        self.create()
+        test=self
+        finish_calls=[]
+        class UnknownFinish:
+            def claim(self):
+                return test.dispatcher.claim()
+            def finish(self,*args,**kwargs):
+                finish_calls.append(kwargs["published"])
+                test.dispatcher.finish(*args,**kwargs)
+                raise ConnectionError("private-secret")
+        class WorkerPublisher:
+            def publish(self,payload):
+                test.worker.process(parse_event(payload))
+                return "synthetic-123"
+        first=Dispatcher(UnknownFinish(),WorkerPublisher()).drain()
+        self.assertEqual((first["status"],first["reason"]),(503,"finish_unconfirmed"))
+        self.assertEqual(finish_calls,[True])
+        self.assertEqual(self.admin("SELECT state FROM lab007.outbox")[0][0],"published")
+        second=Dispatcher(self.dispatcher,WorkerPublisher()).drain()
+        self.assertEqual((second["reason"],second["claimed"]),("empty",0))
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.processed_events")[0][0],1)
+        self.assert_stock()
+
+    def test_outbox_noncanonical_serialization_is_blocked_even_with_matching_hash(self):
+        order=self.create()
+        payload=self.admin("SELECT payload FROM lab007.outbox WHERE order_id=%s",
+                           (order["order_id"],))[0][0]+" "
+        self.admin("UPDATE lab007.outbox SET payload=%s,payload_sha256=%s WHERE order_id=%s",
+                   (payload,hashlib.sha256(payload.encode("ascii")).hexdigest(),order["order_id"]))
+        self.assertEqual(self.dispatcher.claim()["disposition"],"integrity_blocked")
+        self.assertEqual(self.api.read_owned("alice",order["order_id"])["state"],"accepted")
+        self.assert_stock()
 
 
 if __name__ == "__main__":

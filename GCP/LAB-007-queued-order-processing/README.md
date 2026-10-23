@@ -313,4 +313,16 @@ SQLbackup retentionไม่ใช่การรับประกันrestore
 
 เกิน 10 attempts ต่อ epoch ให้ exhausted โดยไม่เปลี่ยน business state เป็น rejected หาก canonical bytes/hash/event/order binding เสียจะ block ด้วย invalid_canonical แทนส่งข้อความที่ผิดออกไป ต้องหาสาเหตุ ไม่แก้ hash หรือเปิด retry เพื่อกลบความเสียหาย
 
-เพิ่ม SQL tests อีก 6 กรณี: concurrent claim, lease reclaim/stale fencing, unconfirmed publish หลัง worker commit, retry budget, canonical corruption และ expired-token completion ชุดใหม่นี้รอ CI รวม SQL suite เป็น 18 tests การเร่ง expiry ด้วย SQL ทำเฉพาะ disposable CI เพื่อทดสอบ transition ไม่ใช่หลักฐานว่ารอเวลา 120 วินาทีบน Cloud จริง
+เพิ่ม SQL tests อีก 6 กรณี: concurrent claim, lease reclaim/stale fencing, unconfirmed publish หลัง worker commit, retry budget, canonical corruption และ expired-token completion 18 SQL tests แรกผ่าน [CI 40000048463](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40000048463) แล้วตาม source ก่อนเพิ่ม publisher การเร่ง expiry ด้วย SQL ทำเฉพาะ disposable CI เพื่อทดสอบ transition ไม่ใช่หลักฐานว่ารอเวลา 120 วินาทีบน Cloud จริง
+
+## Publisher และ dispatcher
+
+[Pub/Sub adapter](app/pubsub_publish.py) ใช้ synchronous GAPIC PublisherClient จาก google-cloud-pubsub 2.33.0 ส่งครั้งละหนึ่งข้อความไป topic ของ Lab นี้โดยเฉพาะ ไม่ใช้ batch/future ตั้ง retry=None และ RPC timeout 5 วินาที ข้อความต้องเป็น canonical event ที่ตรวจแล้ว หาก RPC ล้มเหลวหรือคำตอบไม่ครบจะเป็น publish_unconfirmed ไม่สรุปว่าไม่มีข้อความถูกส่ง
+
+[Dispatcher](app/dispatch.py) เรียก publisher หลัง claim transaction commit แล้ว จำกัด 20 claims ต่อ request และ cooperative budget 40 วินาที โดยไม่เริ่มงานใหม่เมื่อเหลือเวลาไม่พอสำหรับ operation reserve ค่านี้ไม่ใช่ hard wall-clock guarantee ของทุก dependency
+
+แยก publish_acks ออกจาก finished: Pub/Sub รับแล้วแต่ SQL finish ไม่ทราบผลอาจเกิดได้ จึงไม่ release ทับหลัง finish exception ให้ตรวจ state หรือรอ lease recovery ส่วน publish ไม่ทราบผลจะคืน pending และหยุดรอบนั้น ไม่วนยิง event เดิมจนใช้ budget หมดใน request เดียว ผลจาก dispatcher ไม่ใช่ผลธุรกิจว่า order confirmed
+
+เพิ่ม [8 unit tests](tests/test_dispatch.py), [5 real-SDK contract tests](tests/test_pubsub_publish.py) และ PostgreSQL integration อีก 4 กรณี รวม SQL suite เป็น 22 tests ตรวจว่า publish อยู่นอก SQL lock, คำตอบ publish หายหลังจองสำเร็จ, finish commit หาย และ canonical serialization ที่ผิดแม้ hash ตรง ชุดใหม่นี้รอ CI การทดสอบ publisher ใช้ mock RPC และการทดสอบ SQL ใช้ publisher double ไม่เรียก Pub/Sub จริง
+
+อ้างอิง [GAPIC PublisherClient รุ่นที่ตรึง](https://github.com/googleapis/python-pubsub/blob/v2.33.0/google/pubsub_v1/services/publisher/client.py) แทนการใช้ timeout ของ future เป็นหลักฐานว่างาน background หยุดแล้ว

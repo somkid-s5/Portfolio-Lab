@@ -429,7 +429,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Verify order and wrapped PubSub contracts without cloud calls
-        run: python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_domain.py -v
+        run: |
+          python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_domain.py -v
+          python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_dispatch.py -v
 
   lab007-postgres:
     runs-on: ubuntu-latest
@@ -461,5 +463,7 @@ jobs:
         run: |
           python3 -m venv .ci-lab007
           .ci-lab007/bin/pip install -r GCP/LAB-007-queued-order-processing/requirements.txt
+      - name: Verify real synchronous PubSub SDK request contracts without RPC
+        run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_pubsub_publish.py -v
       - name: Verify real transactions races rollback and DB role boundaries
         run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_sql.py -v
