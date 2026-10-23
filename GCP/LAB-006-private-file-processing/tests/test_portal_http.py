@@ -109,5 +109,20 @@ class PortalTests(unittest.TestCase):
         self.assertNotIn("never-log-this", str(self.logs))
 
 
+
+    def test_list_uses_session_owner_bounded_page_and_public_fields(self):
+        self.login("bob")
+        job = new_job(JOB_ID, "bob", NOW)
+        job["attempt_token"] = "must-not-leak"
+        self.jobs.list_owned.return_value = {"jobs": [job], "next_cursor": JOB_ID}
+        response = self.get("/api/jobs?limit=2")
+        self.assertEqual(response.status_code, 200)
+        self.jobs.list_owned.assert_called_once_with("bob", limit=2, cursor=None)
+        self.assertEqual(response.json["next_cursor"], JOB_ID)
+        self.assertNotIn("attempt_token", response.json["jobs"][0])
+        for query in ("owner=alice", "limit=21", "limit=0", "limit=2&limit=3"):
+            self.assertEqual(self.get("/api/jobs?"+query).status_code, 400)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -283,3 +283,10 @@ build_appเลือกnamedFirestoredatabaseอย่างชัดเจน,
 เพิ่ม [Portal HTTP API](app/portal_http.py) สำหรับanonymousCSRFbootstrap/login/logout, signedSecureHttpOnlysession30min, exactinputcontract, customerjobcreate/replay, ownerstatusและownercheckedupload/downloadlinks พร้อมrequestID/no-store/no-referrer/structuredlogsที่ไม่บันทึกsignedcapabilities มี [6tests](tests/test_portal_http.py) ตรวจcookie/session/CSRF, anonymous, clientownerinjection, replay, bob404/operator403และerror sanitization
 
 ส่วนนี้ยังเป็นfactoryที่รับJobs/Access/Authเข้ามา ไม่ใช่portalที่deployพร้อมแล้ว ยังต้องruntimeSecrets/tokenprovider, boundedlist/operatorretry, UIจริงและbrowser/emulatorintegration ชุดใหม่รอCI ไม่อ้างจากmockrepositoryว่าพิสูจน์FirestoreหรือCloudIAMครบ
+
+
+### รายการงานแบบแบ่งหน้า
+
+เพิ่มJobs.list_ownedด้วยFirestoreowner-equalityfilter+documentIDordering+limitสูงสุด20/cursor และGET/api/jobsที่ใช้ownerจากsessionเท่านั้น ไม่รับownerqueryหรือqueryซ้ำ ลบinternalobject/attempttokenก่อนส่งstatus/listให้Browser cursorเป็นตำแหน่งเรียง ไม่ใช่สิทธิ์เข้าถึง
+
+เพิ่มemulatortestกรองowner/แบ่งหน้า/foreigncursorและHTTPtestสำหรับsessionowner/querybounds/fieldprojection ชุดใหม่นี้รอCI; CI39934400587และ39934698336 lab006-domain/firestoreผ่านsignedaccess/PortalAPIชุดก่อนแล้ว ไม่ใช่CloudRunIAMหรือGCSจริง ส่วนcompositeindex/productionqueryต้องตรวจตอนทำIaC/Guide ไม่ใช้emulatorแทนข้อกำหนดindexจริง

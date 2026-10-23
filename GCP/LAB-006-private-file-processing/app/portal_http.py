@@ -129,19 +129,38 @@ def create_app(jobs, access, auth, *, clock=None, metadata_health=None,
         return jsonify(job_id=result["job"]["job_id"], replayed=result["replayed"]), (
             200 if result["replayed"] else 201)
 
-    @app.get("/api/jobs/<job_id>")
-    def read_job(job_id):
-        try:
-            item = jobs.read_owned(job_id, identity())
-        except KeyError:
-            return jsonify(error="job_not_found"), 404
+    def public_job(item):
         fields = ("job_id", "display_name", "state", "safe_reason", "processor_version",
                   "max_bytes", "max_rows", "attempt_epoch", "attempt_count")
         result = {key: item[key] for key in fields if key in item}
         if clock() >= item["expires_at"]:
             result["state"] = "expired"
         result["expires_at"] = item["expires_at"].isoformat()
-        return jsonify(result)
+        return result
+
+    @app.get("/api/jobs")
+    def list_jobs():
+        if (set(request.args) - {"limit", "cursor"} or
+                any(len(request.args.getlist(key)) != 1 for key in request.args)):
+            raise ValueError("invalid_query")
+        raw_limit = request.args.get("limit", "20")
+        if not raw_limit.isascii() or not raw_limit.isdigit():
+            raise ValueError("invalid_limit")
+        limit = int(raw_limit)
+        if not 1 <= limit <= 20:
+            raise ValueError("invalid_limit")
+        result = jobs.list_owned(identity(), limit=limit,
+                                 cursor=request.args.get("cursor"))
+        return jsonify(jobs=[public_job(item) for item in result["jobs"]],
+                       next_cursor=result["next_cursor"])
+
+    @app.get("/api/jobs/<job_id>")
+    def read_job(job_id):
+        try:
+            item = jobs.read_owned(job_id, identity())
+        except KeyError:
+            return jsonify(error="job_not_found"), 404
+        return jsonify(public_job(item))
 
     @app.post("/api/jobs/<job_id>/upload-policy")
     def upload(job_id):

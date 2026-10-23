@@ -174,3 +174,6 @@ Lab06 / Signed access draft: เพิ่มowner/state/deadlinecheckedV4POSTpol
 
 
 Lab06 / Portal API draft: เพิ่มsession/CSRF/login/logout/jobcreate/read/ownercheckedcapabilityroutesและ6Flasktestsพร้อมCI ชุดsignedaccess39934400587ยังpendingตอนตรวจ ไม่claimผ่าน ต้องต่อruntimewiring/list/operator/UI/browserintegration/IaC/Guide/Diagram ไม่มีGCPwrites ไม่ใช่Guide-ready
+
+
+Lab06 / Bounded owner listing: CI39934400587+39934698336 lab006jobsสำเร็จ เพิ่มFirestoreownerfilteredpagination(limit20/docIDcursor)+PortalGETlist/publicfieldprojectionพร้อม2testsใหม่ (emulator+HTTP) รอCIชุดนี้ ยังต้องoperatorretry/runtimewiring/UI/browser/IaC/Guide/Diagram ไม่มีGCPwrites

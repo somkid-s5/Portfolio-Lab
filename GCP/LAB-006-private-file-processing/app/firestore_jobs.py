@@ -5,6 +5,7 @@ import hashlib
 import json
 import uuid
 from google.cloud import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 import job_state
 
 
@@ -157,3 +158,20 @@ class Jobs:
             updated = dict(previous, output_fault_consumed=True)
             return updated, True
         return self._change(job_id, transition)
+
+
+    def list_owned(self, owner, *, limit=20, cursor=None):
+        """Bounded owner-filtered page. Cursor is ordering only, never authorization."""
+        if (not isinstance(owner, str) or
+                not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", owner) or
+                type(limit) is not int or not 1 <= limit <= 20):
+            raise ValueError("invalid_list_contract")
+        query = (self.client.collection("jobs")
+                 .where(filter=FieldFilter("owner", "==", owner))
+                 .order_by("__name__"))
+        if cursor is not None:
+            query = query.start_after({"__name__": self._ref(cursor)})
+        snapshots = list(query.limit(limit + 1).get(timeout=10))
+        page = snapshots[:limit]
+        return {"jobs": [snapshot.to_dict() for snapshot in page],
+                "next_cursor": page[-1].id if len(snapshots) > limit else None}

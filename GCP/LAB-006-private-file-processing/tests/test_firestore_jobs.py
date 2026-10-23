@@ -213,5 +213,26 @@ class FirestoreJobsTests(unittest.TestCase):
         self.assertEqual(objects.reads, 0)
 
 
+
+    def test_owner_filtered_pages_are_bounded_and_cursor_never_grants_access(self):
+        alice, bob = "alice_" + uuid.uuid4().hex, "bob_" + uuid.uuid4().hex
+        created = [self.jobs.create(alice, f"page-key-{i}", "sales.csv")["job"]["job_id"]
+                   for i in range(4)]
+        foreign = self.jobs.create(bob, "foreign-key", "private.csv")["job"]["job_id"]
+        first = self.jobs.list_owned(alice, limit=2)
+        second = self.jobs.list_owned(alice, limit=2, cursor=first["next_cursor"])
+        observed = [item["job_id"] for page in (first, second) for item in page["jobs"]]
+        self.assertEqual(observed, sorted(created))
+        self.assertIsNone(second["next_cursor"])
+        self.assertNotIn(foreign, observed)
+        forged = self.jobs.list_owned(alice, limit=20, cursor=foreign)
+        self.assertTrue(all(item["owner"] == alice for item in forged["jobs"]))
+        for limit in (0, 21, True):
+            with self.assertRaises(ValueError):
+                self.jobs.list_owned(alice, limit=limit)
+        with self.assertRaises(ValueError):
+            self.jobs.list_owned(alice, cursor="../other")
+
+
 if __name__ == "__main__":
     unittest.main()
