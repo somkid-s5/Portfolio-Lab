@@ -128,3 +128,7 @@ Lab 05 / Reviewed diagram assets: บันทึก SVG/PNG ทั้ง topolo
 
 
 Lab 05 / Network guide review: เติม Task8 Web→SQL ด้วยคำสั่งเลือก PRIVATE address/ตรวจ PSA range, อ่าน egress deny rule, ทดสอบ TCP3307 จาก Web และเทียบ /healthz ของ API พร้อม effective-policy evidence เพิ่ม lightweight guide-only CI job ให้ตรวจ Bash/link/sections โดยไม่ต้องรอ apt/browser; run39929963331 ยัง lab005 in_progress ตอนตรวจ ไม่อ้างผลชุดใหม่ผ่าน และไม่มี GCP provisioning
+
+
+Lab 05 / Guide static review: เพิ่ม CI tests สำหรับ Bash ทั้ง 45 blocks (parse เท่านั้น ไม่ execute), relative links และ Task/acceptance sections เพื่อป้องกันคำสั่งผิด syntax หรือไฟล์ประกอบหายหลังแก้คู่มือ รอผล GitHub Actions รอบนี้ก่อนยืนยันผล ยังต้องตรวจเนื้อหา workflow ด้วยคน; ไม่มี GCP writes และยังไม่เปลี่ยนเป็น Guide-ready
+
