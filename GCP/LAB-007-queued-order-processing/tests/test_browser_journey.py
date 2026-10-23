@@ -5,7 +5,7 @@ import http.cookiejar
 import importlib.util
 import ssl
 import urllib.request
-from unittest.mock import patch
+from unittest.mock import patch,Mock
 import json
 from pathlib import Path
 import subprocess
@@ -29,6 +29,8 @@ from orders import Orders
 from outbox import Outbox
 from portal_http import create_app
 from replay import Replay
+from dead_letter import DeadLetters
+from google.pubsub_v1.types import PullResponse,ReceivedMessage,PubsubMessage
 from queue_http import create_worker
 from test_sql import connection  # Do not import SQLTests: schema already initialized by earlier CI step.
 
@@ -241,6 +243,33 @@ class BrowserJourneyTests(unittest.TestCase):
                     resolved=client.prepare(event_id,request_body)
                 self.assertEqual((resolved["outcome"],resolved["replayed"]),("already_resolved",True))
                 self.assertEqual(admin("SELECT count(*) FROM lab007.operator_actions")[0][0],1)
+                self.assertEqual(admin("SELECT count(*) FROM lab007.orders")[0][0],1)
+                self.assertEqual(admin("SELECT count(*) FROM lab007.processed_events")[0][0],1)
+                self.assertEqual(dict(admin("SELECT sku,available FROM lab007.products")),stock)
+                # Actual Portal terminal proof/audit gates a mocked Pub/Sub ack.
+                # This fixture is NOT a broker-forwarded DLQ message.
+                subscriber=Mock()
+                payload=admin("SELECT payload FROM lab007.outbox")[0][0].encode("ascii")
+                subscriber.pull.return_value=PullResponse(received_messages=[ReceivedMessage(
+                    ack_id="ci-private-dead-letter-ack-token",
+                    message=PubsubMessage(data=payload,message_id="ci-dead-letter-1",attributes={
+                        "CloudPubSubDeadLetterSourceSubscription":"projects/demo-lab007/subscriptions/lab007-orders-worker",
+                        "CloudPubSubDeadLetterSourceSubscriptionProject":"demo-lab007",
+                        "CloudPubSubDeadLetterSourceDeliveryCount":"11"}))])
+                dead=DeadLetters(subscriber,"demo-lab007","123456789012")
+                receipts,held=dead.inspect()
+                self.assertEqual((len(receipts),held),(1,0))
+                subscriber.acknowledge.assert_not_called()
+                with patch.object(cli,"origin_url",return_value=origin):
+                    body=cli.journal(Path(folder)/"terminal-approval.json",origin,event_id,
+                        receipts[0].summary["source_digest"],"delivery_restored")
+                    acknowledged=dead.acknowledge(receipts[0],client.verify,
+                        lambda event,digest:client.prepare(event,body))
+                self.assertEqual((acknowledged["ack_request"],acknowledged["absence_verified"]),("accepted",False))
+                subscriber.acknowledge.assert_called_once()
+                self.assertEqual(list(subscriber.acknowledge.call_args.kwargs["request"].ack_ids),
+                                 ["ci-private-dead-letter-ack-token"])
+                self.assertEqual(admin("SELECT count(*) FROM lab007.operator_actions")[0][0],2)
                 self.assertEqual(admin("SELECT count(*) FROM lab007.orders")[0][0],1)
                 self.assertEqual(admin("SELECT count(*) FROM lab007.processed_events")[0][0],1)
                 self.assertEqual(dict(admin("SELECT sku,available FROM lab007.products")),stock)
