@@ -211,7 +211,7 @@ Retention: incoming/results lifecycledeleteหลัง2วันและบั
 | Portal และสิทธิ์ชั่วคราว | [Portal API](app/portal_http.py), [signed access](app/signed_access.py), [runtime](app/portal_runtime.py), [retry dispatch](app/retry_dispatch.py) | Login, owner checks, signed POST/GET และ operator retry |
 | หน้าจอ | [HTML](app/static/index.html), [JavaScript](app/static/app.js), [CSS](app/static/style.css) | ส่งไฟล์ ดูสถานะ ดาวน์โหลด และแก้คำขอที่ไม่ทราบผล |
 | บัญชีทดลอง | [create-secrets.py](scripts/create-secrets.py) | สร้าง auth bundle และรหัสสังเคราะห์ไว้ในโฟลเดอร์ส่วนตัวใหม่ ไม่เขียนทับ |
-| เครื่องมือผู้เรียน | [verify-report.py](scripts/verify-report.py), [Portal client](scripts/portal_client.py), [upload boundary runner](scripts/test-upload-boundary.py), [change fixtures](scripts/create-change-fixtures.py) | เทียบผล ทดสอบข้อจำกัด Storage และสร้างข้อมูลเปลี่ยนขนาด |
+| เครื่องมือผู้เรียน | [verify-report.py](scripts/verify-report.py), [Portal client](scripts/portal_client.py), [upload boundary runner](scripts/test-upload-boundary.py), [change fixtures](scripts/create-change-fixtures.py), [event replay](scripts/replay-storage-event.py) | เทียบผล ทดสอบข้อจำกัด Storage และสร้างข้อมูลเปลี่ยนขนาด |
 | Container | [Dockerfile](Dockerfile), [entry point](scripts/run-container.py) | Image เดียวเลือกบทบาท Portal หรือ worker และรันด้วย UID 10001 |
 | Infrastructure | [foundation](infra/foundation/main.tf), [workloads](infra/workloads/main.tf) | แยกฐานระบบออกจากบริการ เพื่อทราบ Portal URL ก่อนตั้ง CORS |
 | การทดสอบ | [domain](tests/test_csv_domain.py), [Firestore integration](tests/test_firestore_jobs.py), [browser journey](tests/test_browser_journey.py), [guide checks](tests/test_guide.py) | ตรวจ business invariants, race/recovery, การใช้งานจริงใน CI และตัวอย่างคำสั่ง |
@@ -651,6 +651,47 @@ terraform -chdir=infra/workloads apply worker-output-gap-backout.tfplan
 
 **จุดบันทึก T08:** before/fault/backoutrevision …; UUID/inputgeneration …; first503/retry/successเวลา …; faultmarker …; outputgeneration/จำนวนlogicaloutputs …; reportverification …; backout/retest …; ข้อจำกัดที่สังเกตไม่ทัน …  
 **เกณฑ์ไปต่อ:** ผลเดียวเชื่อมกับgenerationเดิมและผลตรวจจริง หรือบันทึกfailureที่ต้องแก้ก่อนต่อ ไม่อ้างexactly-oncedelivery/zeroerrorจากrecoveryนี้
+
+### Task 8B — ส่ง event ซ้ำและตรวจว่าผลไม่เปลี่ยน
+
+**ทำหลัง T08 กลับสู่ baseline:** ใช้งานที่ succeeded แล้วและยังไม่หมดอายุ จด input generation, output generation/hash, owner และ attempt history ก่อนเริ่ม เป้าหมายคือเปรียบเทียบงานเดิม ไม่สร้างไฟล์หรือ job ใหม่
+
+เครื่องมือ [replay-storage-event.py](scripts/replay-storage-event.py) อ่าน metadata ของ incoming generation จริงก่อนประกอบ event ไม่รับ timestamp ที่เดาเอง ส่งไม่เกินสามครั้ง: event ID เดิมสองครั้ง แล้วเปลี่ยน event ID โดยคง bucket/name/generation เดิม ทุกคำขอเรียก worker ด้วย ID token ที่ audience ตรง URL และไม่ตาม redirect
+
+**สิทธิ์เพิ่มเติมเฉพาะการทดสอบ:** บัญชีผู้เรียนต้องอ่าน incoming object generation ได้ และ impersonate trigger service account ของ Lab ได้ ไม่ใช่การเปิด worker ให้ anonymous หรือให้ Token Creator ทั้ง project หากยังไม่มีสิทธิ์ ให้ผู้ดูแล sandbox ตรวจตามขั้นนี้ก่อน:
+
+1. Console → IAM & Admin → Service Accounts → เลือกอีเมล trigger ที่ได้จาก output ด้านล่าง → Permissions
+2. บันทึก policy เดิมและตรวจว่าบัญชีผู้เรียนได้รับสิทธิ์ impersonation อยู่แล้วหรือไม่ อย่าเพิ่มซ้ำหรือใช้บัญชีคนอื่น
+3. หากต้องเพิ่ม ให้ Grant access บน service account นี้เท่านั้น เลือก principal เป็นบัญชีผู้เรียน และ role **Service Account Token Creator** ใช้ condition วันหมดอายุที่ครอบคลุมช่วงทดสอบสั้น ๆ ตามนโยบาย sandbox
+4. Role นี้ให้สิทธิ์มากกว่าการขอ ID token อย่างเดียว จึงใช้เฉพาะ trigger SA ของ Lab ไม่ใช้กับ signer/Portal/production SA และไม่สร้าง private key จด binding/condition ที่เพิ่มเพื่อลบเฉพาะรายการนี้หลังจบ หากองค์กรไม่อนุญาต ให้บันทึก T08B ว่า Not run และขอแนวทางผู้ดูแล ไม่ขยายสิทธิ์เอง
+
+อ้างอิง [CLI ID token และ audience](https://docs.cloud.google.com/sdk/gcloud/reference/auth/print-identity-token) และ [ขอบเขต role สำหรับ impersonation](https://docs.cloud.google.com/iam/docs/service-account-permissions)
+
+**ทำที่ไหน:** Cloud Shell ใน LAB_DIR ใช้ project/region/state/venv เดิม:
+
+```bash
+cd "$LAB_DIR"
+export TRIGGER_SA="$(terraform -chdir=infra/foundation output -json service_accounts | python3 -c 'import json,sys; print(json.load(sys.stdin)["trigger"])')"
+export JOB_ID='ใส่-jobUUID-ที่-succeeded-และยังไม่หมดอายุ'
+export INPUT_GENERATION='ใส่-input_generation-จากงานเดียวกัน'
+.venv/bin/python scripts/replay-storage-event.py --project "$PROJECT_ID" --bucket "$INCOMING_BUCKET" --job-id "$JOB_ID" --generation "$INPUT_GENERATION" --worker-origin "$WORKER_URL" --service-account "$TRIGGER_SA" --confirm-sandbox
+
+```
+
+เครื่องมือใช้ Application Default Credentials ของ Cloud Shell อ่าน Storage และใช้ gcloud account ปัจจุบันขอ ID token หากอ่าน metadata ไม่ได้ ให้ตรวจ account/project/ADC และสิทธิ์อ่าน generation ก่อน ไม่ export token ลงไฟล์หรือใส่ key ลง repository หากสภาพแวดล้อมยังไม่มี ADC ให้ทำ gcloud auth application-default login ตามนโยบายของ sandbox แล้วรันคำสั่งเดิม ไม่ใช้ service account key แทน
+
+**Expected ของ transport:** JSON แสดงสามคำขอที่ HTTP 204 และ business_verification เป็น required_separately ข้อนี้หมายถึง worker รับและตอบคำขอ ไม่ใช่ PASS ของ business requirement เครื่องมือไม่อ่านหรือพิมพ์ token/response body และหยุดเมื่อ HTTP ไม่ใช่ 204 หรือผลไม่แน่นอน
+
+**ตรวจผลธุรกิจต่อ:** เปิดงานเดิมใน Portal/Firestore ตรวจ owner, input generation, output generation และ hash ต้องไม่เปลี่ยน ดาวน์โหลด report ใหม่แล้วเทียบตาม T05 ตรวจ Storage ว่าไม่มี logical result เพิ่ม และดู worker logs ตาม T08 ว่ามี event ID เดิม/ใหม่ตรงกับสามคำขอ Terminal duplicate ไม่ควรเพิ่ม attempt เพื่อทำงานซ้ำ ถ้าเห็น 204 แต่หา job ไม่พบหรือ output ไม่ตรง ห้ามนับผ่าน
+
+ถ้า 401/403 ให้ตรวจ audience, trigger SA invoker และสิทธิ์ impersonation ไม่ให้ allUsers เพื่อแก้ ถ้า 400 ให้ตรวจ event contract/source/bucket/namespace ถ้า 503 หรือ unknown ให้ตรวจ logs/สถานะ/generation ก่อนตัดสินใจรอบใหม่ ไม่วนยิงเพื่อให้ได้ 204
+
+การส่งตรงนี้พิสูจน์ receiver และ business deduplication ไม่ใช่หลักฐานว่า Eventarc เป็นผู้ส่ง retry จริง ใช้ T08 ร่วมกับ Eventarc logs แยกหลักฐาน ส่วน concurrent claim/lease fencing ใช้ผล emulator tests ประกอบ ไม่อ้างจากสามคำขอเรียงลำดับว่าได้พิสูจน์ race บน GCP
+
+หลังจบกลับไป Permissions ของ trigger SA ลบเฉพาะ binding/condition ที่เพิ่มสำหรับ T08B อย่าลบสิทธิ์เดิมหรือ run.invoker ของระบบ ตรวจ policy เทียบก่อนทำ Token ที่ออกไปแล้วอาจยังใช้ได้จนหมดอายุ จึงอย่าเผยแพร่และอย่าอ้างว่าลบ role แล้วเพิกถอนทุก token ทันที
+
+**จุดบันทึก T08B:** UUID …; owner/input/output generation/hash ก่อน–หลัง …; event IDs/HTTP …; จำนวน logical results …; report verification …; IAM binding ก่อน/เพิ่ม/คืน …; เวลาและข้อจำกัด …  
+**เกณฑ์ไปต่อ:** แยก transport acknowledgement จากผลธุรกิจได้ และมีหลักฐานว่าคำขอซ้ำไม่สร้างผลเพิ่ม หากไม่รันจริงให้ระบุ Not run
 
 ### Task 9 — งานล้มเหลวครบ budget และ operator retry ไฟล์เดิม
 
