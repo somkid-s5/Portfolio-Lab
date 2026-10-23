@@ -672,9 +672,24 @@ python3 -c 'import socket; s=socket.create_connection(("ใส่-api-backend-pr
 
 Timeoutอย่างเดียวไม่พิสูจน์ว่าเกิดจากfirewall อาจเป็นroute/serviceเสีย ต้องแนบpositivecontrol, attachedSA, backendhealth, effectivepolicyและเวลาที่ตรงกัน ถ้าไม่มีหลักฐานพอให้บันทึก“ยังสรุปไม่ได้” ไม่ติ๊กผ่าน
 
-Web→SQLใช้egressdenyไปPSA10.85.0.0/16 ตรวจrulelab005-web-deny-sqlและeffectivepolicy พร้อมทดสอบTCP3307ไปSQLprivateIPจากWebเทียบAPIconnectorที่ทำงานจริง ห้ามใช้WebDBsecretหรือnative5432แทนเส้นทางconnectorในแบบนี้
+#### ตรวจ Web → SQL แยกจากการปฏิเสธ Secret
 
-ออกdiagnosticกลับCloudShell แล้วreviewplanปิดเครื่อง:
+กลับ Cloud Shell ที่ตั้ง WEB_VM/WEB_ZONE จากด้านบน อ่าน private IP ของ SQL โดยเลือกเฉพาะ address ชนิด PRIVATE และตรวจ rule ที่ Terraform สร้าง:
+
+```bash
+export SQL_PRIVATE_IP="$(gcloud sql instances describe lab005-sql --format=json | python3 -c 'import json,sys; a=[x["ipAddress"] for x in json.load(sys.stdin).get("ipAddresses",[]) if x.get("type")=="PRIVATE"]; assert len(a)==1, "expected one private SQL address"; print(a[0])')"
+python3 -c 'import ipaddress,os; a=ipaddress.ip_address(os.environ["SQL_PRIVATE_IP"]); assert a in ipaddress.ip_network("10.85.0.0/16"); print("SQL private target:",a)'
+gcloud compute firewall-rules describe lab005-web-deny-sql --format='yaml(name,direction,priority,disabled,destinationRanges,targetServiceAccounts,denied)'
+gcloud compute ssh "$WEB_VM" --zone="$WEB_ZONE" --tunnel-through-iap --command="python3 -c 'import socket; socket.create_connection((\"$SQL_PRIVATE_IP\",3307),timeout=5).close(); print(\"UNEXPECTED: connected\")'"
+curl --fail --show-error --silent --max-time 15 "https://$LAB_DOMAIN/healthz"
+
+```
+
+**Expected:** deny rule เปิดใช้งาน ครอบคลุม PSA10.85.0.0/16 และ target เป็น Web SA; การเชื่อมต่อจาก Web ไป TCP3307 ไม่สำเร็จ ขณะที่ /healthz ผ่าน Web → API → SQL ยังตอบ ready จดเวลาและผลทั้งสองฝั่ง หาก private IP ว่างหรืออยู่นอกช่วงที่ออกแบบให้หยุดตรวจ foundation ก่อน ไม่ยิง IP ที่เดาเอง
+
+ใน Console เปิด VPC network → Firewall และหน้า Network interfaces ของ Web VM เพื่อตรวจ effective firewall policies ร่วมกับ rule ที่แสดงไว้ เพราะ policy ระดับองค์กรอาจเปลี่ยนผลได้ Timeout เพียงอย่างเดียวยังไม่พิสูจน์ว่าเป็น deny rule นี้ ต้องประกอบกับ identity, effective policy และ positive control ของ API ไม่ใช้ Web DB secret หรือ native5432 แทนเส้นทาง connector และไม่เพิ่มสิทธิ์ Web เพื่อให้ทดสอบผ่าน
+
+เมื่อทดสอบครบและกลับ Cloud Shell แล้ว ให้ review plan เพื่อลบ diagnostic VM:
 
 ```bash
 terraform -chdir=infra/workloads plan -var=enable_diagnostic=false -out=diagnostic-cleanup.tfplan

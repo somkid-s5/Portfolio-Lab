@@ -256,3 +256,13 @@ jobs:
             GCP/LAB-005-three-tier-orders/assets/*.svg
             GCP/LAB-005-three-tier-orders/assets/diagram-provenance.json
           retention-days: 14
+
+  lab005-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Parse guide examples and check committed links without executing commands
+        run: python3 -m unittest discover -s GCP/LAB-005-three-tier-orders/tests -p test_guide.py -v
