@@ -794,3 +794,107 @@ python3 -c 'import urllib.request; r=urllib.request.urlopen("http://127.0.0.1:80
 | ข้อจำกัด เช่นไม่พบerrorหรือไม่ได้overlapwrites | … |
 
 หากprobeไม่พบerror ให้รายงาน“ไม่พบในsamplewindowนี้” ไม่สรุปว่าไม่มีdowntime การวัดนี้คือapplicationrecoveryในLab ไม่ใช่RTO/RPO/SLAของproduction
+
+### Task 11 — Compatible API release, bad template และ backout
+
+**ก่อนเริ่ม:** T10คืนปกติ ไม่มีoperationค้าง API2replicasทั้งสองzonehealthy เก็บSQLsnapshot/connectionbudget และจดAPIhashv1/OSimage/Secretversionsเดิม หัวข้อนี้เปลี่ยนเฉพาะAPI ไม่rolloutWebพร้อมกันและไม่เปลี่ยนschema
+
+CloudShellสร้างv2จากcommitเดียวกับv1เพื่อทดลองbackward-compatiblefeature (productsเพิ่มlow_stock โดยfieldเดิมยังอยู่):
+
+```bash
+cd "$LAB_DIR"
+python3 scripts/release.py build --source-commit "$SOURCE_COMMIT" --app-version v2 --out .build/v2
+python3 scripts/publish-release.py --release-dir .build/v2 --bucket "$ARTIFACT_BUCKET" --shell
+```
+
+ตรวจและรันเฉพาะคำสั่งuploadAPIarchiveของv2จากผลplanner เก็บWebv1ไว้ตามเดิม ไม่pipecommandsเข้าshellโดยไม่อ่าน ถ้าobjectมีอยู่แล้วให้verifyก่อนreuseตามT02
+
+```bash
+export TF_VAR_release_sha256="$(python3 -c 'import json; a=json.load(open(".build/v1/manifest.json")); b=json.load(open(".build/v2/manifest.json")); print(json.dumps({"web":a["artifacts"]["web"]["sha256"],"api":b["artifacts"]["api"]["sha256"]}))')"
+export TF_VAR_api_startup_fault=false
+terraform -chdir=infra/workloads plan -out=api-v2.tfplan
+terraform -chdir=infra/workloads show -no-color api-v2.tfplan
+```
+
+**Review:** APItemplate/versionเปลี่ยน, Webhash/Secretversions/SQLเดิม; maxSurge2/maxUnavailable0/minReady30ยังอยู่ ต้องเผื่อAPIสูงสุด4เครื่อง×pool4=16connectionsช่วงrollout บวกheadroom ไม่ตีความ2replicasเป็นconnectionhardcap ถ้าplanrolloutWebด้วยให้หยุดหาว่าinputใดเปลี่ยน
+
+เปิดprobeT09ในwindowใหม่api-v2-read.jsonlก่อนapply แล้วอีกTerminalตั้งvariablesเดิมและ:
+
+```bash
+terraform -chdir=infra/workloads apply api-v2.tfplan
+gcloud compute instance-groups managed list-instances lab005-api-mig --region="$REGION"
+gcloud compute instance-groups managed describe lab005-api-mig --region="$REGION"   --format='yaml(versions,currentActions,status)'
+gcloud compute backend-services get-health lab005-api-internal --region="$REGION"
+```
+
+ตรวจจนhealthyครบ/desiredversionตรงและcurrentActionsนิ่ง ไม่ใช้applyexit0แทนrolloutเสร็จ probeควรบันทึกv1/v2ที่เห็นจริง แล้วคงv2หลังจบ ทดสอบUI/journeyjournalใหม่และinspector; ตรวจproductslow_stockผ่านsessionที่loginแล้วในBrowserโดยไม่exportcookie/CSRF หากไม่พบv1ในsampleอย่าแต่งผลว่าเห็นmixedversion
+
+#### Bad-startup template แบบคืนค่าได้
+
+ตั้งflagทดลองเฉพาะAPI true โดยhash/schema/Secretเดิม:
+
+```bash
+export TF_VAR_api_startup_fault=true
+terraform -chdir=infra/workloads plan -out=api-bad-startup.tfplan
+terraform -chdir=infra/workloads show -no-color api-bad-startup.tfplan
+terraform -chdir=infra/workloads apply api-bad-startup.tfplan
+gcloud compute instance-groups managed describe lab005-api-mig --region="$REGION"   --format='yaml(versions,currentActions,status)'
+gcloud compute backend-services get-health lab005-api-internal --region="$REGION"
+```
+
+**Expected:** newAPIstartupแจ้งintentional_startup_failureก่อนอ่านartifact/Secretและไม่เปิด8080; rolloutไม่ครบhealthyตามdesiredversion ขณะoldhealthybackendอาจยังรับงานตามpolicy เก็บtemplateIDs/actions/healthycounts/probeerrorsจริง ไม่รับประกันว่าsurgepolicyทำให้ไม่มีerrorหรือไม่มีค่าใช้จ่ายเพิ่ม
+
+เลือกเฉพาะnewVMที่อ้างbadtemplateจากMIGlist/instanceรายละเอียด แล้วดูstartupjournalผ่านIAPตามT04 ห้ามสั่งstopoldhealthyVMเพิ่มเพื่อเร่งให้เห็นfailure จำกัดการสังเกตรอบนี้ประมาณ5นาที ถ้าตรวจพบbadstartupแล้วให้backoutทันที ไม่ทิ้งกลุ่มซ่อมวนทั้งคืน
+
+**Backout:** ปิดflagและplanใหม่จากstateปัจจุบัน ไม่reapplysavedplanเก่า/ไม่ใช้force-unlockขณะTerraformยังรัน:
+
+```bash
+export TF_VAR_api_startup_fault=false
+terraform -chdir=infra/workloads plan -out=api-recover.tfplan
+terraform -chdir=infra/workloads show -no-color api-recover.tfplan
+terraform -chdir=infra/workloads apply api-recover.tfplan
+```
+
+ถ้าapplyรอบก่อนยังไม่จบ/timeout ให้ตรวจprocessและoperationเดิมก่อน รอหรือหยุดTerraformอย่างควบคุมแล้วตรวจstate/operationจนไม่กำลังแก้ไข จึงplanใหม่ ไม่เปิดapplyสองprocessพร้อมกัน
+
+ตรวจAPI2healthyและhashv2เดิมครบ, ไม่มีbadVMค้าง, journey/ledgerถูกต้อง หากต้องย้อนcompatiblev2เป็นv1อีกครั้ง ตั้งTF_VAR_release_sha256จากmanifestv1ทั้งคู่ แล้วplan/show/applyใหม่ตามT05 ทำจนhealthyและตรวจข้อมูลเดิมยังอยู่ schemaไม่เปลี่ยนจึงไม่ต้องrestoreDBเพื่อย้อนApp
+
+**จุดบันทึก T11:** v1/v2hashและtemplateIDs …; diffที่review …; mixed/finalversionsที่พบ …; errors/healthy/actiontimeline …; badstartupหลักฐาน …; flagfalsebackoutplan/result …; finalversion/journey/invariants …  
+**เกณฑ์ไปต่อ:** APIทุกเครื่องกลับhealthyบนversionที่ระบุ flagfalse ข้อมูลเดิมไม่เสีย และไม่เหลือbadrolloutค้าง
+
+### Task 12 — Change Request: API2→4 โดยคง pool4
+
+**โจทย์ทีม:** เพิ่มAPIreplicasเพื่อรับงานมากขึ้น แต่ไม่เพิ่มworker/poolแบบเดาสุ่มและไม่เปลี่ยนWebพร้อมกัน
+
+จดfinalrelease/OSimage/SecretversionsจากT11และยืนยันflagfalse ก่อนเปลี่ยนทำbaselineprobe100requests/workers4/interval0.2sด้วยprobe.pyในwindowชื่อcapacity-before.jsonl พร้อมsnapshot/connectionmetrics เวลาใกล้กัน นี่คือboundedhealth-readload ไม่ใช่benchmarkorderthroughput
+
+**คำนวณก่อน:** API2→4 steady16connections, rolloutที่4replicas+surge2อาจ24 บวกadmin/health/กำลังปิด/reconnectheadroomเทียบSQLmax_connections64 ตรวจquotaรวมWeb/API/disksก่อนprovision ไม่ลดSQLheadroomเพื่อให้ตัวเลขผ่าน
+
+```bash
+cd "$LAB_DIR"
+export TF_VAR_api_startup_fault=false
+export TF_VAR_api_replicas=4
+terraform -chdir=infra/workloads plan -out=api-capacity4.tfplan
+terraform -chdir=infra/workloads show -no-color api-capacity4.tfplan
+terraform -chdir=infra/workloads apply api-capacity4.tfplan
+gcloud compute instance-groups managed list-instances lab005-api-mig --region="$REGION"
+gcloud compute backend-services get-health lab005-api-internal --region="$REGION"
+```
+
+**Expected:** planเปลี่ยนAPI target_size2→4 ไม่rollouttemplate/เปลี่ยนSecret/SQLโดยไม่ตั้งใจ; หลังจบมี4APIhealthyกระจายสองzone รันprobe100/workers4/interval0.2เหมือนก่อนด้วยชื่อcapacity-after.jsonl ตรวจjourneyjournalใหม่, raceเฉพาะเมื่อคืนstockครบและใช้journalใหม่, inspectorและSQLconnections/metrics
+
+เปรียบเทียบlatency/errors/CPU/connectionsและข้อจำกัดของsample ถ้าlatencyไม่ดีขึ้นให้รายงานตามจริง เช่นhealthqueryไม่ใช่businessload หรือLB/DBเป็นคอขวด อย่าเปลี่ยนผลให้ดูว่าขยายแล้วต้องเร็วขึ้นเสมอ
+
+**Backout change:** หากerrors/connectionsเพิ่มผิดปกติหรือจบการทดลอง ให้ลดกลับ2โดยไม่เปลี่ยนrelease แล้วplan/show/applyใหม่:
+
+```bash
+export TF_VAR_api_replicas=2
+terraform -chdir=infra/workloads plan -out=api-capacity2.tfplan
+terraform -chdir=infra/workloads show -no-color api-capacity2.tfplan
+terraform -chdir=infra/workloads apply api-capacity2.tfplan
+```
+
+ตรวจ2healthyสองzoneและsnapshot/journeyอีกครั้ง ไม่สั่งresizeMIGนอกTerraformจนstateกับของจริงขัดกัน
+
+**จุดบันทึก T12:** เหตุผล/ทางเลือก …; quota+connectionbudget …; baselinerelease/replicas …; 4replicasผลจริง …; before/afterloadที่ตั้งเหมือนกัน …; errors/latency/CPU/connectionข้อจำกัด …; invariants …; decision …; backout2replicasผล …  
+**เกณฑ์ไปต่อ:** บอกได้ว่าchangeตอบโจทย์หรือไม่จากหลักฐาน พร้อมคืนbaselineหรือระบุfinalcapacityที่ผู้เรียนตัดสินใจ ไม่อ้างproductioncapacityจากprobeเล็กนี้

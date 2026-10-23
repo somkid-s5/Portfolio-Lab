@@ -54,3 +54,9 @@ variable "enable_diagnostic" {
   default = false
   description = "Temporary negative-access client; disable after evidence capture."
 }
+
+variable "api_startup_fault" {
+  type = bool
+  default = false
+  description = "Sandbox bad-template exercise only. true refuses API startup before downloading secrets; set false to recover."
+}

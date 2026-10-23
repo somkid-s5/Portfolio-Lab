@@ -190,6 +190,13 @@ def wait_live(port):
 
 def install(cloud,root=Path('/'),run=command,account=None,waiter=wait_live,owner_uid=0,owner_gid=0):
     cfg=settings(cloud)
+    if cfg['role']=='api':
+        fault=cloud.metadata('instance/attributes/lab005-startup-fault')
+        if fault not in ('true','false'):
+            raise ValueError('Explicit startup fault flag required')
+        if fault=='true':
+            print(json.dumps({'event':'intentional_startup_failure','tier':'api'}),flush=True)
+            raise RuntimeError('Intentional lab startup failure; revert the template flag')
     tier='api' if cfg['role']=='init' else cfg['role']
     archive=cloud.artifact(cfg['bucket'],cfg['sha256'],tier)
     metadata,files=inspect_archive(archive,cfg['sha256'],tier)

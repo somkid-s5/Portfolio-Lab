@@ -59,6 +59,7 @@ resource "google_compute_instance_template" "tier" {
     lab005-sql-instance = "${var.project_id}:asia-southeast1:lab005-sql"
     lab005-db-version = var.secret_versions.db
     lab005-auth-version = var.secret_versions.auth
+    lab005-startup-fault = tostring(var.api_startup_fault)
   })
   metadata_startup_script = file("${path.module}/../../scripts/startup.sh")
   shielded_instance_config {

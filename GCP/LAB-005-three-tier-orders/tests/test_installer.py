@@ -29,6 +29,7 @@ class InstallerTests(unittest.TestCase):
             def __init__(self):
                 self.values={
                     'instance/attributes/lab005-managed':'true',
+                    'instance/attributes/lab005-startup-fault':'false',
                     'instance/attributes/lab005-tier':'api',
                     'project/project-id':'test-project',
                     'instance/service-accounts/default/email':'lab005-api@test-project.iam.gserviceaccount.com',
@@ -104,6 +105,7 @@ class InstallerSandboxTests(unittest.TestCase):
                 self.archive=archive
                 self.values={
                     'instance/attributes/lab005-managed':'true',
+                    'instance/attributes/lab005-startup-fault':'false',
                     'instance/attributes/lab005-tier':role,
                     'project/project-id':'test-project',
                     'instance/service-accounts/default/email':f'lab005-{sa}@test-project.iam.gserviceaccount.com',
@@ -199,6 +201,16 @@ class InstallerSandboxTests(unittest.TestCase):
             for name in ('db.json','admin.json'):
                 self.assertEqual((credentials/name).stat().st_mode&0o777,0o600)
             self.assertNotIn('A'*40,repr(calls))
+
+
+    def test_intentional_api_startup_fault_stops_before_artifact_or_secrets(self):
+        cloud,_=self.fixture('api')
+        cloud.values['instance/attributes/lab005-startup-fault']='true'
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(RuntimeError):
+                self.execute(cloud,Path(directory))
+            self.assertEqual(cloud.calls,[])
+            self.assertEqual(list(Path(directory).iterdir()),[])
 
     def test_bad_archive_stops_before_package_or_secret_calls(self):
         cloud,_=self.fixture('api')
