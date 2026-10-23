@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import unittest
 from unittest.mock import Mock, patch
+from werkzeug.exceptions import InternalServerError
 
 LAB=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(LAB/"app"))
@@ -63,6 +64,13 @@ class HTTPTests(unittest.TestCase):
         self.repo.process.side_effect=None
         self.repo.process.return_value={"state":"accepted","disposition":"unknown"}
         self.assertEqual(self.client.post("/events/orders",json=push()).status_code,503)
+
+    def test_framework_server_error_is_retryable_not_poison(self):
+        self.repo.process.side_effect=InternalServerError(description="private-secret")
+        response=self.client.post("/events/orders",json=push())
+        self.assertEqual(response.status_code,503)
+        self.assertEqual(response.json["error"],"dependency_unavailable")
+        self.assertNotIn("private-secret",response.get_data(as_text=True))
 
     def test_poison_and_binding_conflict_are_nacks_not_business_rejection(self):
         value=push()

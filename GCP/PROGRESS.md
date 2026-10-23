@@ -276,3 +276,6 @@ Lab07 / Publisher verified + HTTP draft: run141 CI40001402332 sourceb674318dad81
 
 
 Lab07 / HTTP verified + CI font repair: run142 CI40002222352 source08232d4f76f2f12e6a97d2bbd936d8610f54f3d2 jobs120580970185/120580970449ผ่าน11domain+8dispatcher+5SDK+10HTTP+23PG=57tests อ่านlogsยืนยันแล้ว run141wholeworkflowfailเพราะUbuntuazuremirrorดาวน์โหลดfonts-noto-core13.3MBไม่จบ180s (ไม่ใช่Lab007tests) จึงbundleunmodifiedNotoSansThaiจากofficialgoogle/fonts commit e7db6ca603fd4862010383ff17ffd6cc4ffac1c0 พร้อมOFL1.1/sourceblobhashและCI-onlyinstall/fc-match ใช้แทนfontaptในLab05/06 รอCI+ภาพใหม่ ไม่มีGCPwrites
+
+
+CI font verified: run143 CI40003102208 source1ce65d95c2d816110e8b9e675e5d08f59fe2c54b jobs120584033940/120584034034ผ่านhash/fc-match/realbrowser+tests ตรวจภาพLab05/06ใหม่แล้วThaiอ่านได้ tables/banner/jobdetailไม่ตัดและไม่มีsecret เก็บproofในfontprovenance ไม่แทนภาพCIด้วยGCPผลจริง Lab00757testsยังผ่าน sourceเดิม เพิ่มHTTPframework500→503regression1test (HTTP11/รวม58) รอCI ไม่เปลี่ยนbusinesslogic ไม่มีGCPwrites

@@ -335,4 +335,6 @@ Dispatcher รับเพียง JSON ว่าง ไม่รับ topic/S
 
 /livez ตรวจ process แยกจาก /healthz ที่อ่าน schema version ด้วย runtime DB role ไม่สร้างข้อมูล ทั้งสอง service ยังต้อง Cloud Run IAM ด้านหน้า **Flask factory และ ce/message headers ไม่ได้ทำให้ caller ผ่าน IAM เอง** ต้องให้ push/scheduler identities เท่านั้นในขั้น deploy
 
-เพิ่ม [10 HTTP tests](tests/test_queue_http.py) และ SQL health test ทำให้ SQL suite เป็น 23 tests ชุดใหม่รอ CI ยังไม่มี Cloud Run runtime wiring, Portal UI หรือการพิสูจน์ push identity จริง
+เพิ่ม [11 HTTP tests](tests/test_queue_http.py) และ SQL health test ทำให้ SQL suite เป็น 23 tests ชุดใหม่รอ CI ยังไม่มี Cloud Run runtime wiring, Portal UI หรือการพิสูจน์ push identity จริง
+
+HTTP 10 tests แรกและชุดรวมของ Lab 007 ผ่าน CI 40002222352 แล้ว (รวม 57 tests ตาม source นั้น) เพิ่ม regression test ให้ framework server error เป็น retryable503 ไม่ตีความเป็น poison400 ทำให้ชุดรวมเป็น 58 tests เมื่อรวม test ใหม่นี้ ซึ่งยังรอ CI

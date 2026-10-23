@@ -60,8 +60,8 @@ def _base(component, database_health, body_limit):
     @app.errorhandler(Exception)
     def safe_error(exc):
         if isinstance(exc,HTTPException):
-            status = exc.code if exc.code in (400,404,405,413,415) else 400
-            return error("request_rejected",status)
+            status = exc.code if exc.code in (400,404,405,413,415) else 503
+            return error("request_rejected" if status < 500 else "dependency_unavailable",status)
         return error("dependency_unavailable",503)
 
     @app.get("/livez")
