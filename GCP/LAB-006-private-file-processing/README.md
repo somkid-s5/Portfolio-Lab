@@ -311,3 +311,12 @@ build_appเลือกnamedFirestoredatabaseอย่างชัดเจน,
 เพิ่มoperator+CSRFrouteที่prepareepochก่อนnetworkcallและworker/events/retryที่อ่านgeneration/finalizedtimeจากstoredjob ไม่รับobjectpathจากPortal มี [boundeddispatcher](app/retry_dispatch.py) ส่งIDtokenกับaudienceตรงworkerHTTPSrun.apporiginเท่านั้น, timeout10s, ไม่ตามredirect/ไม่อ่านresponsebodyและไม่retryอัตโนมัติ
 
 Portalตอบ202พร้อมdispatchacknowledgedหรือunconfirmed; ทั้งสองไม่ใช่ผลธุรกิจว่าสำเร็จ ต้องอ่านjobstatusต่อ ถ้าresponseหายใช้requestkeyเดิมเพื่อไม่เพิ่มepoch callback/token supplierยังต้องผูกกับattachedruntimecredentialsก่อนdeploy มี3testsใหม่ของPortal/worker/transport ชุดใหม่รอCI ไม่พิสูจน์CloudRunIAMจากheadersในtestclient
+
+
+### Runtime และข้อมูล login
+
+เพิ่ม [privatebundle generator](scripts/create-secrets.py) สร้างdirectoryใหม่mode700/ไฟล์mode600 ไม่overwriteหรือพิมพ์รหัส auth.jsonมีsessionkeyและscryptpasswordhash ส่วนdemo-logins.jsonมีรหัสสังเคราะห์สำหรับผู้เรียนและต้องอยู่privateเท่านั้น
+
+[Portal runtime factory](app/portal_runtime.py) อ่านauthmountแบบbounded เลือกnamedFirestore, ประกอบJobs/Access/RetryDispatcher และรับOAuth/IDtokensจากattachedCloudRunmetadataด้วยtimeout3s/responsebounds/no-redirect ไม่ใช้serviceaccountkeyfile ปฏิเสธemulator/privatekeyenvในruntime ใช้Secretversionตัวเลขที่deploymentต้องระบุ ยังต้องทำIaC/Guideให้mountถูกต้อง
+
+มี [5tests](tests/test_portal_runtime.py) สำหรับpermissions/nooverwrite/hashmatching/metadataaudience/tokenbounds/runtimeguards แต่metadataเป็นmocktransport ไม่ใช่CloudRunจริง [Service-to-service](https://docs.cloud.google.com/run/docs/authenticating/service-to-service), [Secret mounts](https://docs.cloud.google.com/run/docs/configuring/services/secrets) ชุดใหม่นี้รอCI

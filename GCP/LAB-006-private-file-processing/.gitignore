@@ -1,0 +1,10 @@
+secrets/
+.venv/
+.build/
+__pycache__/
+*.pyc
+.terraform/
+*.tfstate*
+*.tfplan
+terraform.tfvars
+*.auto.tfvars.json

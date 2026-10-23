@@ -186,3 +186,6 @@ Lab06 / Idempotent manual-retry preparation: เพิ่มoperator-requesthash
 
 
 Lab06 / Manual retry HTTP draft: เพิ่มoperatorCSRFprepare→boundedIDtokenworkerdispatch→storedgeneration/epochguard เส้นทางส่งresponseหายเก็บepochเดิมและตอบunconfirmedไม่อ้างbusinessfailure พร้อม3HTTP/transporttests ชุดใหม่รอCI ยังต้องruntimecredentialwiring/UI/browser/IaC/Guide/Diagram ไม่มีGCPwrites
+
+
+Lab06 / Portal runtime draft: เพิ่มprivatebundle(hash/sessionkeyแยกdemologins), strictboundedauthreader, attachedmetadataOAuth/IDtokensและruntimewiringเข้ากับJobs/Access/Dispatcher พร้อม5tests/CIstep ปฏิเสธkeyfileและemulatorในCloudRunruntime ชุดใหม่รอCIยังต้องUI/browser/IaC/Guide/Diagram ไม่มีGCPwrites

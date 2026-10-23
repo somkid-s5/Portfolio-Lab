@@ -310,6 +310,8 @@ jobs:
         run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_worker_http.py -v
       - name: Verify portal session CSRF and owner boundaries
         run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_portal_http.py -v
+      - name: Verify private demo credentials and attached-identity runtime contracts
+        run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_portal_runtime.py -v
       - name: Exercise real emulator transactions without cloud credentials
         shell: bash
         run: |
