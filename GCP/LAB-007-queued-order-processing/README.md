@@ -337,4 +337,18 @@ Dispatcher รับเพียง JSON ว่าง ไม่รับ topic/S
 
 เพิ่ม [11 HTTP tests](tests/test_queue_http.py) และ SQL health test ทำให้ SQL suite เป็น 23 tests ชุดใหม่รอ CI ยังไม่มี Cloud Run runtime wiring, Portal UI หรือการพิสูจน์ push identity จริง
 
-HTTP 10 tests แรกและชุดรวมของ Lab 007 ผ่าน CI 40002222352 แล้ว (รวม 57 tests ตาม source นั้น) เพิ่ม regression test ให้ framework server error เป็น retryable503 ไม่ตีความเป็น poison400 ทำให้ชุดรวมเป็น 58 tests เมื่อรวม test ใหม่นี้ ซึ่งยังรอ CI
+HTTP 10 tests แรกและชุดรวมของ Lab 007 ผ่าน CI 40002222352 แล้ว (รวม 57 tests ตาม source นั้น) เพิ่ม regression test ให้ framework server error เป็น retryable503 ไม่ตีความเป็น poison400 ทำให้ชุดรวมเป็น 58 tests เมื่อรวม test ใหม่นี้ ซึ่งผ่าน [CI 40003675282](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40003675282) jobs ของ Lab 007 แล้ว
+
+## Runtime และ private Cloud SQL connection
+
+[Database runtime](app/database.py) ใช้ Cloud SQL Python Connector 1.23.0 กับ private IP, TLS ของ connector และ LAZY refresh ตามสภาพแวดล้อม serverless ไม่ใช้ key file หรือเปลี่ยนไป public IP เมื่อเชื่อมไม่ได้
+
+ผูก SERVICE_ROLE/K_SERVICE กับชื่อ service ของ Lab, instance connection name กับ project:asia-southeast1:lab007-orders และ DB Secret mount /secrets/db/db.json แต่ละ role อ่านได้เฉพาะ user ที่กำหนด (order_api/order_worker/outbox_dispatcher) และ database order_queue ต้องระบุ DB_SECRET_VERSION เป็นตัวเลข ไม่ใช้ latest ทั้งนี้ mount/Secret IAM จริงต้องตรวจตอน deploy
+
+Pool ใช้ SQLAlchemy 2.0.44: Portal2/worker2/dispatcher1, overflow0, wait2s, pre-ping และ rollback เมื่อคืน connection รหัสผ่านส่งให้ connector จาก Secret bundle ในหน่วยความจำ ไม่อยู่ใน URL หรือ engine query logs ช่วงรอ pool เต็มเป็น transient failure ไม่ใช่เหตุให้รับงานแล้วลบทิ้ง
+
+[Cloud Run factories](app/queue_runtime.py) ประกอบ worker/dispatcher กับ repository และ health query จริง พร้อมปิด pool/connector/publisher ตอน process จบ ยังไม่มี bootstrap/admin credential ใน serving role และยังไม่ใช่ Portal factory หรือ container entry point ที่ครบแล้ว
+
+เพิ่ม [8 runtime/SDK tests](tests/test_database.py) และ PostgreSQL pool tests อีก 3 กรณี (SQL suite26): repository ใช้ pool จริง, ไม่สร้าง connection เกินขนาด และ rollback ก่อน reuse ชุดใหม่นี้รอ CI ไม่ใช่การยืนยัน private routing/TLS/IAM บน GCP
+
+อ้างอิง [Connector 1.23.0](https://github.com/GoogleCloudPlatform/cloud-sql-python-connector/tree/v1.23.0) และ [SQLAlchemy 2.0 pooling](https://docs.sqlalchemy.org/en/20/core/pooling.html)

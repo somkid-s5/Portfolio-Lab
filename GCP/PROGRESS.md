@@ -279,3 +279,6 @@ Lab07 / HTTP verified + CI font repair: run142 CI40002222352 source08232d4f76f2f
 
 
 CI font verified: run143 CI40003102208 source1ce65d95c2d816110e8b9e675e5d08f59fe2c54b jobs120584033940/120584034034ผ่านhash/fc-match/realbrowser+tests ตรวจภาพLab05/06ใหม่แล้วThaiอ่านได้ tables/banner/jobdetailไม่ตัดและไม่มีsecret เก็บproofในfontprovenance ไม่แทนภาพCIด้วยGCPผลจริง Lab00757testsยังผ่าน sourceเดิม เพิ่มHTTPframework500→503regression1test (HTTP11/รวม58) รอCI ไม่เปลี่ยนbusinesslogic ไม่มีGCPwrites
+
+
+Lab07 / HTTP58 verified + runtime draft: run144 CI40003675282 sourced2c8a2d534c22f9d580071b974abc49935dbb937 jobs120586021840/120586022100ผ่าน58testsรวมHTTP500→503แล้ว เพิ่มrole-boundCloudSQLConnector1.23.0 privateIP/LAZY/TLS/keyless+fixednumericSecretmount, SQLAlchemy2.0.44 boundednooverflow/preping/rollbackpool และworker/dispatcherfactoriesพร้อมcleanup เพิ่ม8runtimeSDKcontract+3realPGpooltests (SQL26/รวม69) รอCI ยังไม่มีPortal/bootstrap/IaC/Guide/Diagram ไม่มีGCPwrites

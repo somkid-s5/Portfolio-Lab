@@ -10,6 +10,7 @@ import unittest
 import uuid
 
 import pg8000.dbapi
+from sqlalchemy.exc import TimeoutError as PoolTimeout
 
 LAB = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(LAB/"app"))
@@ -17,6 +18,7 @@ from order_domain import OrderEvent, canonical, parse_event
 from orders import Orders, Conflict, IntegrityFailure
 from outbox import Outbox
 from dispatch import Dispatcher
+from database import make_pool
 
 
 def connection(role=None):
@@ -400,6 +402,66 @@ class SQLTests(unittest.TestCase):
         self.assertTrue(self.worker.health())
         self.assertTrue(self.dispatcher.health())
         self.assertEqual(self.admin("SELECT count(*) FROM lab007.orders")[0][0],0)
+
+
+    def test_real_pool_preserves_repository_transactions_with_same_pg8000_driver(self):
+        api_engine=make_pool(lambda:connection("order_api"),2)
+        worker_engine=make_pool(lambda:connection("order_worker"),2)
+        self.addCleanup(api_engine.dispose)
+        self.addCleanup(worker_engine.dispose)
+        api=Orders(api_engine.raw_connection)
+        worker=Orders(worker_engine.raw_connection)
+        self.assertTrue(api.health())
+        order=api.create("alice",canonical({"idempotency_key":uuid.uuid4().hex,
+            "items":[{"sku":"BOOK-01","quantity":1}]}))
+        self.assertEqual(worker.process(self.event(order["order_id"]))["state"],"confirmed")
+        self.assertEqual(api.read_owned("alice",order["order_id"])["total_satang"],12500)
+        self.assertNotIn(os.environ["PGPASSWORD"],str(api_engine.url))
+        self.assert_stock()
+
+    def test_pool_does_not_overflow_and_reuses_released_connection(self):
+        creations=[]
+        def creator():
+            con=connection("order_worker")
+            creations.append(con)
+            return con
+        engine=make_pool(creator,1)
+        self.addCleanup(engine.dispose)
+        first=engine.raw_connection()
+        physical=first.driver_connection
+        try:
+            with self.assertRaises(PoolTimeout):
+                engine.raw_connection()
+            self.assertEqual(len(creations),1)
+        finally:
+            first.close()
+        second=engine.raw_connection()
+        try:
+            self.assertIs(second.driver_connection,physical)
+            self.assertEqual(len(creations),1)
+        finally:
+            second.close()
+
+    def test_pool_rolls_back_uncommitted_changes_before_reuse(self):
+        engine=make_pool(lambda:connection("order_worker"),1)
+        self.addCleanup(engine.dispose)
+        first=engine.raw_connection()
+        cursor=first.cursor()
+        try:
+            cursor.execute("UPDATE lab007.products SET available=available-1 WHERE sku='BOOK-01'")
+        finally:
+            cursor.close()
+            first.close()  # No commit: pool reset must roll back.
+        second=engine.raw_connection()
+        cursor=second.cursor()
+        try:
+            cursor.execute("SELECT available,current_user FROM lab007.products WHERE sku='BOOK-01'")
+            available,user=cursor.fetchone()
+            self.assertEqual((available,user),(200,"order_worker"))
+        finally:
+            cursor.close()
+            second.close()
+        self.assert_stock()
 
 
 if __name__ == "__main__":
