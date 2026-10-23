@@ -101,8 +101,8 @@ def main():
 <path d="M904 352H984V444 M904 536H984V444" fill="none" stroke="#7c3aed" stroke-width="2"/>
 <path class="ops" d="M984 444H1068"/>
 <circle cx="984" cy="444" r="3" fill="#7c3aed"/>
-<text x="1028" y="366" text-anchor="middle" class="small">Private TLS</text>
-<text x="1028" y="388" text-anchor="middle" class="small">connector 3307</text>
+<text x="1104" y="344" text-anchor="middle" class="small">Private TLS</text>
+<text x="1104" y="368" text-anchor="middle" class="small">connector 3307</text>
 <text x="404" y="688" class="small">Regional subnets span both zones • no public VM IPs • no default allow-internal</text>
 <text x="384" y="730" class="small">SQL is outside workload subnets; PSA is producer address space, not a third VM subnet.</text>
 <rect x="184" y="764" width="1048" height="112" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
@@ -119,11 +119,11 @@ def main():
 <text x="24" y="66" class="s">Operational design • no cloud PASS or recovery-time guarantee</text>
 <rect x="32" y="116" width="264" height="218" rx="4" fill="#fff7ed" stroke="#c2410c"/>
 <text x="52" y="148" class="h">1  Prepare</text>
-<text x="52" y="184" class="s">Pinned source + Web/API hashes</text>
+<text x="52" y="184" class="s">Pinned commit + Web/API hashes</text>
 <text x="52" y="214" class="s">Private versioned GCS</text>
 <text x="52" y="244" class="s">Numeric auth / DB secrets</text>
 <text x="52" y="274" class="s">Bootstrap SA ≠ API SA</text>
-<text x="52" y="306" class="small">No secret payload in metadata/state</text>
+<text x="52" y="306" class="small">No secret payload in state/metadata</text>
 <rect x="372" y="116" width="264" height="218" rx="4" fill="#f5f3ff" stroke="#7c3aed"/>
 <text x="392" y="148" class="h">2  Initialize once</text>
 {image(sql,468,166)}
@@ -140,7 +140,7 @@ def main():
 <text x="732" y="486" class="s">Bad-startup flag → false</text>
 <text x="732" y="516" class="s">Prior compatible API hash</text>
 <text x="732" y="546" class="s">Keep DB data / valid secrets</text>
-<text x="732" y="580" class="small">Never raise unavailable to force rollout</text>
+<text x="732" y="580" class="small">Keep maxUnavailable = 0</text>
 <path class="arrow" d="M844 334V414"/>
 <rect x="32" y="414" width="604" height="196" rx="4" fill="#f0fdfa" stroke="#0f766e"/>
 <text x="52" y="448" class="h">5  Verify recovery, not only operation completion</text>

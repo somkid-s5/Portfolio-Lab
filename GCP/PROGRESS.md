@@ -120,3 +120,5 @@ Lab 05 / Rollout+capacity guide Tasks11–12: เพิ่มAPI-onlystartupfaul
 Lab 05 / Full guide draft Tasks13–14: เพิ่มR1–R8evidencematrix/casestudy, reviewedrootdestroyorder/DNSก่อนreleaseIP/privateartifactgenerationcleanup/SQLprotectiongate/cloudinventory/retainedbackup-softdelete-costchecks และrebuildไม่อ้างrestore เพิ่มbucketversioningให้ตรงDesignพร้อมforce_destroy=false ชุดใหม่นี้รอCI; คู่มือTasks0–14ยังต้องDiagram/fullreviewก่อนGuide-ready ไม่มีGCPwrites
 
 Lab 05 / Diagram generation checkpoint: เพิ่มofficiallegacyicon SVG generatorสำหรับtopologyและrelease/recovery แยกglobaledge/regionalVPCsubnets/producerSQLHA พร้อมWeb/APIverticalfan-outและCIrender960px/recordiconhashes ชุดก่อนCI39928132010สำเร็จ; SVG/PNGชุดใหม่ยังต้องตรวจrenderและcommitassets/provenanceก่อนGuide-ready ไม่มีGCPwrites
+
+Lab 05 / Diagram visual review round1: CI39928693783สร้างofficialcompute/LB/SQLiconsจากarchiveจริงและrender2ภาพ960pxแล้ว ตรวจภาพพบoperationnoteยาวเกินกรอบและTLSlabelชิดproducerboundary จึงย่อnote/ย้ายlabelและรอrenderซ้ำก่อนcommitPNG/SVG ยังไม่Guide-ready ไม่มีGCPprovisioning
