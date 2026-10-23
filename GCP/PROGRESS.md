@@ -153,3 +153,6 @@ Lab06 / State transition materials: เพิ่มpuregenerationclaim/120slease
 
 
 Lab06 / Firestore repository draft: เพิ่มSDKtransactionadapterสำหรับclaim/finish/release/operatorretryและownerread พร้อม4integrationtestsและGitHubjobที่เริ่มofficialFirestoreemulatorแบบloopback/namedDB/demo-project/anonymouscredential ไม่มีGCPauth/provisioning ชุดใหม่รอCI ยังต้องjobcreate-idempotency-quota/list/historyและworker/Storage/UI/IaC/Guide/Diagramก่อนGuide-ready
+
+
+Lab06 / Verified first Firestore transactions + create draft: CI39932700165 lab006-domainและlab006-firestoreสำเร็จ (19puretestsและ4emulatorintegrationtests); เพิ่มcreate/idempotency/quota5active-20dailytransactionพร้อม4emulatortestsใหม่ race/replay/terminalslot/dailyreset/deletedreferencefailclosed รอCIชุดใหม่ ยังไม่Guide-ready ไม่มีGCPwrites

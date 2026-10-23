@@ -85,5 +85,55 @@ class FirestoreJobsTests(unittest.TestCase):
                                        finalized_at=NOW)["disposition"], "claimed")
 
 
+    def test_same_key_race_creates_one_job_and_one_quota_reservation(self):
+        owner = "owner_" + uuid.uuid4().hex
+        key = "same-key-" + uuid.uuid4().hex
+        gate = threading.Barrier(2, timeout=10)
+        def create(_):
+            gate.wait()
+            return self.jobs.create(owner, key, "sales.csv")
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(create, range(2)))
+        ids = {result["job"]["job_id"] for result in results}
+        self.assertEqual(len(ids), 1)
+        self.assertCountEqual([r["replayed"] for r in results], [False, True])
+        quota = self.client.collection("owner_quotas").document(owner).get().to_dict()
+        self.assertEqual((quota["daily_count"], len(quota["active_ids"])), (1, 1))
+        with self.assertRaisesRegex(Conflict, "idempotency_conflict"):
+            self.jobs.create(owner, key, "different.csv")
+        self.assertEqual(self.jobs.create(owner, key, "sales.csv")["job"]["job_id"],
+                         next(iter(ids)))
+
+    def test_active_quota_replay_and_terminal_slot_reuse(self):
+        owner = "owner_" + uuid.uuid4().hex
+        jobs = [self.jobs.create(owner, f"key-number-{i}", "sales.csv")["job"]
+                for i in range(5)]
+        with self.assertRaisesRegex(Conflict, "job_quota_exceeded"):
+            self.jobs.create(owner, "key-number-6", "sales.csv")
+        self.assertTrue(self.jobs.create(owner, "key-number-0", "sales.csv")["replayed"])
+        first = jobs[0]["job_id"]
+        self.jobs.claim(first, "123", "a"*32, finalized_at=NOW)
+        self.jobs.finish(first, "a"*32, reason="invalid_utf8")
+        self.assertFalse(self.jobs.create(owner, "key-number-6", "sales.csv")["replayed"])
+
+    def test_daily_quota_does_not_reset_with_terminal_jobs_or_new_keys(self):
+        owner = "owner_" + uuid.uuid4().hex
+        for index in range(20):
+            job = self.jobs.create(owner, f"daily-key-{index}", "sales.csv")["job"]
+            self.jobs.claim(job["job_id"], "123", "a"*32, finalized_at=NOW)
+            self.jobs.finish(job["job_id"], "a"*32, reason="invalid_utf8")
+        with self.assertRaisesRegex(Conflict, "job_quota_exceeded"):
+            self.jobs.create(owner, "daily-key-21", "sales.csv")
+        tomorrow = Jobs(self.client, clock=lambda: NOW + timedelta(days=1))
+        self.assertFalse(tomorrow.create(owner, "new-day-key", "sales.csv")["replayed"])
+
+    def test_expired_idempotency_reference_never_silently_creates_new_job(self):
+        owner = "owner_" + uuid.uuid4().hex
+        original = self.jobs.create(owner, "expired-key", "sales.csv")["job"]
+        self.client.collection("jobs").document(original["job_id"]).delete()
+        with self.assertRaisesRegex(Conflict, "idempotency_record_expired"):
+            self.jobs.create(owner, "expired-key", "sales.csv")
+
+
 if __name__ == "__main__":
     unittest.main()
