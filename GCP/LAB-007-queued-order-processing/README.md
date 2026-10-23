@@ -349,6 +349,14 @@ Pool ใช้ SQLAlchemy 2.0.44: Portal2/worker2/dispatcher1, overflow0, wait2s
 
 [Cloud Run factories](app/queue_runtime.py) ประกอบ worker/dispatcher กับ repository และ health query จริง พร้อมปิด pool/connector/publisher ตอน process จบ ยังไม่มี bootstrap/admin credential ใน serving role และยังไม่ใช่ Portal factory หรือ container entry point ที่ครบแล้ว
 
-เพิ่ม [8 runtime/SDK tests](tests/test_database.py) และ PostgreSQL pool tests อีก 3 กรณี (SQL suite26): repository ใช้ pool จริง, ไม่สร้าง connection เกินขนาด และ rollback ก่อน reuse ชุดใหม่นี้รอ CI ไม่ใช่การยืนยัน private routing/TLS/IAM บน GCP
+เพิ่ม [8 runtime/SDK tests](tests/test_database.py) และ PostgreSQL pool tests อีก 3 กรณี (SQL suite26): repository ใช้ pool จริง, ไม่สร้าง connection เกินขนาด และ rollback ก่อน reuse runtime และ pool suite ผ่าน [CI 40005157659](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40005157659) แล้ว รวม Lab 007 เป็น 69 tests ณ source นั้น ไม่ใช่การยืนยัน private routing/TLS/IAM บน GCP
 
 อ้างอิง [Connector 1.23.0](https://github.com/GoogleCloudPlatform/cloud-sql-python-connector/tree/v1.23.0) และ [SQLAlchemy 2.0 pooling](https://docs.sqlalchemy.org/en/20/core/pooling.html)
+
+## ข้อมูลสำหรับ Portal และการแบ่งหน้า
+
+Catalog อ่าน SKU/ราคา/สต็อกด้วยขอบเขตแน่นอน รายละเอียดคำสั่งซื้อคืน items/price snapshot และ dispatch state โดยตรวจ owner ก่อนอ่านข้อมูลประกอบ ไม่คืน payload หรือ lease token ให้ลูกค้า Operator views แยกเป็น interface ของ service ที่ HTTP ต้องตรวจ role ก่อนเรียก ไม่อ้างว่า DB role ของ Portal เป็นสิทธิ์รายบุคคล
+
+[pagination.py](app/pagination.py) ใช้ opaque cursor ของ created_at/ID เรียงใหม่ไปเก่า จำกัดครั้งละ 1–20 รายการและ query เพิ่มหนึ่งแถวเพื่อบอก next cursor ไม่ใช้ cursor เป็น authorization แม้ส่ง cursor ของบัญชีอื่น query ยังต้องกรอง owner จาก session ของผู้เรียก
+
+เพิ่ม [3 cursor tests](tests/test_pagination.py) และ PostgreSQL tests อีก 4 กรณี (SQL suite30): catalog/detail projection, owner pagination/foreign cursor, operator safe views และ invalid limit/cursor ชุดใหม่รอ CI ยังไม่มีหน้า Portal/login ที่พร้อมใช้

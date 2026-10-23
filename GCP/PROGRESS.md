@@ -282,3 +282,6 @@ CI font verified: run143 CI40003102208 source1ce65d95c2d816110e8b9e675e5d08f59fe
 
 
 Lab07 / HTTP58 verified + runtime draft: run144 CI40003675282 sourced2c8a2d534c22f9d580071b974abc49935dbb937 jobs120586021840/120586022100ผ่าน58testsรวมHTTP500→503แล้ว เพิ่มrole-boundCloudSQLConnector1.23.0 privateIP/LAZY/TLS/keyless+fixednumericSecretmount, SQLAlchemy2.0.44 boundednooverflow/preping/rollbackpool และworker/dispatcherfactoriesพร้อมcleanup เพิ่ม8runtimeSDKcontract+3realPGpooltests (SQL26/รวม69) รอCI ยังไม่มีPortal/bootstrap/IaC/Guide/Diagram ไม่มีGCPwrites
+
+
+Lab07 / Runtime69 verified + Portal data draft: CI40005157659 source199faed2c0d925a85f8d8e0f34c306c49db544b8 jobs120591090859/120591091047ผ่าน69tests อ่านlogsยืนยันrealConnectorconstructor-mockedRPC/privatekwargs/boundedpool+realPGrollbackreuseแล้ว เพิ่มcatalog/owneditems+dispatchdetail/owner-filteredpagination/operatororder-outboxsafeviews/indexes พร้อม3cursorunit+4PGtests (SQL30/รวม76) รอCI cursorเป็นpositionไม่ใช่auth ไม่มีPortalHTTP/UIหรือGCPwrites

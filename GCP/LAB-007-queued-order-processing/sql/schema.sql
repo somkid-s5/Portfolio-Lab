@@ -87,3 +87,7 @@ CREATE TABLE lab007.operator_actions (
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     PRIMARY KEY(operator_name,key_hash)
 );
+
+CREATE INDEX orders_by_owner_recent ON lab007.orders(owner,created_at,order_id);
+CREATE INDEX orders_recent ON lab007.orders(created_at,order_id);
+CREATE INDEX outbox_recent ON lab007.outbox(created_at,event_id);

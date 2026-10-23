@@ -8,6 +8,7 @@ import hashlib
 import uuid
 from order_domain import (OrderEvent, create_order, event_bytes, identifier,
                           key_hash, order_binding, owner_name, parse_event)
+from pagination import decode_cursor,page,page_limit
 
 
 class Conflict(ValueError):
@@ -23,6 +24,11 @@ def row(cursor):
     if value is None:
         return None
     return dict(zip((column[0] for column in cursor.description), value))
+
+
+def all_rows(cursor):
+    columns=[field[0] for field in cursor.description]
+    return [dict(zip(columns,value)) for value in cursor.fetchall()]
 
 
 class Orders:
@@ -95,7 +101,16 @@ class Orders:
             cursor.execute("""SELECT order_id,owner,state,safe_reason,total_satang,
                 order_fingerprint,created_at,finished_at FROM lab007.orders
                 WHERE owner=%s AND order_id=%s""", (owner,order_id))
-            return row(cursor)
+            order=row(cursor)
+            if order is None:
+                return None
+            cursor.execute("""SELECT sku,quantity,unit_price_satang FROM lab007.order_items
+                WHERE order_id=%s ORDER BY sku""",(order_id,))
+            order["items"]=all_rows(cursor)
+            cursor.execute("""SELECT event_id,state,epoch,attempts,last_outcome,published_at
+                FROM lab007.outbox WHERE order_id=%s""",(order_id,))
+            order["dispatch"]=row(cursor)
+            return order
 
     def health(self):
         with self.transaction() as cursor:
@@ -188,3 +203,33 @@ class Orders:
                 GROUP BY p.sku ORDER BY p.sku""")
             columns = [item[0] for item in cursor.description]
             return [dict(zip(columns,value)) for value in cursor.fetchall()]
+
+    def catalog(self):
+        with self.transaction() as cursor:
+            cursor.execute("""SELECT sku,unit_price_satang,available
+                FROM lab007.products ORDER BY sku LIMIT 50""")
+            return all_rows(cursor)
+
+    def list_owned(self, owner, *, limit=20, cursor=None):
+        return self._list_orders(owner_name(owner),limit,cursor)
+
+    def list_operator(self, *, limit=20, cursor=None):
+        # App must authorize operator before calling this service-level interface.
+        return self._list_orders(None,limit,cursor)
+
+    def _list_orders(self, owner, limit, cursor_value):
+        limit=page_limit(limit)
+        position=decode_cursor(cursor_value)
+        conditions,parameters=[],[]
+        if owner is not None:
+            conditions.append("owner=%s")
+            parameters.append(owner)
+        if position is not None:
+            conditions.append("(created_at,order_id)<(%s,%s)")
+            parameters.extend(position)
+        where=" WHERE "+" AND ".join(conditions) if conditions else ""
+        with self.transaction() as cursor:
+            cursor.execute("""SELECT order_id,owner,state,safe_reason,total_satang,
+                created_at,finished_at FROM lab007.orders"""+where+
+                " ORDER BY created_at DESC,order_id DESC LIMIT %s",tuple(parameters+[limit+1]))
+            return page(all_rows(cursor),limit,"order_id")

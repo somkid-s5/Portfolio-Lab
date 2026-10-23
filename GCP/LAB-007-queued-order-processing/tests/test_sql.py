@@ -14,7 +14,8 @@ from sqlalchemy.exc import TimeoutError as PoolTimeout
 
 LAB = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(LAB/"app"))
-from order_domain import OrderEvent, canonical, parse_event
+from order_domain import OrderEvent, Rejected, canonical, parse_event
+from pagination import encode_cursor
 from orders import Orders, Conflict, IntegrityFailure
 from outbox import Outbox
 from dispatch import Dispatcher
@@ -462,6 +463,69 @@ class SQLTests(unittest.TestCase):
             cursor.close()
             second.close()
         self.assert_stock()
+
+
+    def test_catalog_and_owned_detail_have_safe_exact_snapshot_projection(self):
+        self.assertEqual([p["sku"] for p in self.api.catalog()],["BOOK-01","LAST-01","USB-01"])
+        order=self.create()
+        detail=self.api.read_owned("alice",order["order_id"])
+        self.assertEqual([(i["sku"],i["quantity"],i["unit_price_satang"]) for i in detail["items"]],
+                         [("BOOK-01",2,12500),("USB-01",1,9900)])
+        self.assertEqual(detail["dispatch"]["state"],"pending")
+        self.assertNotIn("payload",detail["dispatch"])
+        self.assertNotIn("lease_token",detail["dispatch"])
+        self.assertIsNone(self.api.read_owned("bob",order["order_id"]))
+
+    def test_owner_pagination_has_no_duplicates_and_foreign_cursor_is_not_authorization(self):
+        alice={self.create()["order_id"] for _ in range(5)}
+        bob=self.create(owner="bob")
+        cursor=None
+        found=[]
+        for _ in range(4):
+            result=self.api.list_owned("alice",limit=2,cursor=cursor)
+            self.assertLessEqual(len(result["items"]),2)
+            self.assertTrue(all(o["owner"]=="alice" for o in result["items"]))
+            found.extend(o["order_id"] for o in result["items"])
+            cursor=result["next_cursor"]
+            if cursor is None:
+                break
+        self.assertEqual(len(found),5)
+        self.assertEqual(set(found),alice)
+        self.assertNotIn(bob["order_id"],found)
+        detail=self.api.read_owned("bob",bob["order_id"])
+        foreign=encode_cursor(detail["created_at"],bob["order_id"])
+        result=self.api.list_owned("alice",limit=2,cursor=foreign)
+        self.assertTrue(all(o["owner"]=="alice" for o in result["items"]))
+
+    def test_operator_order_and_outbox_views_work_with_portal_role_without_tokens(self):
+        orders=[self.create(),self.create(owner="bob"),self.create()]
+        listed=self.api.list_operator(limit=2)
+        self.assertEqual(len(listed["items"]),2)
+        self.assertIsNotNone(listed["next_cursor"])
+        remaining=self.api.list_operator(limit=2,cursor=listed["next_cursor"])
+        self.assertEqual(len(remaining["items"]),1)
+        outbox=Outbox(lambda:connection("order_api"))
+        events=outbox.list_operator(limit=2)
+        self.assertEqual(len(events["items"]),2)
+        remainder=outbox.list_operator(limit=2,cursor=events["next_cursor"])
+        self.assertEqual(len(remainder["items"]),1)
+        for value in events["items"]+remainder["items"]:
+            detail=outbox.read_operator(value["event_id"])
+            self.assertIn(detail["order_id"],{o["order_id"] for o in orders})
+            self.assertNotIn("lease_token",detail)
+            self.assertNotIn("payload",detail)
+            self.assertEqual(len(detail["payload_sha256"]),64)
+
+    def test_pagination_rejects_unbounded_limits_and_malformed_cursor(self):
+        for value in (True,0,21):
+            with self.assertRaises(Rejected):
+                self.api.list_owned("alice",limit=value)
+            with self.assertRaises(Rejected):
+                self.dispatcher.list_operator(limit=value)
+        with self.assertRaises(Rejected):
+            self.api.list_owned("alice",cursor="https://attacker.example")
+        with self.assertRaises(Rejected):
+            self.api.list_operator(cursor="x"*257)
 
 
 if __name__ == "__main__":

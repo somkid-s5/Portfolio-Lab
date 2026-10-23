@@ -437,6 +437,7 @@ jobs:
         run: |
           python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_domain.py -v
           python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_dispatch.py -v
+          python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_pagination.py -v
 
   lab007-postgres:
     runs-on: ubuntu-latest

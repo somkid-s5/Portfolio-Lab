@@ -3,7 +3,8 @@ import hashlib
 import uuid
 
 from order_domain import Rejected, event_bytes, identifier, parse_event
-from orders import Orders, Conflict, row
+from orders import Orders, Conflict, row, all_rows
+from pagination import decode_cursor,page,page_limit
 
 LEASE_SECONDS = 120
 MAX_ATTEMPTS = 10
@@ -76,3 +77,24 @@ class Outbox(Orders):
             if result is None:
                 raise Conflict("stale_dispatch_claim")
             return result
+
+    def list_operator(self, *, limit=20, cursor=None):
+        limit=page_limit(limit)
+        position=decode_cursor(cursor)
+        where=" WHERE (created_at,event_id)<(%s,%s)" if position is not None else ""
+        parameters=list(position) if position is not None else []
+        with self.transaction() as cursor:
+            cursor.execute("""SELECT event_id,order_id,state,epoch,attempts,last_outcome,
+                created_at,published_at,lease_until FROM lab007.outbox"""+where+
+                " ORDER BY created_at DESC,event_id DESC LIMIT %s",tuple(parameters+[limit+1]))
+            return page(all_rows(cursor),limit,"event_id")
+
+    def read_operator(self, event_id):
+        event_id=identifier(event_id)
+        with self.transaction() as cursor:
+            cursor.execute("""SELECT o.event_id,o.order_id,o.state,o.epoch,o.attempts,
+                o.last_outcome,o.created_at,o.published_at,o.lease_until,o.payload_sha256,
+                r.state AS order_state,r.owner,r.order_fingerprint
+                FROM lab007.outbox o JOIN lab007.orders r USING(order_id)
+                WHERE o.event_id=%s""",(event_id,))
+            return row(cursor)
