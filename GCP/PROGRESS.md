@@ -192,3 +192,6 @@ Lab06 / Portal runtime draft: เพิ่มprivatebundle(hash/sessionkeyแย
 
 
 Lab06 / Portal UI draft: เพิ่มThaiUpload/status/download/operatorUI+boundedpoll+durablependingfilefingerprint/key+explicitnewretryepoch, CSP-compatibleexternalJS/CSS และindexroute/sessionlimits พร้อมJSsyntaxCI ยังรอbrowserintegration/renderreview; runtimeCI39936078257pendingตอนตรวจ ชุดdispatch39935686271lab006jobsผ่านแล้ว ไม่มีGCPwrites ไม่ใช่Guide-ready
+
+
+Lab06 / Real browser test draft: runtimeCI39936078257 lab006jobsผ่านแล้ว เพิ่มChrome→HTTPSportal→Firestoreemulatorlost-create-response/reload/samekey/uploaddouble/Processor/summarytestและPNGartifact step พร้อมSelenium/fontdependencies ยังรอCI/renderreview ไม่อ้างGCS/IAMจริง เหลือIaC/Guide/Diagram/fullreview ไม่มีGCPwrites

@@ -303,7 +303,11 @@ jobs:
       - name: Install Firestore client for emulator integration
         run: |
           python3 -m venv .ci-lab006
-          .ci-lab006/bin/pip install -r GCP/LAB-006-private-file-processing/requirements.txt
+          .ci-lab006/bin/pip install -r GCP/LAB-006-private-file-processing/requirements.txt -r GCP/LAB-006-private-file-processing/tests/requirements.txt
+      - name: Install Thai browser preview fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-core
       - name: Verify GCS adapter SDK contracts without cloud calls
         run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_gcs_objects.py -v
       - name: Verify real SDK signed policy conditions and generation binding without signing calls
@@ -334,7 +338,19 @@ jobs:
                           "-s", "GCP/LAB-006-private-file-processing/tests",
                           "-p", "test_firestore_jobs.py", "-v"],
                          check=True, timeout=180)
+          subprocess.run([".ci-lab006/bin/python", "-m", "unittest", "discover",
+                          "-s", "GCP/LAB-006-private-file-processing/tests",
+                          "-p", "test_browser_journey.py", "-v"],
+                         check=True, timeout=180)
           PY
+      - name: Emit real browser CI preview
+        run: python3 -c "import base64,pathlib; print(\'LAB006_UI_PREVIEW=\'+base64.b64encode(pathlib.Path(\'lab006-previews/ui-ci.png\').read_bytes()).decode())"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab006-ui-ci-preview
+          path: lab006-previews/ui-ci.png
+          if-no-files-found: error
+          retention-days: 14
       - name: Show emulator diagnostics on failure
         if: failure()
         run: tail -n 100 "$RUNNER_TEMP/lab006-firestore.log"

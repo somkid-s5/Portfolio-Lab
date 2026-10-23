@@ -329,3 +329,10 @@ Portalตอบ202พร้อมdispatchacknowledgedหรือunconfirmed; �
 ก่อนcreateเก็บrequestkey+fileSHA/ชื่อไฟล์ และหลังได้jobIDเก็บอ้างอิงเดิมสำหรับresponseหาย ต้องเลือกไฟล์เดิมเพื่อresolve ไม่สร้างlogicaljobใหม่เงียบ ๆ Uploadส่งFormDataตรงStorageและไม่setmultipartboundaryเอง ตรวจ201ก่อนเรียกว่าส่งสำเร็จ หากresponseหายยังเก็บpendingให้ตรวจjobเดิม ส่วนoperatorเปิดretryepochใหม่ต้องกดยืนยันแยกจากresendkeyเดิม
 
 ตอนนี้เพิ่มJSsyntaxcheckในCI ยังต้องbrowserintegration/renderreviewเพื่อพิสูจน์flowจริงและแก้UIตามภาพ ไม่ใช้การมีไฟล์HTMLแทนผลใช้งานได้ และยังไม่มีGCPdeploy
+
+
+### Browser integration checkpoint
+
+เพิ่ม [Chrome journey test](tests/test_browser_journey.py) เปิดPortalจริงผ่านHTTPSloopbackบนGitHubrunner → login → POSTcreatecommitเข้าFirestoreemulator → จำลองBrowserไม่ได้รับresponse → reload/เลือกไฟล์เดิม → keyเดิมได้jobเดิม → uploadผ่านStoragetestdouble → Processor/Firestoreจริง → summary72400สตางค์หนึ่งผล เก็บPNGสำหรับตรวจภาพภายหลัง
+
+การทดสอบใช้certเฉพาะloopbackและacceptInsecureCertsในCI ไม่ใช่วิธีข้ามTLSในGCP ตัวStorage/signingเป็นtestdoubleและroute/uploadhookมีเฉพาะในtest ไม่ใส่productionApp ชุดนี้กำลังรอCI ไม่ถือว่ามีภาพหรือbrowserPASSจนตรวจผลแล้ว
