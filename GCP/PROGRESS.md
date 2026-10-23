@@ -210,3 +210,6 @@ Lab06 / Workloads IaC draft: CI39937892197ครบsuccess เพิ่มdigest
 
 
 Lab06 / Guide Tasks0–4 draft: เพิ่มพาทำCloudShellpersistentworkspace/cost-access-state→foundationreview/apply→privateauth/numericSecret→Dockerpush/digest→CloudRun/Eventarc/CORSและpositive-negativeHTTPchecks พร้อมExpected/Actual/stopcriteria/troubleshootingข้างงาน เพิ่มBashparse/relative-link/authoredtaskCItests ไม่executecloudcommands ชุดworkloadsCI39957408102ยังin_progressตอนตรวจ เหลือbusiness/ops/change/evidence/cleanup/Diagram/fullreviewก่อนGuide-ready ไม่มีGCPwrites
+
+
+Lab06 / Business guide Tasks5–6: เพิ่มBrowserupload/download/reportcomparison, ambiguousresponse/samekeyresolution, fixturevalidation/terminalack, owner/role/anonymous/CSRFnegativechecks พร้อมActual/Storagegenerationevidence; เพิ่มboundedverify-reporttool+3testsและinvalidheader/quantityfixtures ชุดใหม่รอCI ยังค้างStorage-levelsize/MIMEtool/accessfault/change/cleanup/Diagram/fullreview ไม่อ้างCloudPASS ไม่มีGCPwrites

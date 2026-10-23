@@ -283,6 +283,7 @@ jobs:
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_storage_events.py -v
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_container.py -v
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_guide.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_verify_report.py -v
 
   lab006-firestore:
     runs-on: ubuntu-latest
