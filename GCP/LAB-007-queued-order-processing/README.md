@@ -427,4 +427,28 @@ Audit กับการ prepare commit ใน transaction เดียว ใ�
 
 เครื่องมือนี้ **ไม่ pull/ack Pub/Sub และไม่ยืนยัน dead-letter ถูกจัดการแล้ว** เป็นส่วน prepare/resolve ที่นำไปประกอบ runbook หลังตรวจ source message จริง ไฟล์ journal ไม่มี password/JWT/CSRF แต่ยังควรเก็บส่วนตัว ไม่อัปโหลด private bundles หรือ ack tokens เป็นหลักฐานสาธารณะ
 
-[CI40012422689](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40012422689) / source d21d92d1c850354de06e699a2f3863261cbb39d3 ผ่าน 112 tests: 27 domain/entry/replay-request +85 SDK/HTTP/runtime/auth/PG/browser รวม replay concurrency, lost-response, lease fencing, bounded epochs, immutable payload/audit grants และ terminal ledger checks ชุด CLI 7 tests เพิ่มภายหลัง source นี้ยังรอ CI ไม่ใช่ผล live Pub/Sub/GCP
+[CI40012422689](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40012422689) / source d21d92d1c850354de06e699a2f3863261cbb39d3 ผ่าน 112 tests: 27 domain/entry/replay-request +85 SDK/HTTP/runtime/auth/PG/browser รวม replay concurrency, lost-response, lease fencing, bounded epochs, immutable payload/audit grants และ terminal ledger checks ชุด CLI 7 tests เพิ่มภายหลังผ่าน CI40013039516 และตรวจ real HTTPS client เพิ่มใน CI40013192441 ตามหัวข้อถัดไป ไม่ใช่ผล live Pub/Sub/GCP
+
+### ใช้ replay client โดยรักษาหมายเลขคำขอเดิม
+
+เครื่องมือนี้สำหรับ **Cloud Shell/Linux** หลัง deploy Portal และตรวจ private bundle แล้ว รันจากโฟลเดอร์ Lab นี้ ค่า PORTAL_URL ต้องเป็น origin ของ lab007-portal ที่ได้จาก deployment; EVENT_ID และ SOURCE_DIGEST ต้องมาจากรายการต้นทางที่ตรวจแล้ว ไม่ใส่ค่าทดลองแทนข้อมูลจริงเพื่อให้คำสั่งผ่าน
+
+ตัวอย่างรูปแบบการเรียก (ยังไม่ใช่ขั้น DLQ inspect/ack ซึ่งกำลังจัดทำ):
+
+```bash
+python scripts/operator-replay.py \
+  --portal "$PORTAL_URL" \
+  --demo-logins secrets/demo-logins.json \
+  --event-id "$EVENT_ID" \
+  --source-digest "$SOURCE_DIGEST" \
+  --reason dependency_restored \
+  --journal "secrets/operator-journals/${EVENT_ID}.json"
+```
+
+Expected: HTTP สำเร็จคืน outcome=prepared หรือ already_resolved พร้อม epoch/replayed และ event/digest/reason ที่ตรงคำขอ แต่ไม่ได้รับประกันว่างานใน Queue จบแล้ว ถ้า exit2/replay_not_confirmed ให้ตรวจการเชื่อมต่อ/สิทธิ์/ข้อมูลและ **เรียกด้วย arguments และไฟล์ journal เดิม** ห้ามลบไฟล์หรือเปลี่ยน key เพื่อแก้ network timeout
+
+ไฟล์ journal ผูกกับ origin/event/digest/reason หนึ่ง action ถ้าต้องอนุมัติ action ใหม่จริงต้องตรวจผลเดิมก่อนและใช้ชื่อไฟล์ใหม่อย่างตั้งใจ ไฟล์ที่เขียนไม่ครบจะถูกปฏิเสธ ไม่เติม key ใหม่เงียบ ๆ ให้หยุดเพื่อ reconcile กับ operator audit อย่าเปลี่ยนสิทธิ์ private file ให้ world-readable เพื่อแก้ error
+
+[CI40013192441](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40013192441) / source3da00980842285dbc86576eb386c7b13d8776914 ผ่านทั้ง workflow; Lab07รวม **119 tests** (34pure/entry/request/client +85SDK/HTTP/runtime/auth/PG/browser) พร้อม container checks การทดสอบ [browser journey](tests/test_browser_journey.py) เพิ่ม real operator client → HTTPS Portal → PostgreSQL โดยใช้ CA ของ loopback certificate ที่เชื่อถือเฉพาะ CI ไม่ปิด TLS verification แล้วตัดคำตอบหลัง server commit audit ก่อนส่งซ้ำด้วย journal เดิม ได้ replayed=true, auditหนึ่งแถว และ stock/ledger/orderไม่เพิ่ม
+
+ใน test นี้เปลี่ยน origin allowlist เฉพาะ test ให้เป็น loopback; CLI ที่ส่งมอบยังปฏิเสธ localhost/HTTP และไม่ตาม redirect ข้อมูลอ้างอิงต้นทางเป็น explicit CI transport fixture ไม่ใช่ dead-letter message จริง จึงยังไม่ยืนยัน forwarding format, source IAM หรือ acknowledgment บน Pub/Sub
