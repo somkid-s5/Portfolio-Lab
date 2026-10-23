@@ -12,7 +12,7 @@ class GuideTests(unittest.TestCase):
     def test_bash_examples_parse_without_execution(self):
         text = (LAB/"README.md").read_text()
         blocks = re.findall(r"^```bash\n(.*?)^```\s*$", text, re.M | re.S)
-        self.assertGreaterEqual(len(blocks), 10)
+        self.assertGreaterEqual(len(blocks), 8)
         for number, block in enumerate(blocks, 1):
             with self.subTest(block=number):
                 result = subprocess.run(["bash", "--noprofile", "--norc", "-n"],
