@@ -191,7 +191,7 @@ UI เก็บเฉพาะ pending cart + idempotency key ใน sessionStor
 
 ## เริ่มทำ Lab — จาก Cloud Shell ถึง release ที่ตรวจสอบได้
 
-**สถานะคู่มือ: กำลังเขียน** ส่วนด้านล่างครอบคลุม Tasks 0–4 เท่านั้น ยังต้องต่อ Secret/bootstrap/เปิดระบบ/ทดสอบ/operations/change/cleanup ก่อนใช้เป็นคู่มือจบทั้ง Solution ไม่มีผล GCP จริงถูกบันทึกไว้ล่วงหน้า
+**สถานะคู่มือ: กำลังเขียน** ส่วนด้านล่างครอบคลุม Tasks 0–6 เท่านั้น ยังต้องต่อ Secret/bootstrap/เปิดระบบ/ทดสอบ/operations/change/cleanup ก่อนใช้เป็นคู่มือจบทั้ง Solution ไม่มีผล GCP จริงถูกบันทึกไว้ล่วงหน้า
 
 ### Task 0 — เตรียมพื้นที่ฝึกและบันทึกเวอร์ชัน
 
@@ -411,3 +411,108 @@ unset TF_VAR_api_sha256 TF_VAR_secret_versions
 **Expected:** planลบVM/diskของinitializerเท่านั้น ไม่ลบfoundation/SQL/SA; listไม่เหลือlab005-init การลบVMไม่ถอนbootstrapSAสิทธิ์Secretอัตโนมัติ จึงต้องคุมสิทธิ์actAsของผู้ดูแลและจัดการSecret/SAตามcleanupท้ายLabอีกครั้ง
 
 **เกณฑ์ไปต่อ:** bootstrapสำเร็จจริง, มีหลักฐานsanitizedและinitializerถูกนำออกแล้ว ก่อนเปิดAPI/Web MIG ในขั้นถัดไป
+
+### Task 5 — เปิด Web/API MIG และ HTTPS
+
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR หลัง T04 สำเร็จและนำ initializer ออกแล้ว ใช้ TF_VAR_project_id/artifact_bucket/debian_image เดิม และตั้ง Secret references ให้เป็น runtime เท่านั้น
+
+```bash
+cd "$LAB_DIR"
+export TF_VAR_domain="$LAB_DOMAIN"
+export TF_VAR_release_sha256="$(python3 -c 'import json; m=json.load(open(".build/v1/manifest.json")); print(json.dumps({k:v["sha256"] for k,v in m["artifacts"].items()}))')"
+export TF_VAR_secret_versions="{\"db\":\"$DB_VERSION\",\"auth\":\"$AUTH_VERSION\"}"
+export TF_VAR_api_replicas=2
+terraform -chdir=infra/workloads init -input=false
+terraform -chdir=infra/workloads validate
+terraform -chdir=infra/workloads plan -out=workloads.tfplan
+terraform -chdir=infra/workloads show -no-color workloads.tfplan
+```
+
+ตรวจplanก่อนยืนยัน: Web/APIอย่างละ2VM ผ่านregionalMIG zonesa/b, imageชื่อจริงจากT04, attachedSAตรงtier, ไม่มีaccess_config/externalIP, templateมีhashและnumericversions ไม่มีadminversion/Secretpayload, VIP10.55.20.10/TCP8080, publicfrontend443/EXTERNAL_MANAGED, domainตรงของคุณ และไม่มีการแก้SQL/schema ถ้าไม่ตรงอย่าapply
+
+```bash
+terraform -chdir=infra/workloads apply workloads.tfplan
+terraform -chdir=infra/workloads output
+gcloud compute instance-groups managed list-instances lab005-web-mig --region="$REGION"
+gcloud compute instance-groups managed list-instances lab005-api-mig --region="$REGION"
+gcloud compute backend-services get-health lab005-web-public --global
+gcloud compute backend-services get-health lab005-api-internal --region="$REGION"
+gcloud compute instances list --filter='name~^lab005-'   --format='table(name,zone.basename(),status,networkInterfaces[0].networkIP,networkInterfaces[0].accessConfigs[0].natIP,serviceAccounts[0].email)'
+```
+
+**Expected:** แต่ละMIGมีสองเครื่องคนละzone; currentActionกลับเป็นNONEหลังstartupและhealthพร้อม; backendHEALTHYทั้งสองtier; ช่องexternalIPว่าง `apply` ไม่ได้รอให้TLS/domainทุกอย่างพร้อมเสมอ ต้องตรวจต่อ
+
+เปิด Console → Compute Engine → Instance groups → lab005-api-mig → Instances ดูzone/currentaction/health จากนั้นเปิด Network Services → Load balancing → backendserviceที่เกี่ยวข้องดูhealthybackends หากConsoleจัดเมนูใหม่ให้ค้นชื่อresourceจากช่องSearch โดยไม่สร้างLBอีกชุดซ้ำชื่อเดิม
+
+#### เชื่อม DNS และรอ certificate
+
+```bash
+export HTTPS_IP="$(terraform -chdir=infra/workloads output -raw https_ip)"
+printf 'DNS A record target: %s\n' "$HTTPS_IP"
+gcloud compute ssl-certificates describe lab005-web --global   --format='yaml(name,managed.status,managed.domainStatus)'
+```
+
+ที่ผู้ให้บริการDNSของคุณ เปิดzoneของLAB_DOMAINแล้วเพิ่ม/แก้ **A recordของhostnameนี้เท่านั้น** ให้ชี้HTTPS_IP จดค่าเดิมก่อนเปลี่ยน ตั้งTTL300ถ้านโยบายอนุญาต ถ้าhostnameเดิมชี้บริการคนอื่นให้เลือกsubdomainใหม่ อย่าทับเพื่อทำLab ตรวจAAAAเดิมด้วย เพราะLabนี้ไม่ได้สร้างIPv6frontend; AAAAที่ชี้ปลายทางอื่นอาจทำให้domainvalidationไม่ผ่าน ไม่แก้recordของชื่ออื่น
+
+```bash
+dig +short A "$LAB_DOMAIN"
+dig +short AAAA "$LAB_DOMAIN"
+gcloud compute ssl-certificates describe lab005-web --global   --format='yaml(name,managed.status,managed.domainStatus)'
+```
+
+**Expected:** AตรงHTTPS_IP, ไม่มีAAAAผิดปลายทาง และcertificate/domainACTIVEตามลำดับ การออกcertificate/แพร่DNSใช้เวลา อย่าสร้างcertใหม่ถี่ยิบหรือใช้curl-kข้ามverificationเพื่ออ้างว่าสำเร็จ ตรวจDNS,CAA,proxyassociationและfrontend443ตาม [คู่มือGoogle-managed certificates](https://docs.cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs)
+
+เมื่อACTIVEแล้ว:
+
+```bash
+curl --fail --show-error --silent --max-time 15 "https://$LAB_DOMAIN/healthz"
+python3 scripts/probe.py --base-url "https://$LAB_DOMAIN"   --path /healthz --requests 20 --workers 1 --interval 1
+```
+
+**Expected:** /healthz200มีready/version/backend; probeมีsamplesและsummary โดยไม่พิมพ์cookieหรือCSRF หากเห็นbackendตัวเดียวใน20samplesยังไม่พอสรุปLBเสีย ให้เทียบget-health/MIGplacementและจำนวนsampleที่อนุญาต ไม่เพิ่มโหลดไม่จำกัดเพื่อให้ได้รูปสวย
+
+**แยกสาเหตุให้ถูก**
+
+| อาการ | เริ่มตรวจ |
+|---|---|
+| Public502/503 และWebunhealthy | Webstartup/Nginxsyntax/staticfiles, namedport80, GFEhealthfirewall |
+| UIเปิดได้แต่APIไม่ตอบ | InternalLBhealth, WebSA→APISA8080, NginxVIP และAPIservice |
+| /livez200แต่/healthz503 | DBschema/SQLstate/connector3307+443/DBsecretversion/login ไม่สั่งrecreateทั้งMIG |
+| VMstartupFailed | hash/SA/Secretaccess/NAT/packageก่อนแก้loadbalancer |
+| TLSไม่ผ่านแต่backendhealthy | DNS/cert/domain/frontends ไม่ใช่ปัญหาstocktransaction |
+
+**จุดบันทึก T05:** templates/hashes …; VMzone/SA/internalIP …; healthybackendsก่อนเริ่มjourney …; DNSค่าเดิม/ค่าใหม่/TTL …; certACTIVEเวลา …; probeversion/backendcounts/errors …; หลักฐานsanitized …  
+**เกณฑ์ไปต่อ:** HTTPSตรวจcertificateผ่าน, Web/APIhealthyสองzone และ/healthzพร้อมจริง
+
+### Task 6 — ทำคำสั่งซื้อผ่าน Browser และตรวจสิทธิ์ผู้ใช้
+
+**ทำที่ไหน:** Browserเปิด `https://LAB_DOMAIN` ของคุณ ใช้ข้อมูลสังเคราะห์เท่านั้น ในCloudShell Editorเปิดไฟล์secrets/demo-logins.jsonส่วนตัวเพื่ออ่านรหัส อย่าพิมพ์ทั้งไฟล์ลงterminalหรือถ่ายภาพรหัส ปิดไฟล์หลังใช้
+
+1. ก่อนloginเปิด URL `/api/orders` ในแท็บใหม่ ต้อง401login_required ไม่ใช่รายการของคนอื่น
+2. กลับหน้าUI loginเป็นalice เลือกBOOK-01จำนวน2 กดส่งคำสั่งซื้อ บันทึกorderreferenceและstockก่อน/หลัง ต้องได้confirmedและลด2 ไม่ใช่ลดตามจำนวนAPIreplicas
+3. เปิดรายละเอียดorder ดูquantity/ราคาต่อหน่วย/ยอดรวมเป็นสตางค์ ข้อมูลราคาคือsnapshot ไม่ใช่ให้Browserคำนวณแล้วAPIเชื่อทันที
+4. Refreshหน้า ต้องยังเห็นorderเดิมในรายการ ไม่เกิดorderใหม่จากการrefresh
+5. เปิดprivatewindowหรือBrowserprofileอีกชุด loginเป็นbob เปิด `/api/orders/ORDER_UUID_ของ_alice` ต้อง404 ไม่เปิดเผยข้อมูลalice; รายการbobไม่รวมorderของalice
+6. ในsessionbobเปิด `/api/operator/orders` ต้อง403operator_required จากนั้นlogout และloginoperatorต้องอ่านภาพรวมได้ Operatorไม่ใช่เจ้าของorderแทนalice
+7. กลับalice กดยกเลิกorder ต้องcancelledและคืนstock2หนึ่งครั้ง เปิดรายละเอียดใหม่หรือrefreshตรวจไม่คืนstockซ้ำ การกดcancelAPIซ้ำแบบexplicitและidempotency/raceจะตรวจด้วยเครื่องมือในหัวข้อถัดไป ไม่ถือว่าrefreshอย่างเดียวพิสูจน์กรณีนั้นแล้ว
+8. กรอกรหัสผิดหนึ่งครั้งต้องไม่loginสำเร็จ ไม่ทำbruteforce/โหลดloginendpointซ้ำ; passwordhashใช้CPUและไม่ใช่โหลดอ่านสินค้า
+9. BrowserDevTools → Network เลือกคำขอของorder ดูstatus/requestID/backendIDเพื่อจับคู่กับAPIlogs แต่ห้ามexportHARเต็มหรือcopyCookie/CSRF/requestpayloadที่มีรหัสลงevidence ปิดPreserve logระหว่างloginถ้าไม่จำเป็น
+
+ถ้าbrowserแจ้งsession/CSRFหมดอายุ ให้refresh/loginใหม่ ไม่ปิดCSRFหรือแก้Securecookieเป็นfalseบนGCE หากส่งorderแล้วresponseหาย UIจะเก็บpendingcart+keyเดิมให้retry อย่าเปลี่ยนcart/ล้างsessionStorage/สร้างkeyใหม่ก่อนตรวจว่าorderเดิมcommitไปหรือยัง
+
+**จุดบันทึก T06**
+
+| ตรวจอะไร | Expected | Actual / หลักฐานของคุณ |
+|---|---|---|
+| anonymous orders | 401 | … |
+| alice BOOK-01×2 | confirmed / stockลด2 | … |
+| refresh/read | referenceเดิม | … |
+| bobอ่านalice | 404 | … |
+| customerอ่านoperatorlist | 403 | … |
+| operatorภาพรวม | อ่านได้ ไม่เปลี่ยนowner | … |
+| alicecancel | cancelled / stockคืน2ครั้งเดียว | … |
+| badpassword | loginไม่สำเร็จ | … |
+
+บันทึกorderUUID, requestID, Web/APIidentityที่เห็นและเวลาUTCจากprobeให้เชื่อมกับlogsได้ ภาพพอร์ตใช้เฉพาะUIที่ไม่มีรหัส/Token ไม่ใช้ภาพCIแทนผลที่คุณทำบนGCP
+
+**เกณฑ์ไปต่อ:** journeyและnegativecasesข้างต้นผ่านจริง หากมีfailureให้จดอาการ/สาเหตุ/การแก้/retestไว้ติดตาราง ไม่ติ๊กผ่านเพราะเข้าเว็บได้อย่างเดียว
