@@ -278,3 +278,50 @@ jobs:
         run: |
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_csv_domain.py -v
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_job_state.py -v
+
+  lab006-firestore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FIRESTORE_EMULATOR_HOST: 127.0.0.1:8086
+      GOOGLE_CLOUD_PROJECT: demo-lab006
+      CLOUDSDK_CORE_PROJECT: demo-lab006
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: cloud-firestore-emulator
+      - name: Install Firestore client for emulator integration
+        run: |
+          python3 -m venv .ci-lab006
+          .ci-lab006/bin/pip install -r GCP/LAB-006-private-file-processing/requirements.txt
+      - name: Exercise real emulator transactions without cloud credentials
+        shell: bash
+        run: |
+          gcloud emulators firestore start --host-port=127.0.0.1:8086 --database-mode=firestore-native --quiet > "$RUNNER_TEMP/lab006-firestore.log" 2>&1 &
+          EMULATOR_PID=$!
+          trap 'kill "$EMULATOR_PID" 2>/dev/null || true' EXIT
+          .ci-lab006/bin/python - <<'PY'
+          import socket, time, subprocess
+          for attempt in range(120):
+              try:
+                  with socket.create_connection(("127.0.0.1", 8086), timeout=0.5):
+                      break
+              except OSError:
+                  time.sleep(0.5)
+          else:
+              raise SystemExit("Firestore emulator did not become ready")
+          subprocess.run([".ci-lab006/bin/python", "-m", "unittest", "discover",
+                          "-s", "GCP/LAB-006-private-file-processing/tests",
+                          "-p", "test_firestore_jobs.py", "-v"],
+                         check=True, timeout=180)
+          PY
+      - name: Show emulator diagnostics on failure
+        if: failure()
+        run: tail -n 100 "$RUNNER_TEMP/lab006-firestore.log"

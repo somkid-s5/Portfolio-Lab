@@ -223,3 +223,10 @@ Retention: incoming/results lifecycledeleteหลัง2วันและบั
 เพิ่ม [state transitions](app/job_state.py) และ [9 tests](tests/test_job_state.py) สำหรับgenerationbinding, duplicate/busy, lease120s/reclaim, stale-tokenfencing, expiry, outputbinding, rejection, retrybudgetและmanualepochs การเปลี่ยนสถานะไม่อ่านclock/networkและไม่แก้dictต้นฉบับ จึงนำไปใช้ในFirestoretransactioncallbackได้ แต่ยัง **ไม่ได้พิสูจน์concurrencyของFirestore** จนกว่าจะต่อrepositoryและรันemulatortests
 
 เงื่อนไขuploaddeadlineใช้เวลาที่object finalizedจากStorageevent ไม่ใช่เวลาeventมาถึงworker เพราะtransportอาจส่งช้า; workerต้องvalidateเวลาจากeventที่ผ่านIAM/source/bucketbindingแล้ว ไม่รับtimestampจากclientเอง งานยังต้องไม่เกินexpires_atตอนclaim/publish ผลfailed_integrityห้ามoperatorretryเพื่อกลบoutputที่ไม่ตรง ต้องตรวจเหตุผิดปกติก่อน
+
+
+### Firestore transaction adapter checkpoint
+
+เพิ่ม [Firestore repository](app/firestore_jobs.py) นำstate transitionsไปใช้ในSDKtransactionจริง: อ่านjob/ตรวจtoken-generation/เขียนสถานะในtransactionเดียว callbackไม่อ่านStorageและclockถูกอ่านใหม่เมื่อSDKretry มี [4emulator integration tests](tests/test_firestore_jobs.py) สำหรับสองworkerclaimพร้อมกัน, lease-reclaim/stalecommitrollback, owner/generationboundary และretrybudget/manualepoch
+
+GitHubCIใช้Firestoreemulatorบนrunner, projectdemo-lab006/named databaselab006-filesและAnonymousCredentials พร้อมบังคับloopbackhostก่อนtest ไม่fallbackไปGCPเมื่อไม่มีemulator ยังรอผลชุดนี้ ไม่อ้างว่าtransactionผ่านจากpurestate tests และemulatorไม่พิสูจน์IAM/index/quota/productionlatency ส่วนjobcreationพร้อมidempotency/quotaและboundedlistยังต้องต่อก่อนHTTP

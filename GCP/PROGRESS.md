@@ -150,3 +150,6 @@ Lab06 / CSV domain materials: เพิ่มboundedreader/parser/canonicalsumma
 
 
 Lab06 / State transition materials: เพิ่มpuregenerationclaim/120slease/fencing/terminalexpiry/strictoutputbinding/retrybudget5และmanualepochs2พร้อม9tests แยกจากFirestoretransactionverification; แก้deadlineinterpretationให้ใช้objectfinalizedtimeไม่ใช่deliverytime เพื่อไม่rejecteventที่มาช้าแต่uploadทัน ชุดCSV CI39932134751ตรวจตามhandleจริง; stateชุดใหม่นี้ยังรอCI และต้องต่อFirestoreemulatorก่อนอ้างconcurrency ไม่มีGCPwrites
+
+
+Lab06 / Firestore repository draft: เพิ่มSDKtransactionadapterสำหรับclaim/finish/release/operatorretryและownerread พร้อม4integrationtestsและGitHubjobที่เริ่มofficialFirestoreemulatorแบบloopback/namedDB/demo-project/anonymouscredential ไม่มีGCPauth/provisioning ชุดใหม่รอCI ยังต้องjobcreate-idempotency-quota/list/historyและworker/Storage/UI/IaC/Guide/Diagramก่อนGuide-ready
