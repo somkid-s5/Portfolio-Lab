@@ -191,7 +191,7 @@ UI เก็บเฉพาะ pending cart + idempotency key ใน sessionStor
 
 ## เริ่มทำ Lab — จาก Cloud Shell ถึง release ที่ตรวจสอบได้
 
-**สถานะคู่มือ: กำลังเขียน** ส่วนด้านล่างครอบคลุม Tasks 0–6 เท่านั้น ยังต้องต่อ Secret/bootstrap/เปิดระบบ/ทดสอบ/operations/change/cleanup ก่อนใช้เป็นคู่มือจบทั้ง Solution ไม่มีผล GCP จริงถูกบันทึกไว้ล่วงหน้า
+**สถานะคู่มือ: กำลังเขียน** ส่วนด้านล่างครอบคลุม Tasks 0–10 (รวม 7A/7B/9B) ยังไม่ครบทั้ง Lab ยังต้องต่อ Secret/bootstrap/เปิดระบบ/ทดสอบ/operations/change/cleanup ก่อนใช้เป็นคู่มือจบทั้ง Solution ไม่มีผล GCP จริงถูกบันทึกไว้ล่วงหน้า
 
 ### Task 0 — เตรียมพื้นที่ฝึกและบันทึกเวอร์ชัน
 
@@ -674,3 +674,123 @@ terraform -chdir=infra/workloads apply diagnostic-cleanup.tfplan
 
 **จุดบันทึก T08:** Web→VIP200 …; WebDBsecret403 …; APIadminsecret403 …; diagnosticVIP/backendผล …; positivecontrol/healthybackendเวลาเดียวกัน …; effectivepolicy …; WebPSAdenyและAPIconnectorcontrol …; diagnosticถูกลบแล้ว …; ข้อจำกัด/สิ่งที่ยังสรุปไม่ได้ …  
 **เกณฑ์ไปต่อ:** หลักฐานตรงaccessmatrix ไม่ใช้HTTPauth401/403แทนnetworkdeny และไม่ใช้networkdenyแทนAppownership
+
+### Task 9 — หยุด API หนึ่งเครื่องและดูการกู้คืน
+
+**ขอบเขตfault:** หยุดlab005-api serviceบนVMที่เลือกเพียงเครื่องเดียว ไม่ลบMIG ไม่แก้firewallทั้งกลุ่ม และไม่อ้างว่าเป็นzoneoutage
+
+**ก่อนเริ่ม:** APIสองเครื่องHEALTHY ไม่มีrollout/failoverอื่น ปิดorderทดลองT07ครบ เก็บsnapshotและชื่อVM/instanceID/zoneจริงทั้งสองเครื่อง จดเครื่องเป้าหมายกับเครื่องที่ต้องอยู่รอด อย่าเลือกWebVMเพราะชื่อคล้ายกัน
+
+CloudShell Terminal A เก็บprobeในไฟล์ใหม่private:
+
+```bash
+cd "$LAB_DIR"
+umask 077
+mkdir -p .build/evidence
+set -C
+python3 scripts/probe.py --base-url "https://$LAB_DOMAIN" --path /healthz   --requests 120 --workers 1 --interval 1 > .build/evidence/api-fault-read.jsonl
+```
+
+เปิดTerminal B ตั้งproject/regionและชื่อVMจริง (variablesไม่แชร์ข้ามterminalอัตโนมัติ):
+
+```bash
+export PROJECT_ID='ใส่-project-id'
+export REGION='asia-southeast1'
+export API_VM='ใส่ชื่อ-api-vm-ที่จะหยุด'
+export API_ZONE='ใส่-zone'
+gcloud config set project "$PROJECT_ID"
+date -u +'%Y-%m-%dT%H:%M:%SZ'
+gcloud compute instances describe "$API_VM" --zone="$API_ZONE" --format='yaml(name,id,zone,status)'
+gcloud compute ssh "$API_VM" --zone="$API_ZONE" --tunnel-through-iap   --command='sudo systemctl stop lab005-api'
+gcloud compute backend-services get-health lab005-api-internal --region="$REGION"
+gcloud compute instance-groups managed list-instances lab005-api-mig --region="$REGION"
+```
+
+ตรวจhealth/currentactionsซ้ำเป็นระยะด้วยคำสั่งเดิมและจดเวลา ไม่ใช้loopไม่มีวันจบ เปิดConsole → Compute Engine → Instance groups → lab005-api-mig → Instances/Monitoring ดูhealth/repairaction **การตัดtrafficโดยLBกับการซ่อมโดยMIGเป็นคนละขั้น** อาจมีrequesterrorก่อนLBตัดbackend ไม่เรียกผลนี้zero-downtime
+
+**Expected:** serviceเป้าหมายหยุด → backendUNHEALTHY → อีกzoneยังรับงาน → MIGrepair → startupใหม่สำเร็จ → healthyครบสองเครื่อง บันทึกinstanceIDก่อน/หลัง แม้ชื่อVMอาจเหมือนเดิม อย่าใช้ชื่ออย่างเดียวสรุปว่าไม่ได้recreate
+
+[initial delay300s](https://docs.cloud.google.com/compute/docs/instance-groups/autohealing-instances-in-migs) คือช่วงเริ่มVM ไม่ใช่คำสัญญาว่าจะกู้เสร็จภายใน300s healthsuccessอาจจบinitialdelayก่อนครบ อย่าอ้างตัวเลขนี้เป็นRTOจริง
+
+ถ้าprobeจบก่อนrecovery ให้เก็บwindowแรกแล้วรันboundedwindowใหม่ชื่อไฟล์ใหม่ ระบุช่องว่างตามจริง ถ้าMIGไม่repairให้ตรวจpolicy/health/firewall/currentactionsก่อน หากต้องคืนระบบเองและเครื่องเดิมยังอยู่:
+
+```bash
+gcloud compute ssh "$API_VM" --zone="$API_ZONE" --tunnel-through-iap   --command='sudo systemctl start lab005-api'
+```
+
+ถ้าMIGrecreateแล้วให้เลือกVMปัจจุบันจากlist ไม่ยิงชื่อเก่าหรือstartเครื่องอื่นสุ่ม การกู้ด้วยมือต้องบันทึกmanual recovery ไม่ใช่autohealingสำเร็จ หลังhealthyครบ ให้รันjourneyด้วยjournalใหม่สำหรับrecovery และsnapshotT07A ไม่ใช้storedresultของstockraceแทนretest
+
+**จุดบันทึก T09:** faultstart …; targetID/zone …; survivorID/zone …; LBunhealthyเวลา …; MIGaction …; replacementID/startup/healthyเวลา …; probeerrors/latency/backendwindow …; recoveryauto/manual …; journey/ledgerหลังแก้ …  
+**เกณฑ์ไปต่อ:** healthyครบสองเครื่อง ข้อมูลถูกต้อง และอธิบายสิ่งที่observedโดยไม่ขยายเป็นzonefailure/SLA
+
+#### Task 9B — ตรวจ Web tier ด้วยหลักเดียวกัน
+
+ทำหลังAPIคืนปกติเท่านั้น ไม่หยุดWeb/APIพร้อมกัน เลือกWebVMหนึ่งเครื่องและจดID/zoneกับsurvivor เปิดprobewindowใหม่ชื่อweb-fault-read.jsonlจากCloudShell แล้วอีกTerminalตั้งWEB_VM/WEB_ZONEจากT08:
+
+```bash
+gcloud compute instances describe "$WEB_VM" --zone="$WEB_ZONE" --format='yaml(name,id,zone,status)'
+gcloud compute ssh "$WEB_VM" --zone="$WEB_ZONE" --tunnel-through-iap   --command='sudo systemctl stop nginx'
+gcloud compute backend-services get-health lab005-web-public --global
+gcloud compute instance-groups managed list-instances lab005-web-mig --region="$REGION"
+```
+
+ExpectedคือWebbackendเป้าหมายunhealthy/repair และอีกเครื่องรับUI/APIproxyได้ เก็บX-Web-IDจากprobeพร้อมMIGIDs ไม่ใช้APIbackendIDอย่างเดียวพิสูจน์Websurvivor หากต้องmanualrecoveryใช้sudo systemctl start nginxบนเครื่องปัจจุบันที่เลือกผ่านIAPและระบุว่าmanual หลังhealthyครบให้ตรวจUI/journey/DBsnapshotอีกครั้ง บันทึกtimeline/target/survivor/errors/recoveryในT09แยกแถวWebกับAPI
+
+### Task 10 — Planned Cloud SQL HA failover และคำขอที่อาจได้ผลไม่แน่นอน
+
+**ขอบเขต:** สั่งplannedfailoverของSQLsandboxนี้ครั้งเดียว ไม่ทดสอบregionaldisaster/restore และไม่เปลี่ยนedition/regionระหว่างทดลอง [คำสั่งfailover](https://docs.cloud.google.com/sdk/gcloud/reference/sql/instances/failover)
+
+**ก่อนเริ่ม:** T09ปกติ SQLREGIONALพร้อมbackup/PITRและไม่มีoperationค้าง Web/APIHEALTHY เก็บsnapshotก่อนทดลองและเตรียมBOOK-01อย่างน้อย1
+
+Terminal A รันprobeT09โดยเปลี่ยนชื่อไฟล์เป็นsql-failover-read.jsonl เริ่มก่อนfaultและจดwindow หากจบก่อนrecoveryใช้windowใหม่และระบุช่องว่าง ไม่ต่อผลให้เหมือนmonitorต่อเนื่อง
+
+Terminal B ตั้งprojectให้ตรงและตรวจSQL:
+
+```bash
+gcloud sql instances describe lab005-sql   --format='yaml(name,state,region,settings.availabilityType,settings.locationPreference,ipAddresses)'
+gcloud sql operations list --instance=lab005-sql --limit=5   --format='table(name,operationType,status,startTime,endTime)'
+date -u +'%Y-%m-%dT%H:%M:%SZ'
+export FAILOVER_OP="$(gcloud sql instances failover lab005-sql --async --format='value(name)')"
+printf 'Failover operation: %s\n' "$FAILOVER_OP"
+gcloud sql operations describe "$FAILOVER_OP"
+```
+
+หากไม่มีoperationID ให้ตรวจlist/CLIerrorก่อน **อย่ากดfailoverซ้ำ** เพียงเพราะรอหรืออ่านoperationไม่สำเร็จ ตรวจoperationเดิมจนDONEและไม่มีerrorผ่านSQL → Operationsหรือdescribeเดิม แยก“operationจบ”จาก“Appกลับมาทำธุรกรรมได้”
+
+ระหว่างwindow อีกTerminalที่ตั้งLAB_DIR/LAB_DOMAINถูกต้อง ใช้journalใหม่ครั้งแรก:
+
+```bash
+cd "$LAB_DIR"
+.venv/bin/python scripts/journey.py --base-url "https://$LAB_DOMAIN"   --logins-file secrets/demo-logins.json --journal secrets/sql-failover-order.json
+```
+
+ถ้าjourneyจบก่อนoutageจริงให้บันทึกว่าไม่ได้พิสูจน์writeoverlap ห้ามอ้างว่าrequestผ่านช่วงfailover หากล้ม/responseหายให้เก็บjournalเดิม ห้ามสร้างkeyใหม่ หลังoperationDONEและ/healthzพร้อมจึงรันคำสั่งเดิมเพื่อresolve UUIDต้องเชื่อมกับDBledger ไม่ตัดstockซ้ำแม้คำขอแรกcommitแล้วแต่responseหาย
+
+การตรวจAPI/livezให้SSHเข้าAPI VMผ่านIAPแล้วรันคำสั่งต่อไปนี้ในVMระหว่างทดลอง (public/livezเป็นWebstatichealth ไม่ใช่APIprocess):
+
+```bash
+python3 -c 'import urllib.request; r=urllib.request.urlopen("http://127.0.0.1:8080/livez",timeout=5); print(r.status); print(r.read(4096).decode())'
+```
+
+ช่วงfailoverconnectionเดิมอาจปิดและ/healthz/businessendpointตอบ503 แต่/livezควรยัง200และไม่ทำให้recreateทั้งMIG เก็บMIGIDsก่อน/หลังร่วมกับprobe ถ้ามีrecreateตรวจสาเหตุจากMIGlogs ไม่ติ๊กว่าhealthแยกถูกต้องโดยไม่ตรวจ
+
+หลังจบตรวจ:
+1. SQLoperation/zoneconfigurationและprivateendpointเดิม Appไม่เลือกstandbyIPเอง
+2. /healthzพร้อมและjourney/resumeได้ผลแน่นอน
+3. snapshotT07A/invariants, UUIDและstock/ledgerหลังcancel ไม่คืนstockซ้ำ
+4. APIIDs/healthybackendsและconnectioncount/metrics ไม่ใช้snapshotเดียวแทนpeak
+5. ถ้าoperationFAILED เก็บerrorที่sanitizedและคืนบริการก่อนหัวข้อถัดไป ไม่resetDBหรือเปิดSQLpublicIP
+
+**จุดบันทึก T10**
+
+| Timeline/หลักฐาน | Actual |
+|---|---|
+| SQLconfig/primaryก่อนเริ่ม / operationID | … |
+| probewindow / firsterror / lastfailure | … |
+| operationDONE/FAILED / Apprecoveredเวลา | … |
+| journalเดิม / UUIDก่อนและหลังresolve | … |
+| stock/ledger/invariantsหลังrecovery | … |
+| APIIDsและ/livezเทียบ/healthz | … |
+| ข้อจำกัด เช่นไม่พบerrorหรือไม่ได้overlapwrites | … |
+
+หากprobeไม่พบerror ให้รายงาน“ไม่พบในsamplewindowนี้” ไม่สรุปว่าไม่มีdowntime การวัดนี้คือapplicationrecoveryในLab ไม่ใช่RTO/RPO/SLAของproduction
