@@ -7,6 +7,12 @@ last_verified: null
 ---
 # Lab 06 — รับไฟล์ยอดขายและสร้างรายงานส่วนตัวแบบ Event-driven
 
+![สถาปัตยกรรม Sales File Desk: อัปโหลดตรงเข้า Storage และประมวลผลผ่าน Eventarc](assets/solution-preview.png)
+
+Browser ขอสิทธิ์จาก Portal แล้วส่ง CSV ตรงเข้า private incoming bucket เมื่อไฟล์ finalized จึงมี event เรียก worker ส่วน Firestore เก็บ owner และสถานะงาน ไม่ส่งไฟล์ผ่าน Portal และไม่ใช้ VPC ใน Solution นี้ เส้นประแยกการ claim/publish สถานะออกจากเส้นทางไฟล์
+
+[SVG แก้ไขได้](assets/solution.svg) · [ที่มาไอคอนและผลตรวจภาพ](assets/diagram-provenance.json) ภาพเป็นการออกแบบ ไม่ใช่ผล deploy บน GCP
+
 ## สถานการณ์
 
 ทีมปฏิบัติการรับ CSV ยอดขายจากหลายคน ผู้ส่งต้องเห็นเฉพาะไฟล์ของตน รู้ว่าไฟล์กำลังรอ ประมวลผลสำเร็จ หรือถูกปฏิเสธ และดาวน์โหลดรายงานได้โดยไม่เปิด bucket สาธารณะ หาก worker ล้มหลังเขียนผลแล้ว การส่ง event ซ้ำต้องไม่สร้างรายงานธุรกิจซ้ำหรือเปลี่ยนเจ้าของงาน
@@ -173,6 +179,11 @@ Lease120sเป็นช่วงถือสิทธิ์ก่อนclaimใ
 Unknown/malformedevents: invalidenvelope400เพื่อให้เห็นconfigurationerror; authenticแต่ไม่อยู่bucket/key/jobnamespaceของLabให้ack204และsafeignoredreason ไม่สร้างjobจากevent หากmetadataอ่านไม่ได้เป็น503ไม่เหมาว่าunknownแล้วack งานที่หาไม่เจอจริงต้องlogignoredและให้runbookreconcile ไม่สร้างownerจากobjectmetadataที่clientปลอมได้
 
 ### Output commit และการกู้ช่องว่างข้ามบริการ
+
+![ลำดับ claim ตรวจข้อมูล เขียนผล และ publish พร้อมการกู้ช่องว่าง output–metadata](assets/recovery-preview.png)
+
+[SVG การกู้คืน](assets/recovery.svg): หากผลเขียนแล้วแต่สถานะยังไม่สำเร็จ รอบถัดไปต้องตรวจและใช้ผลเดิม ไม่เขียนทับเพื่อให้ผ่าน
+
 
 คำนวณsummaryแบบdeterministic ใช้integer, sortedSKU, canonicalUTF-8JSON ไม่มีcurrenttime/attempttokenในbusinessbytes Outputkeyคือ results/{jobUUID}/{inputGeneration}/{processorVersion}/summary.json เขียนif_generation_match=0 พร้อมmetadatainputSHA/processorversion ไม่updateobjectที่มีอยู่
 

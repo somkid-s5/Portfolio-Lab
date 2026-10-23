@@ -237,3 +237,6 @@ Lab06 / Guide consolidation: รวมmaterialschangelogเป็นแผนท
 
 
 Lab06 / Replay and validation coverage: เพิ่ม authenticated replay ≤3 requests (same ID twice + new ID/same generation), source metadata pinned/fromStorageจริง, no-token-output และ Task8B แยกHTTPackจากbusinessresult/IAMtemporaryscope; เพิ่มprotocol-roundtrip testผ่านreceiverparserจริงและinvalidUTF8fixturegeneration+Task6+testเพื่อให้R3ทำได้จริง อัปเดตR4evidencematrix เพิ่มnetworktimeout/retryเฉพาะaptของLab005สำหรับCIรอบหน้า หลังrun127jobinstallค้างจริง ไม่cancel/rerunlivejob ชุดใหม่รอCI/ภาพสุดท้ายและreviewก่อนGuide-ready ไม่มีGCPwrites
+
+
+Lab06 / Diagram publication: run129 CI39993882867 job120554175358 render topology+recoveryจากsourceffc7f89b5dfbbdefcf05f501c3385d5a9149a210สำเร็จ ตรวจภาพ960pxแล้วเส้นstateไม่ทับheading/Firestorelabel ขอบเขตproject-regionไม่มีVPCเทียมและdirectuploadแยกจากevent บันทึกSVG/PNG2ภาพ+officialiconpath/SHA/attributionลงassetsและembedREADME งานreplayชุดก่อนผ่านlab006-domainในrun129 ส่วนroundtrip/UTF8fixtureเพิ่มล่าสุดรอrun130 CI39994451947ก่อนclaimครบ ยังAuthoring/CloudNotrun ไม่มีGCPwrites
