@@ -8,7 +8,7 @@
 | 02 | [ระบบ Inventory ภายในองค์กรแบบ Private](LAB-002-private-inventory/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 03 | [เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS](LAB-003-public-docs-cdn/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 06 | ระบบรับและประมวลผลไฟล์อย่างปลอดภัย | Planned | Not run | — |
 | 07 | ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue | Planned | Not run | — |
 | 08 | ระบบรายงานตามเวลาและงาน Batch รายวัน | Planned | Not run | — |
@@ -135,3 +135,6 @@ Lab 05 / Guide static review: เพิ่ม CI tests สำหรับ Bash �
 
 
 Lab 05 / Operational guide review: เพิ่มคำสั่ง probe จริงสำหรับ Web fault และ capacity before/after พร้อม private output/noclobber/exit-code/summary/incomplete-window interpretation และจุดเทียบ SQL connections/CPU ตามเวลาเดียวกัน README มี Bash49blocksแล้ว ไม่ให้ผู้เรียนเดา flags จากคำบรรยาย; sourceก่อนหน้ายังรอCI39929963331 job120335498899ที่ติดตั้งNginxอยู่ ไม่ยกCIเป็นผลGCPและยังไม่Guide-ready
+
+
+Lab 05: Guide-ready — review ถึง source cd125100a884b17e641e28a625230f80dec3ed95 แล้ว: CI39929963331 ผ่าน52tests (49App/tooling +3guide checks), separate bootstrap และ browser→Nginx→API→PostgreSQLจริง; เอกสารที่เติมภายหลังตรวจด้วย CI39930610563 joblab005-guide ผ่าน49Bashblocks/relative links/Tasksections และ joblab005-infra validateทั้ง3rootsผ่าน (App/codeไม่เปลี่ยนจากชุดที่ผ่าน) SVG/PNG2ภาพตรวจ960pxและpublishedพร้อมiconprovenance คู่มือTasks0–14/7A/7B/9BครบR1–R8 มีactual/evidence/backout/cleanup/rebuildและขอบเขตผลตรวจชัดเจน ยังไม่มีGCP provisioning/HAfailover/IAMnetwork/apt-systemdจริง ทุกLabCloud Not run ขั้นถัดไป Lab06Brief; publicationCIของcommitสถานะใหม่ยังต้องติดตามต่อ ไม่ถือว่าGoal20Labเสร็จ

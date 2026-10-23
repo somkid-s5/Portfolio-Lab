@@ -1,7 +1,7 @@
 ---
 lab: LAB-005
 platform: GCP
-guide_status: authoring
+guide_status: guide-ready
 cloud_verification: not-run
 last_verified: null
 ---
@@ -179,7 +179,7 @@ Failoverprobe ต้องมี boundeddeadline/requests และ idempotencyk
 อ้างอิง Design เพิ่มเติม: [VPC firewall source/target service accounts](https://docs.cloud.google.com/firewall/docs/firewalls#service-accounts), [LB firewall ranges](https://docs.cloud.google.com/load-balancing/docs/firewall-rules), [connector v1.18.5 implementation](https://github.com/GoogleCloudPlatform/cloud-sql-python-connector/blob/v1.18.5/google/cloud/sql/connector/connector.py)
 
 
-## Materials ที่กำลังตรวจ
+## ไฟล์ประกอบที่ใช้ใน Lab
 
 [Order domain](app/orders.py), [schema](db/schema.sql), [seed](db/seed.sql), [runtime grants](db/grants.sql), [invariants](db/check-invariants.sql) และ [PostgreSQL transaction tests](tests/test_orders.py) เป็นแกนธุรกรรมที่ใช้ร่วมกับ API ผลทดสอบ PostgreSQL ใน CI ไม่ใช่ผลทดสอบ Cloud SQL HA
 
@@ -197,11 +197,26 @@ UI เก็บเฉพาะ pending cart + idempotency key ใน sessionStor
 
 [CI 39830356415](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39830356415) source146bb2e ผ่าน18 tests พร้อมตรวจ bootstrap จริง: failure rollback ไม่ทิ้ง role, schema/seed/grants, runtime login และ rerun ไม่เปลี่ยนรหัสเดิม [ที่มาภาพ](assets/ui-ci-provenance.json)
 
-ไฟล์เตรียมระบบ: [สร้าง Secret bundle](scripts/create-secrets.py), [bootstrap ฐานข้อมูล](scripts/init-db.py) ยังต้องใช้ตามลำดับ Foundation/Secret/init ที่จะระบุใน Tasks ไม่ใช้ admin credential เป็น App runtime
+ไฟล์เตรียมระบบ: [สร้าง Secret bundle](scripts/create-secrets.py), [bootstrap ฐานข้อมูล](scripts/init-db.py) ยังต้องใช้ตามลำดับ Foundation/Secret/init ใน Tasks ด้านล่าง ไม่ใช้ admin credential เป็น App runtime
+
+## ขอบเขตผลตรวจคู่มือ
+
+ตรวจบน GitHub Actions ไม่ได้ใช้บัญชี GCP เพื่อสร้างทรัพยากร:
+
+| สิ่งที่ตรวจ | หลักฐาน | สิ่งที่ยังต้องพิสูจน์จากการทำ Lab จริง |
+|---|---|---|
+| App, transactions, ownership/CSRF, retry/cancel, concurrency และ Web UI | [CI 39929963331](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39929963331): 52 tests รวม PostgreSQL16/Chrome/Nginx และ static-guide checks; bootstrap แยกอีกขั้น | HTTPS journey และพฤติกรรมผ่าน GCP load balancers |
+| คำสั่งและไฟล์ในคู่มือฉบับ 49 Bash blocks | [CI 39930610563 / lab005-guide](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39930610563): Bash parse, relative links, Task/requirement sections | คำสั่ง gcloud/Console กับ IAM/quota/นโยบายของ sandbox ของคุณ |
+| Terraform ทั้งสาม roots | job lab005-infra ใน CI เดียวกัน: init แบบไม่ใช้ backend และ validate | plan/apply, resource readiness, firewall/IAP/Secret permissions และ SQL HA จริง |
+| Installer และ startup fault | sandbox tests เรียก installer โดยแทน metadata/Secret/package/systemd ด้วย test doubles | apt/systemd, attached identity และ startup บน GCE จริง |
+| Diagram topology/recovery | SVG/PNG จาก [CI 39928910636](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39928910636), ตรวจภาพที่ 960px และเก็บ provenance แล้ว | ปรับภาพให้ตรง final configuration และผลที่คุณสร้างจริง |
+| Fault, rollout, failover, capacity และ cleanup | ทบทวนลำดับ Task9–14, backout, inventory และจุดบันทึกผลแล้ว | timeline, recovery/error/metrics, data reconciliation และ inventory หลังลบจริง |
+
+CI ไม่ได้พิสูจน์ Cloud SQL failover, zero downtime, production throughput, SLA หรือว่าทรัพยากรถูกลบหมดแล้ว ช่อง Actual จึงยังเว้นไว้ให้บันทึกหลักฐานจริง
 
 ## เริ่มทำ Lab — จาก Cloud Shell ถึง release ที่ตรวจสอบได้
 
-**สถานะคู่มือ: อยู่ระหว่างตรวจทาน** Tasks 0–14 ครอบคลุมการสร้างระบบ ทดสอบ ดูแล เปลี่ยนแปลง และ Cleanup แล้ว รวมการทดสอบเพิ่มเติมใน 7A/7B/9B ช่อง Actual ให้เติมจากการรันของคุณเท่านั้น ยังไม่มีผลทดสอบ GCP จริง
+**สถานะคู่มือ: Guide-ready; ผล GCP: Not run** Tasks 0–14 ครอบคลุมการสร้างระบบ ทดสอบ ดูแล เปลี่ยนแปลง และ Cleanup แล้ว รวมการทดสอบเพิ่มเติมใน 7A/7B/9B ช่อง Actual ให้เติมจากการรันของคุณเท่านั้น ยังไม่มีผลทดสอบ GCP จริง
 
 ### Task 0 — เตรียมพื้นที่ฝึกและบันทึกเวอร์ชัน
 
