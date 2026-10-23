@@ -440,6 +440,7 @@ jobs:
           python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_domain.py -v
           python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_dispatch.py -v
           python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_pagination.py -v
+          python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_container.py -v
 
   lab007-postgres:
     runs-on: ubuntu-latest
@@ -495,3 +496,16 @@ jobs:
           path: lab007-previews/ui-ci.png
           if-no-files-found: error
           retention-days: 14
+
+  lab007-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build serving image without Cloud credentials
+        run: docker build -t lab007-orders:ci GCP/LAB-007-queued-order-processing
+      - name: Verify nonroot imports static assets and private-bundle exclusions
+        run: |
+          docker run --rm --entrypoint python lab007-orders:ci -c "import os,pathlib,portal_runtime,queue_runtime; assert os.getuid()==10001; assert pathlib.Path('/srv/app/static/index.html').is_file(); assert not pathlib.Path('/srv/app/secrets').exists(); assert not pathlib.Path('/srv/sql').exists(); assert not pathlib.Path('/srv/tests').exists(); assert not pathlib.Path('/srv/scripts/create-secrets.py').exists()"
