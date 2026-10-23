@@ -171,3 +171,6 @@ Lab06 / Worker HTTP draft: CI39933551789 lab006-domain/firestoreสำเร็�
 
 
 Lab06 / Signed access draft: เพิ่มowner/state/deadlinecheckedV4POSTpolicy(size/exactkey/MIME)และgeneration-pinnedshortGETพร้อม5realSDK/dummysignaturetests ไม่เรียกIAMsignBlob/GCSจริง ต้องต่อruntimecredentialssupplierและportalHTTP ชุดใหม่รอCI ไม่มีGCPwrites ไม่ใช่Guide-ready
+
+
+Lab06 / Portal API draft: เพิ่มsession/CSRF/login/logout/jobcreate/read/ownercheckedcapabilityroutesและ6Flasktestsพร้อมCI ชุดsignedaccess39934400587ยังpendingตอนตรวจ ไม่claimผ่าน ต้องต่อruntimewiring/list/operator/UI/browserintegration/IaC/Guide/Diagram ไม่มีGCPwrites ไม่ใช่Guide-ready

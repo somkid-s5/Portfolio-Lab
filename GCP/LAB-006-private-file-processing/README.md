@@ -276,3 +276,10 @@ build_appเลือกnamedFirestoredatabaseอย่างชัดเจน,
 เพิ่ม [signed access service](app/signed_access.py) ตรวจowner/state/expiryก่อนขอtokenและsign: V4POSTpolicyตรึงbucket/key/text-csv/size/201พร้อมdeadlineไม่เกิน300s ส่วนGETตรึงoutputgenerationและอายุไม่เกิน60sหรือเวลางานที่เหลือ ใช้service_account_email+runtimeaccess_tokenสำหรับkeylesssignBlob ไม่ใช้privatekeyfile
 
 [5tests](tests/test_signed_access.py) เรียกSDKจริงเพื่อdecodepolicyและตรวจGETquery แต่แทนsignBlobtransportด้วยdummy signature จึงยังไม่พิสูจน์GoogleIAM/signaturevalidity/actualupload/expiryenforcement ต้องต่อportaltoken supplierและrouteที่ไม่logpolicy/URLก่อนใช้งาน ชุดใหม่นี้รอCI [SDK3.4.1 policy implementation](https://github.com/googleapis/python-storage/blob/v3.4.1/google/cloud/storage/client.py)
+
+
+### Portal API checkpoint
+
+เพิ่ม [Portal HTTP API](app/portal_http.py) สำหรับanonymousCSRFbootstrap/login/logout, signedSecureHttpOnlysession30min, exactinputcontract, customerjobcreate/replay, ownerstatusและownercheckedupload/downloadlinks พร้อมrequestID/no-store/no-referrer/structuredlogsที่ไม่บันทึกsignedcapabilities มี [6tests](tests/test_portal_http.py) ตรวจcookie/session/CSRF, anonymous, clientownerinjection, replay, bob404/operator403และerror sanitization
+
+ส่วนนี้ยังเป็นfactoryที่รับJobs/Access/Authเข้ามา ไม่ใช่portalที่deployพร้อมแล้ว ยังต้องruntimeSecrets/tokenprovider, boundedlist/operatorretry, UIจริงและbrowser/emulatorintegration ชุดใหม่รอCI ไม่อ้างจากmockrepositoryว่าพิสูจน์FirestoreหรือCloudIAMครบ
