@@ -244,5 +244,71 @@ class DeadLetterTests(unittest.TestCase):
             self.assertIn("do_not_create_new_order",output.getvalue())
 
 
+    def test_cli_inspect_writes_private_receipts_without_auto_ack_or_raw_payload_output(self):
+        with tempfile.TemporaryDirectory() as folder:
+            target=Path(folder)/"pull-1"
+            self.client.pull.return_value=PullResponse(received_messages=[
+                ReceivedMessage(message=message(),ack_id="private-ack-token")])
+            args=["dead-letter.py","--project",PROJECT,"--project-number",NUMBER,"inspect","--out",str(target)]
+            output=io.StringIO()
+            with patch.object(sys,"argv",args),patch.object(cli,"build",return_value=self.client), \
+                 patch("sys.stdout",output):
+                self.assertEqual(cli.main(),0)
+            result=json.loads(output.getvalue())
+            self.assertEqual((result["inspected"],result["acknowledged"],result["held_unrecognized"]),(1,0,0))
+            self.assertNotIn("private-ack-token",output.getvalue())
+            self.assertNotIn("schema_version\": 1, \"event_id",output.getvalue())
+            self.assertEqual(len(list(target.glob("*.json"))),1)
+            self.client.acknowledge.assert_not_called()
+            self.client.transport.close.assert_called_once()
+
+    def test_cli_ack_validates_receipt_and_uses_operator_proof_and_durable_audit_key(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/"receipt.json"
+            path.write_bytes(canonical(receipt().private_value()))
+            path.chmod(0o600)
+            journal=Path(folder)/"audit.json"
+            args=["dead-letter.py","--project",PROJECT,"--project-number",NUMBER,"ack",
+                "--receipt",str(path),"--portal",ORIGIN,"--demo-logins","private-logins-path",
+                "--reason","delivery_restored","--journal",str(journal)]
+            output=io.StringIO()
+            with patch.object(sys,"argv",args),patch.object(cli,"build",return_value=self.client), \
+                 patch.object(cli,"DeadLetters",side_effect=lambda c,p,n:DeadLetters(c,p,n,clock=lambda:NOW)), \
+                 patch.object(cli.operator,"Portal") as portal,patch("sys.stdout",output):
+                portal.return_value.verify.return_value=proof()
+                portal.return_value.prepare.return_value=approval()
+                self.assertEqual(cli.main(),0)
+                portal.return_value.login.assert_called_once_with("private-logins-path")
+                portal.return_value.verify.assert_called_once_with(EVENT)
+                event,body=portal.return_value.prepare.call_args.args
+                self.assertEqual((event,body["source_digest"]),(EVENT,receipt().summary["source_digest"]))
+                self.assertEqual(body["idempotency_key"],json.loads(journal.read_bytes())["idempotency_key"])
+            self.client.acknowledge.assert_called_once()
+            self.assertNotIn("private-ack-token",output.getvalue())
+            self.assertFalse(json.loads(output.getvalue())["absence_verified"])
+
+    def test_cli_lost_audit_reply_keeps_journal_and_does_not_ack(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/"receipt.json"
+            path.write_bytes(canonical(receipt().private_value()))
+            path.chmod(0o600)
+            journal=Path(folder)/"audit.json"
+            args=["dead-letter.py","--project",PROJECT,"--project-number",NUMBER,"ack",
+                "--receipt",str(path),"--portal",ORIGIN,"--demo-logins","private-logins-path",
+                "--reason","delivery_restored","--journal",str(journal)]
+            output=io.StringIO()
+            with patch.object(sys,"argv",args),patch.object(cli,"build",return_value=self.client), \
+                 patch.object(cli,"DeadLetters",side_effect=lambda c,p,n:DeadLetters(c,p,n,clock=lambda:NOW)), \
+                 patch.object(cli.operator,"Portal") as portal,patch("sys.stdout",output):
+                portal.return_value.verify.return_value=proof()
+                portal.return_value.prepare.side_effect=TimeoutError("private-ack-token")
+                self.assertEqual(cli.main(),2)
+            self.assertTrue(journal.is_file())
+            body=json.loads(journal.read_bytes())
+            self.assertEqual(body["source_digest"],receipt().summary["source_digest"])
+            self.assertNotIn("private-ack-token",output.getvalue())
+            self.client.acknowledge.assert_not_called()
+
+
 if __name__=="__main__":
     unittest.main()
