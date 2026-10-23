@@ -189,3 +189,6 @@ Lab06 / Manual retry HTTP draft: เพิ่มoperatorCSRFprepare→boundedIDt
 
 
 Lab06 / Portal runtime draft: เพิ่มprivatebundle(hash/sessionkeyแยกdemologins), strictboundedauthreader, attachedmetadataOAuth/IDtokensและruntimewiringเข้ากับJobs/Access/Dispatcher พร้อม5tests/CIstep ปฏิเสธkeyfileและemulatorในCloudRunruntime ชุดใหม่รอCIยังต้องUI/browser/IaC/Guide/Diagram ไม่มีGCPwrites
+
+
+Lab06 / Portal UI draft: เพิ่มThaiUpload/status/download/operatorUI+boundedpoll+durablependingfilefingerprint/key+explicitnewretryepoch, CSP-compatibleexternalJS/CSS และindexroute/sessionlimits พร้อมJSsyntaxCI ยังรอbrowserintegration/renderreview; runtimeCI39936078257pendingตอนตรวจ ชุดdispatch39935686271lab006jobsผ่านแล้ว ไม่มีGCPwrites ไม่ใช่Guide-ready

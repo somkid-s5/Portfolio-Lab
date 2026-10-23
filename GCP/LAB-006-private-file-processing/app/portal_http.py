@@ -91,11 +91,15 @@ def create_app(jobs, access, auth, *, clock=None, metadata_health=None,
     def unavailable(_):
         return jsonify(error="temporary_dependency_failure"), 503
 
+    @app.get("/")
+    def index():
+        return app.send_static_file("index.html")
+
     @app.get("/api/session")
     def status():
         name = identity()
         return jsonify(user=name, role=users[name]["role"] if name else None,
-                       csrf=csrf())
+                       csrf=csrf(), max_bytes=limits[0], max_rows=limits[1])
 
     @app.post("/api/login")
     def login():

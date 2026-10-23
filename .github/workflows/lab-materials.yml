@@ -274,6 +274,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Check Upload portal browser script syntax
+        run: node --check GCP/LAB-006-private-file-processing/app/static/app.js
       - name: Verify bounded CSV processing and deterministic business summaries
         run: |
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_csv_domain.py -v

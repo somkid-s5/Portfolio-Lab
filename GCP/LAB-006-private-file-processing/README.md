@@ -320,3 +320,12 @@ Portalตอบ202พร้อมdispatchacknowledgedหรือunconfirmed; �
 [Portal runtime factory](app/portal_runtime.py) อ่านauthmountแบบbounded เลือกnamedFirestore, ประกอบJobs/Access/RetryDispatcher และรับOAuth/IDtokensจากattachedCloudRunmetadataด้วยtimeout3s/responsebounds/no-redirect ไม่ใช้serviceaccountkeyfile ปฏิเสธemulator/privatekeyenvในruntime ใช้Secretversionตัวเลขที่deploymentต้องระบุ ยังต้องทำIaC/Guideให้mountถูกต้อง
 
 มี [5tests](tests/test_portal_runtime.py) สำหรับpermissions/nooverwrite/hashmatching/metadataaudience/tokenbounds/runtimeguards แต่metadataเป็นmocktransport ไม่ใช่CloudRunจริง [Service-to-service](https://docs.cloud.google.com/run/docs/authenticating/service-to-service), [Secret mounts](https://docs.cloud.google.com/run/docs/configuring/services/secrets) ชุดใหม่นี้รอCI
+
+
+### Portal UI implementation checkpoint
+
+เพิ่มหน้า [Sales File Desk](app/static/index.html) พร้อม [browserlogic](app/static/app.js) / [styles](app/static/style.css): login/logout, customerupload, owner/operatorpaginatedlist, jobdetail, boundedpoll30รอบ, signeddownloadและmanualretry UIใช้textContentไม่รันHTMLจากfilename และไม่เก็บpassword/CSRF/policy/signedURLในsessionStorage
+
+ก่อนcreateเก็บrequestkey+fileSHA/ชื่อไฟล์ และหลังได้jobIDเก็บอ้างอิงเดิมสำหรับresponseหาย ต้องเลือกไฟล์เดิมเพื่อresolve ไม่สร้างlogicaljobใหม่เงียบ ๆ Uploadส่งFormDataตรงStorageและไม่setmultipartboundaryเอง ตรวจ201ก่อนเรียกว่าส่งสำเร็จ หากresponseหายยังเก็บpendingให้ตรวจjobเดิม ส่วนoperatorเปิดretryepochใหม่ต้องกดยืนยันแยกจากresendkeyเดิม
+
+ตอนนี้เพิ่มJSsyntaxcheckในCI ยังต้องbrowserintegration/renderreviewเพื่อพิสูจน์flowจริงและแก้UIตามภาพ ไม่ใช้การมีไฟล์HTMLแทนผลใช้งานได้ และยังไม่มีGCPdeploy
