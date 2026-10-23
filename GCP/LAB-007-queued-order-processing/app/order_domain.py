@@ -37,6 +37,16 @@ def read_json(body, *, limit=MAX_BODY):
         raise Rejected("invalid_json") from None
     if not isinstance(value, dict):
         raise Rejected("invalid_json_object")
+    # CPython recursion limits differ by runtime; enforce the protocol limit
+    # explicitly, using an iterative traversal rather than recursive validation.
+    pending = [(value, 1)]
+    while pending:
+        node, depth = pending.pop()
+        if isinstance(node, (dict, list)):
+            if depth > 8:
+                raise Rejected("json_too_deep")
+            children = node.values() if isinstance(node, dict) else node
+            pending.extend((child, depth + 1) for child in children)
     return value
 
 

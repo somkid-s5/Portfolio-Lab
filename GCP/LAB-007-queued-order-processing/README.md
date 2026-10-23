@@ -192,7 +192,7 @@ IDs เป็น UUID hex32 จาก server ส่วน idempotency key ที
 | GET /api/operator/orders; GET /api/operator/outbox | operator only; safe operational projection ไม่คืน credentials/raw message |
 | POST /api/operator/outbox/{event_id}/replay | operator+CSRF+request key; audit/prepare replay แบบ idempotent และ bounded ไม่รับ replacement payload |
 | POST dispatcher /internal/outbox/drain | IAM ก่อน App; bounded empty/configured body ไม่มี arbitrary topic/SQL/URL จาก caller |
-| POST worker /events/orders | IAM ก่อน App; wrapped Pub/Sub push JSON ≤64 KiB, strict base64 decoding, decoded data ≤4 KiB, exact subscription binding |
+| POST worker /events/orders | IAM ก่อน App; wrapped Pub/Sub push JSON ≤64 KiB, strict base64 decoding, decoded data ≤4 KiB, JSON container depth ≤8, exact subscription binding |
 | GET /livez; GET /healthz | process readiness แยกจาก bounded DB query; ไม่เขียนข้อมูลหรือไล่อ่าน order ทุกตัว |
 
 Canonical event มีเพียง schema_version=1, event_id, order_id, order_fingerprint โดย UUID/order data มาจาก DB ไม่แนบราคา/owner ที่แก้เองได้จาก message Worker ต้องเทียบ event ID และ fingerprint กับ canonical outbox ก่อนทำงาน ไม่เชื่อ Pub/Sub attributes แทน SQL binding และไม่ติดตาม URL ใน payload
@@ -293,7 +293,7 @@ SQLbackup retentionไม่ใช่การรับประกันrestore
 
 ตัวอ่าน wrapped Pub/Sub รับ messageId/message_id และ publishTime/publish_time ตามตัวอย่างทางการ โดย aliases ที่มีพร้อมกันต้องตรงกัน แยก message ID จาก canonical event ID รองรับ deliveryAttempt แบบ optional แต่ไม่ใช้ตัวเลขนั้นเป็น hard retry budget และ **ไม่ใช้ JSON fields เป็น authentication**
 
-มี [10 tests](tests/test_domain.py) สำหรับ normal/canonical/bounds/duplicates/encoding/schema/alias-conflict และ [คำขอตัวอย่าง](fixtures/order-request.json) / [catalog สังเคราะห์](fixtures/catalog.json) ชุดนี้ยังต้องผ่าน CI และต่อ PostgreSQL transaction tests ก่อนพิสูจน์ race, stock reservation หรือ outbox reliability
+มี [11 tests](tests/test_domain.py) สำหรับ normal/canonical/bounds/duplicates/encoding/schema/alias-conflict และ [คำขอตัวอย่าง](fixtures/order-request.json) / [catalog สังเคราะห์](fixtures/catalog.json) ชุดนี้ยังต้องผ่าน CI และต่อ PostgreSQL transaction tests ก่อนพิสูจน์ race, stock reservation หรือ outbox reliability
 
 ## ฐานข้อมูลและการจองสต็อก
 

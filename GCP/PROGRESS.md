@@ -255,3 +255,6 @@ Lab07 / Domain materials: เพิ่มstrictorder/event/wrappedpushparser, so
 
 
 Lab07 / SQL materials draft: เพิ่มPGschema/seed/constraints+NOLOGINleastprivilegeroles, DBAPIOrders repositoryสำหรับatomiccreate+outbox/advisorykeylockและrowlockedall-or-nothingstock+immutableledger/dedup/integrity/ownerread ใช้pg8000 1.31.5ตรงdriverที่จะใช้กับconnector เพิ่ม12realPG16integrationtests+cloudCIloopbackguard ครอบคลุมrace/rollback/commit-before-ack/grants/price-snapshot ชุดใหม่รอCIยังไม่อ้างผ่าน และยังต้องdispatcher/workerHTTP/runtime/bootstrap/UI/IaC/Guide/Diagram ไม่มีGCPwrites
+
+
+Lab07 / Domain CI repair: run135 CI39997198051 job120566760448 พบdeepJSONtestไม่rejectเพราะruntimejsonรับ2000nestedcontainersได้ แก้parserให้ตรวจcontainerdepth≤8แบบiterativeไม่พึ่งPythonrecursionlimit และเพิ่มexact8/9boundarytestโดยคงmalformed/deepinputcasesเดิม รวม11domaintests ชุดใหม่รอCI SQLชุด5074f4fเพิ่ม12testsยังรอrun136 ไม่อ้างผ่าน/ไม่มีGCPwrites

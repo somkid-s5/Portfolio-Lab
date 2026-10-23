@@ -70,6 +70,14 @@ class DomainTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             read_json("{}")
 
+    def test_json_container_depth_has_explicit_runtime_independent_boundary(self):
+        value={"ok":True}
+        for _ in range(7):
+            value={"nested":value}
+        self.assertEqual(read_json(canonical(value)),value)
+        with self.assertRaisesRegex(Rejected,"json_too_deep"):
+            read_json(canonical({"nested":value}))
+
     def test_order_binding_contains_owner_prices_order_and_exact_total(self):
         items=[{"sku":"BOOK-01","quantity":2,"unit_price_satang":12500},
                {"sku":"USB-01","quantity":1,"unit_price_satang":9900}]
