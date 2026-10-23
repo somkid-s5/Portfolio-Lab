@@ -9,7 +9,7 @@
 | 03 | [เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS](LAB-003-public-docs-cdn/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Brief | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Design | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 07 | ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue | Planned | Not run | — |
 | 08 | ระบบรายงานตามเวลาและงาน Batch รายวัน | Planned | Not run | — |
 | 09 | ระบบส่ง Webhook ให้ระบบคู่ค้า | Planned | Not run | — |
@@ -141,3 +141,6 @@ Lab 05: Guide-ready — review ถึง source cd125100a884b17e641e28a625230f80
 
 
 Lab06 / Brief: กำหนดprivate CSV upload/report solution R1–R8, candidateRun portal/worker+Storage+Eventarc+Firestore, owner/bearer capabilityขอบเขต, inputgenerationbinding/duplicateevents/lease-fencing/output-metadata-gaprecovery,1→5MiBchangeและcost/access/cleanup assumptions ตรวจเอกสารofficialแล้ว ยังต้องDesignก่อนMaterials/Tasks ไม่ใช่Guide-ready ไม่มีGCPwrites
+
+
+Lab06 / Design: ปิดresource/identity/API/state contracts: namedFirestorelab006-files, CloudRunIAMworker, exactkey+boundedPOSTpolicy/keylesssignBlob, generationbinding/120slease/fencing/5attempts+boundedmanualepochs, deterministiccreate-onlyoutputและverify-reuseก่อนFirestorepublish, expiryเทียบTTL/lifecycle, testmatrix/emulatorและ1→5MiBchangeแล้ว ยังไม่มีMaterialsหรือผลGCPจริง ขั้นถัดไปparser/fixtures/Firestoretransactionsก่อนTasks
