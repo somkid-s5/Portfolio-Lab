@@ -344,7 +344,7 @@ jobs:
                          check=True, timeout=180)
           PY
       - name: Emit real browser CI preview
-        run: python3 -c "import base64,pathlib; print(\'LAB006_UI_PREVIEW=\'+base64.b64encode(pathlib.Path(\'lab006-previews/ui-ci.png\').read_bytes()).decode())"
+        run: python3 -c "import base64,pathlib; print('LAB006_UI_PREVIEW='+base64.b64encode(pathlib.Path('lab006-previews/ui-ci.png').read_bytes()).decode())"
       - uses: actions/upload-artifact@v4
         with:
           name: lab006-ui-ci-preview
