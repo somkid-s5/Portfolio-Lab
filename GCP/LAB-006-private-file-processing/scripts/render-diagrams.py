@@ -77,7 +77,7 @@ def main():
 <text x="88" y="304" text-anchor="middle" class="small">Customer</text>
 '''
     topology += service(run,330,240,"Cloud Run portal","lab006-portal • app login")
-    topology += service(firestore,640,240,"Firestore","lab006-files • named DB")
+    topology += service(firestore,640,240,"Firestore","lab006-files")
     topology += service(storage,330,510,"Incoming bucket","Private • signed POST")
     topology += service(eventarc,540,510,"Eventarc","Finalized event")
     topology += service(run,750,510,"Cloud Run worker","lab006-worker • IAM required")
