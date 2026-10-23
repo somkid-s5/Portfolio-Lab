@@ -43,6 +43,14 @@ class GuideTests(unittest.TestCase):
 
 
 
+    def test_guide_is_not_an_authoring_changelog(self):
+        text = (LAB/"README.md").read_text()
+        for stale in ("ยังไม่มีAppหรือDiagramสำเร็จ", "ชุดใหม่นี้รอCI",
+                      "### Learner HTTP tooling checkpoint", "## Materials —"):
+            self.assertNotIn(stale, text)
+        self.assertIn("## ไฟล์ที่ใช้ใน Lab และพฤติกรรมสำคัญ", text)
+        self.assertIn("## หลักฐาน UI จาก CI", text)
+
     def test_browser_console_examples_parse_without_execution(self):
         text = (LAB/"README.md").read_text()
         blocks = re.findall(r"^```javascript\n(.*?)^```\s*$", text, re.M | re.S)

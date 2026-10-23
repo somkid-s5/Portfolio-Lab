@@ -13,7 +13,7 @@ last_verified: null
 
 ผู้เรียนจะสร้าง Upload portal และระบบประมวลผลจริง ไม่ใช่เพียงสร้าง bucket กับ trigger ตัวอย่างนี้ใช้ข้อมูลสังเคราะห์ ไม่มีบัตรชำระเงินหรือข้อมูลลูกค้าจริง
 
-**สถานะ:** กำหนดโจทย์และ acceptance ก่อนลง Design/Materials ยังไม่ใช่คู่มือพร้อมรัน ไม่มีผลทดสอบ GCP จริง
+**สถานะ:** กำลังตรวจคู่มือฉบับเต็มและ Diagram ก่อน Guide-ready ผล GCP ยัง Not run ช่อง Actual และหลักฐานเป็นส่วนที่ผู้เรียนเติมจากการลงมือจริง
 
 ## ผู้ใช้และผลลัพธ์
 
@@ -36,7 +36,7 @@ CSV baseline: คอลัมน์ sale_id,sku,quantity,unit_price_satang; จ�
 | R7 | Change request เพิ่มขนาดไฟล์อย่างมีเพดาน | baseline1MiB→5MiB พร้อมเพิ่ม row/timeout/memory budgetที่มีเหตุผล; ทดสอบก่อน–หลัง/negative cases/คืนbaseline ไม่เพียงแก้ UI |
 | R8 | ดูแลและปิดระบบได้ | request/job/event correlation, stuck-job inspection, bounded retry/backout, evidence/case study, cleanupทั้งobjects/generations/metadata/trigger/services/identities และrebuild |
 
-## Candidate architecture และขอบเขต
+## สถาปัตยกรรมและขอบเขต
 
 เลือก Cloud Run portal/API + Cloud Run worker แยก service accounts, Cloud Storage incoming/results แยก private buckets, Eventarc Standard object-finalized trigger เฉพาะ incoming และ Firestore Native สำหรับ job state/claim ledger
 
@@ -44,13 +44,13 @@ CSV baseline: คอลัมน์ sale_id,sku,quantity,unit_price_satang; จ�
 
 Portal ใช้ HTTPS ของ Cloud Run และ App session/CSRF/owner checks; การเปิด portal ให้เข้า login ได้ไม่แปลว่า worker หรือ buckets เปิดสาธารณะ ผู้ใช้ไม่รับ Google Cloud credentials และ Browser ไม่เข้าถึง Firestore โดยตรง Server SDK ใช้ IAM จึงต้องตรวจ App ownership เอง ไม่อ้าง Firestore Security Rules มาคุม server SDK แทน
 
-ทาง upload จะลงรายละเอียดการใช้ V4 signed POST policy ที่ตรึง bucket/key/Content-Type/expiry และ content-length-range ก่อนเขียน code เหตุผลคือโจทย์ต้องจำกัดขนาดตั้งแต่ทางเข้า ไม่ใช้คำอธิบายว่า signed URL ธรรมดาบังคับขนาด/ตรวจเนื้อหาได้เอง Worker ต้องตรวจ bytes/rows/schema ซ้ำเสมอ CORS ไม่ใช่ authentication และ MIME/filename จาก client ไม่ใช่หลักฐานชนิดไฟล์
+ทาง upload ใช้ V4 signed POST policy ที่ตรึง bucket/key/Content-Type/expiry และ content-length-range เหตุผลคือโจทย์ต้องจำกัดขนาดตั้งแต่ทางเข้า ไม่ใช้คำอธิบายว่า signed URL ธรรมดาบังคับขนาด/ตรวจเนื้อหาได้เอง Worker ต้องตรวจ bytes/rows/schema ซ้ำเสมอ CORS ไม่ใช่ authentication และ MIME/filename จาก client ไม่ใช่หลักฐานชนิดไฟล์
 
 ทาง download ใช้ V4 signed GET อายุสั้นเฉพาะ output object generation ที่ jobสำเร็จและ ownerผ่านแล้ว ไม่ใส่ signed URL/query/session/cookie ใน logs หรือหลักฐาน ลิงก์ที่ออกไปแล้วเป็น bearer capability: คนที่ได้ลิงก์อาจอ่านได้จนหมดอายุ จึงไม่อ้างว่า owner login ถูกตรวจทุกครั้งที่ Storage รับ download
 
-ไม่ใช้ service-account private key file ใน repo หรือ runtime ใช้ IAM Credentials signBlob แบบ keyless โดยแยก upload signer/download signer และกำหนดสิทธิ์เฉพาะ resource ที่ต้องใช้ รายละเอียด IAM/custom role จะยืนยันใน Design
+ไม่ใช้ service-account private key file ใน repo หรือ runtime ใช้ IAM Credentials signBlob แบบ keyless โดยแยก upload signer/download signer และกำหนดสิทธิ์เฉพาะ resource ที่ต้องใช้ ขอบเขต IAM/custom role อยู่ในตารางสิทธิ์ด้านล่าง
 
-## ข้อตกลงข้อมูลและความถูกต้องที่ต้องปิดใน Design
+## ข้อตกลงข้อมูลและความถูกต้อง
 
 1. สร้าง job UUID/owner/object key/limits ก่อนออก upload permission; object key กำหนดโดย server ไม่รับ pathจาก client
 2. incoming ต้องป้องกัน overwrite โดย uploader identity มี create ไม่ใช่ update/delete; bindingเลือก generationหนึ่งครั้งใน transaction และไม่เปลี่ยนตาม eventที่มาทีหลัง
@@ -72,12 +72,6 @@ Portal ใช้ HTTPS ของ Cloud Run และ App session/CSRF/owner chec
 - ถอดสิทธิ์เฉพาะ sandbox test identity/ใช้ fault revision เพื่อทดสอบ access failure ไม่แก้ IAMกว้างทั้งproject
 - ขยาย1→5MiB และวัดเวลา/memory/error/ผลรวมถูกต้อง พร้อมกลับค่าเดิม; ใช้synthetic fixturesไม่ใช่ไฟล์จริงของทีม
 
-## สิ่งที่จะส่งมอบก่อน Guide-ready
-
-READMEนี้จะรวม Diagram, Tasksแบบพาทำ, Expected/Actualข้างงาน, runbook, case study และcleanup โค้ดแยกเฉพาะportal/worker/domain/storage-metadata adapters/infra/tests/fixtures/toolsที่จำเป็น ต้องมีsample CSV valid/invalid/boundaryและexpected summaries, health endpoints, structured logs, UIจริง, bounded journey/event-replay/fault tools และ testsกับFirestore emulatorบนcloud CI รวมกรณีrace/lease/recovery ไม่ใช้ in-memorymockอย่างเดียวพิสูจน์ transactionของFirestore
-
-Diagramจะทำหลังยืนยันscope/identity/eventflow; ไม่ใช้ภาพแทนการตัดสินใจทางเทคนิค ชุดนี้ยังไม่มีAppหรือDiagramสำเร็จ จึงไม่เรียกGuide-ready
-
 ## เตรียมสิทธิ์ ต้นทุน และ Cleanup
 
 ใช้ sandbox projectที่เปิด Billing และมีสิทธิ์สร้าง Cloud Run/Eventarc/Storage/Firestore/Artifact Registry/Secret Manager/IAM Credentials และกำหนด IAM bindings ต้องตรวจว่ามี Firestore databaseเดิมหรือไม่ ไม่เปลี่ยน location/type ของระบบอื่นเพื่อทำLab
@@ -97,9 +91,7 @@ Cleanupต้องหยุดรับงาน/triggerก่อนลบworke
 - [Signed URLs และ bearer access](https://docs.cloud.google.com/storage/docs/access-control/signed-urls)
 - [Firestore transactions](https://firebase.google.com/docs/firestore/manage-data/transactions)
 
-ขั้นถัดไป: ปิด Designเรื่องlocation/IAM/POST policy/objectgeneration/state machine/fencing/retry/retention และtest matrix ก่อนเริ่มสร้าง Materials
-
-## Design — สัญญาที่ใช้สร้าง Materials
+## การออกแบบระบบ
 
 ### Resource map และขอบเขตจริง
 
@@ -112,7 +104,7 @@ Cleanupต้องหยุดรับงาน/triggerก่อนลบworke
 | Events | Eventarc Standard trigger lab006-incoming-finalized, asia-southeast1, filter finalized+incoming bucket, destination worker path /events/storage |
 | Image / Secret | Artifact Registry repositoryของLab, image digestที่บันทึกไว้; auth Secret versionเป็นเลข, ไม่มีpayloadในTerraform |
 | Signing | แยก service accounts upload-signer และ download-signer; portalขอ signBlob ไม่ใช้keyfile |
-| Observability | structured stdout/stderr และ Cloud Run metrics; job_id/request_id/event_id/attempt tokenใช้เชื่อมเหตุการณ์ ไม่มีCSV/policy/signedqueryในlogs |
+| Observability | structured stdout/stderr และ Cloud Run metrics; job_id/request_id/event_id ใช้เชื่อมเหตุการณ์ ไม่บันทึก attempt token ไม่มีCSV/policy/signedqueryในlogs |
 
 ทุกresourceอยู่projectเดียวกัน Eventarc locationตรงincoming bucket; Firestoreเป็นmanaged regional service ไม่วาดอยู่ในVPCsubnet และCloud Runในโจทย์นี้ไม่ได้ใช้VM/privateVPC/NATเพิ่มเพียงเพื่อให้Diagramใหญ่ Workerใช้ingress allพร้อมIAMauthenticationเพื่อให้Eventarcและเครื่องมือoperatorที่ได้รับอนุญาตเรียกได้ **ไม่อ้างว่าเป็นprivate network endpoint** Public portalต้องผ่านAppauthสำหรับทุกbusinessendpoint ยกเว้นlogin/health/static
 
@@ -190,7 +182,7 @@ Unknown/malformedevents: invalidenvelope400เพื่อให้เห็นc
 
 Faultcontrolเป็นrevisionconfigสำหรับsandbox: fail_after_output_onceตามjobmarkerที่เก็บในFirestore ไม่รับflagจากclientทั่วไป ปิดfaultแล้วreplayeventgenerationเดิมต้องจบได้ด้วยoutputเดิม ไม่อ้างexactly-oncedelivery แต่พิสูจน์logicalresultconvergence
 
-### Test matrix และจุดส่งมอบถัดไป
+### ขอบเขตการทดสอบ
 
 1. Domain parserfixtures: valid/CRLF/BOMcontract, duplicateID, invalidUTF8/header/quantity/price, maxbytes/rows/field/total bounds; exactexpectedsummary
 2. Firestore emulatorจริง: owner/idempotencytransaction, concurrentclaim, generationbinding, leaseexpiry, stale-tokencommit, retrybudget/manualepoch, expiration และquotareservation ไม่ใช้fakeอย่างเดียว
@@ -206,144 +198,61 @@ Retention: incoming/results lifecycledeleteหลัง2วันและบั
 
 แหล่งอ้างอิงDesign: [Eventarc Storage routing/location](https://docs.cloud.google.com/eventarc/standard/docs/run/route-trigger-cloud-storage), [Eventarc identities](https://docs.cloud.google.com/eventarc/docs/roles-permissions), [Python signed POST policy API](https://docs.cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.client.Client), [Firestore database locations](https://docs.cloud.google.com/firestore/native/docs/locations), [Firestore transaction retries](https://firebase.google.com/docs/firestore/manage-data/transactions)
 
-**Design checkpoint:** contractsนี้เป็นเป้าหมายที่Materialsต้องทำให้จริง ไม่ใช่ผลว่าระบบถูกสร้างแล้ว ขั้นถัดไปสร้างparser/fixtures/transactionrepositoryและtestsก่อนต่อHTTP/UI/Storage/IaC หากข้อจำกัดSDK/APIเปลี่ยนให้แก้Designพร้อมเหตุผลก่อนเขียนTask
+ข้อจำกัด SDK/API และสิทธิ์จริงต้องตรวจตอน deploy ตามจุดตรวจใน Tasks ผล CI ด้านล่างไม่ใช่หลักฐานว่าโครงสร้างนี้ถูกสร้างบน GCP แล้ว
 
 
-## Materials — CSV domain checkpoint
+## ไฟล์ที่ใช้ใน Lab และพฤติกรรมสำคัญ
 
-[ตัวตรวจและคำนวณรายงาน](app/csv_domain.py) รับbytesแบบจำกัดขนาด ตรวจheader/จำนวนคอลัมน์/UTF-8/identifiers/ตัวเลข/duplicate sale_id/จำนวนแถว และคืนcanonicalJSONที่เรียงSKU พร้อมSHA256ของbytesต้นฉบับ ไม่มีstorage/networkหรือการเขียนไฟล์ในdomain layer
+| ส่วน | ไฟล์หลัก | ใช้ทำอะไร |
+|---|---|---|
+| ข้อมูลและรายงาน | [CSV domain](app/csv_domain.py), [valid CSV](fixtures/valid-sales.csv), [expected summary](fixtures/valid-sales.expected.json) | ตรวจข้อมูลและคำนวณผลแบบ deterministic |
+| สถานะและฐานข้อมูล | [state transitions](app/job_state.py), [Firestore repository](app/firestore_jobs.py) | สร้างงาน, quota, idempotency, claim/lease, fencing และประวัติ |
+| การประมวลผล | [processor](app/processor.py), [Storage adapter](app/gcs_objects.py), [event parser](app/storage_events.py), [worker HTTP](app/worker_http.py) | อ่าน input generation เดิม เขียนหรือยืนยันผล แล้วบันทึกสถานะ |
+| Portal และสิทธิ์ชั่วคราว | [Portal API](app/portal_http.py), [signed access](app/signed_access.py), [runtime](app/portal_runtime.py), [retry dispatch](app/retry_dispatch.py) | Login, owner checks, signed POST/GET และ operator retry |
+| หน้าจอ | [HTML](app/static/index.html), [JavaScript](app/static/app.js), [CSS](app/static/style.css) | ส่งไฟล์ ดูสถานะ ดาวน์โหลด และแก้คำขอที่ไม่ทราบผล |
+| บัญชีทดลอง | [create-secrets.py](scripts/create-secrets.py) | สร้าง auth bundle และรหัสสังเคราะห์ไว้ในโฟลเดอร์ส่วนตัวใหม่ ไม่เขียนทับ |
+| เครื่องมือผู้เรียน | [verify-report.py](scripts/verify-report.py), [Portal client](scripts/portal_client.py), [upload boundary runner](scripts/test-upload-boundary.py), [change fixtures](scripts/create-change-fixtures.py) | เทียบผล ทดสอบข้อจำกัด Storage และสร้างข้อมูลเปลี่ยนขนาด |
+| Container | [Dockerfile](Dockerfile), [entry point](scripts/run-container.py) | Image เดียวเลือกบทบาท Portal หรือ worker และรันด้วย UID 10001 |
+| Infrastructure | [foundation](infra/foundation/main.tf), [workloads](infra/workloads/main.tf) | แยกฐานระบบออกจากบริการ เพื่อทราบ Portal URL ก่อนตั้ง CORS |
+| การทดสอบ | [domain](tests/test_csv_domain.py), [Firestore integration](tests/test_firestore_jobs.py), [browser journey](tests/test_browser_journey.py), [guide checks](tests/test_guide.py) | ตรวจ business invariants, race/recovery, การใช้งานจริงใน CI และตัวอย่างคำสั่ง |
 
-รับUTF-8 BOMหนึ่งชุดที่ต้นไฟล์, LF/CRLFและquotedfieldsตามCSV แต่ไม่รับnewlineในfield, blankrecord, whitespaceรอบตัวเลข, leadingzeroเช่น01, exponent, floatหรือformulaเป็นidentifier ตัวเลขราคา0ได้แต่quantityต้องมากกว่า0 ชื่อSKUต้องuppercaseตามallowlist
+### รูปแบบ CSV และผลที่ควรได้
 
-[ไฟล์ตัวอย่าง](fixtures/valid-sales.csv) มี3รายการ/6หน่วย/72,400สตางค์ เทียบกับ [expected business summary](fixtures/valid-sales.expected.json); inputSHAคำนวณจากไฟล์จริงไม่ตรึงhashที่อาจเปลี่ยนตามlineendings มี [duplicate fixture](fixtures/duplicate-sale-id.csv) และ [10 domain tests](tests/test_csv_domain.py) รวมboundedstream/max+1, inputผิดและchange1→5MiB/10k→50krows กำลังรอcloudCIยืนยันผล ไม่ใช่ผลGCPหรือFirestoretransaction verification
+ไฟล์ valid มี 3 รายการ รวม 6 หน่วย ยอด 72,400 สตางค์ เทียบกับ expected summary โดยคำนวณ SHA256 จาก bytes ของไฟล์ที่ส่งจริง ไม่คัดลอก hash ของไฟล์ที่อาจมี line ending ต่างกัน
 
+ตัวตรวจรับ UTF-8 BOM หนึ่งชุดที่ต้นไฟล์, LF/CRLF และ quoted fields แต่ไม่รับ newline ใน field, blank record, null byte, คอลัมน์เกิน, whitespace รอบตัวเลข, leading zero เช่น 01, exponent หรือ float ราคาเป็นศูนย์ได้ แต่ quantity ต้องมากกว่าศูนย์ SKU ใช้ตัวพิมพ์ใหญ่ตาม allowlist ไม่ประเมินสูตรหรือรัน macro
 
-### Job-state transition materials
+Storage adapter อ่านแบบ raw และตรึง generation ตรวจขนาดจาก metadata และจำกัด buffer ซ้ำ ปฏิเสธ content encoding/MIME ที่ไม่ตรง ผลลัพธ์ไม่เกิน 8 MiB เขียนด้วย if_generation_match=0 และ CRC32C หากมีผลอยู่แล้วต้องเทียบ bytes/hash/metadata ก่อน reuse ไม่เขียนทับสิ่งที่ไม่ตรง
 
-เพิ่ม [state transitions](app/job_state.py) และ [9 tests](tests/test_job_state.py) สำหรับgenerationbinding, duplicate/busy, lease120s/reclaim, stale-tokenfencing, expiry, outputbinding, rejection, retrybudgetและmanualepochs การเปลี่ยนสถานะไม่อ่านclock/networkและไม่แก้dictต้นฉบับ จึงนำไปใช้ในFirestoretransactioncallbackได้ แต่ยัง **ไม่ได้พิสูจน์concurrencyของFirestore** จนกว่าจะต่อrepositoryและรันemulatortests
+### คำขอซ้ำ งานค้าง และประวัติ
 
-เงื่อนไขuploaddeadlineใช้เวลาที่object finalizedจากStorageevent ไม่ใช่เวลาeventมาถึงworker เพราะtransportอาจส่งช้า; workerต้องvalidateเวลาจากeventที่ผ่านIAM/source/bucketbindingแล้ว ไม่รับtimestampจากclientเอง งานยังต้องไม่เกินexpires_atตอนclaim/publish ผลfailed_integrityห้ามoperatorretryเพื่อกลบoutputที่ไม่ตรง ต้องตรวจเหตุผิดปกติก่อน
+การสร้าง job, idempotency record และ quota อยู่ใน Firestore transaction เดียวกัน key เดิมคืนงานเดิม แม้ quota เต็ม แต่เปลี่ยนชื่อ/limits/version ด้วย key เดิมจะ conflict หาก record ชี้งานที่หายหรือหมดอายุจะไม่สร้างงานใหม่เงียบ ๆ
 
+Quota จำกัด 5 active jobs และ 20 งานใหม่ต่อ owner ต่อ UTC day งานที่สำเร็จ ถูกปฏิเสธ หรือหมดอายุคืน active slot เมื่อสร้างงานถัดไป งาน failed ที่ยัง retry ได้ยังนับ active และงาน awaiting_upload ไม่คืน slot ทันทีที่หมด upload deadline เพราะ event ของไฟล์ที่ส่งทันอาจมาช้า ต้อง reconcile หรือรออายุงาน ไม่ใช้ TTL เป็นตัวปล่อย quota ทันที
 
-### Firestore transaction adapter checkpoint
+callback ของ transaction ไม่อ่าน Storage และอ่านเวลาใหม่เมื่อ SDK retry ส่วน history บันทึกพร้อม state change สูงสุด 100 รายการ พร้อม count/truncated flag โดยไม่มี token หรือ credentials รายการงานแบ่งหน้าครั้งละไม่เกิน 20 รายการ cursor เป็นตำแหน่ง ไม่ใช่สิทธิ์อ่านของผู้อื่น
 
-เพิ่ม [Firestore repository](app/firestore_jobs.py) นำstate transitionsไปใช้ในSDKtransactionจริง: อ่านjob/ตรวจtoken-generation/เขียนสถานะในtransactionเดียว callbackไม่อ่านStorageและclockถูกอ่านใหม่เมื่อSDKretry มี [4emulator integration tests](tests/test_firestore_jobs.py) สำหรับสองworkerclaimพร้อมกัน, lease-reclaim/stalecommitrollback, owner/generationboundary และretrybudget/manualepoch
+Operator retry เตรียม epoch ก่อนเรียก network คำขอเดิมใช้ epoch เดิม หาก Portal ตอบ 202 แบบ acknowledged หรือ unconfirmed ต้องอ่านสถานะงานต่อ ทั้งสองไม่ใช่ผลธุรกิจว่าสำเร็จ จำกัด manual retry เพิ่มอีกสอง epoch และไม่เปิดให้ใช้ข้าม validation/integrity failure
 
-GitHubCIใช้Firestoreemulatorบนrunner, projectdemo-lab006/named databaselab006-filesและAnonymousCredentials พร้อมบังคับloopbackhostก่อนtest ไม่fallbackไปGCPเมื่อไม่มีemulator ยังรอผลชุดนี้ ไม่อ้างว่าtransactionผ่านจากpurestate tests และemulatorไม่พิสูจน์IAM/index/quota/productionlatency ส่วนjobcreationพร้อมidempotency/quotaและboundedlistยังต้องต่อก่อนHTTP
+### Browser และขอบเขตความลับ
 
+Portal ใช้ session cookie แบบ Secure/HttpOnly/SameSite=Lax และ CSRF ทุก mutation ก่อนสร้างงาน Browser เก็บเฉพาะ request key, SHA ของไฟล์, ชื่อไฟล์ และ job ID สำหรับ resume ไม่เก็บ password, CSRF, policy หรือ signed URL ใน sessionStorage หน้าจอใช้ textContent ไม่รัน HTML จากชื่อไฟล์
 
-### Job creation และ quota checkpoint
+หากคำตอบ create หาย ให้เลือกไฟล์เดิมเพื่อ resolve key เดิมก่อนเริ่มงานใหม่ เมื่อ upload สำเร็จต้องตรวจ Storage ตอบ 201 แล้วจึงติดตามสถานะ โดย poll ไม่เกิน 30 รอบ ข้อมูลที่ดาวน์โหลดเป็น bearer capability อายุสั้น ไม่เผย URL ในภาพหรือ logs
 
-เพิ่มtransactionสร้างjob+idempotencyrecord+ownerquotaพร้อมกัน คำขอเดิมคืนjobเดิมแม้quotaเต็ม; keyเดิมเปลี่ยนdisplayname/limits/versionเป็นconflict ไม่มีrawkeyในdocumentID ใช้SHA256(owner+key) หากrecordชี้jobที่ถูกลบหรือหมดอายุจะปฏิเสธ ไม่แอบสร้างjobใหม่
+Runtime อ่าน Secret version แบบตัวเลขและ attached identity ไม่ใช้ private key หรือ emulator ใน Cloud Run ค่า Secret mount 0444 ให้อ่านได้ด้วย non-root container แต่ไม่ได้แยกสิทธิ์แต่ละ process ภายใน container จึงต้องถือ container เป็น trusted boundary
 
-Quota5active/20newjobsต่อUTCdayถูกอ่านและปรับในtransactionเดียวกัน งานsuccess/rejected/expiredคืนactive slotเมื่อสร้างงานถัดไป; failedที่ยังretryได้ยังนับactive งานawaiting_uploadจะไม่ถูกปล่อยslotเพียงเพราะเลยuploaddeadline เพื่อไม่ให้eventที่finalizeทันแต่ส่งช้าทำให้จำนวนactiveทะลุguard ต้องตรวจreconcileก่อนexpireหรือรอjobexpiry ไม่ใช้TTLลบเป็นmechanismปล่อยquotaทันที
+### Infrastructure และสิ่งที่ CI พิสูจน์ได้
 
-[CI39932700165](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39932700165) joblab006-firestoreผ่าน4emulatortestsของclaim/fencing/owner/retryแล้ว ชุดcreate/quotaเพิ่ม4testsยังรอCI ไม่มีGCPidentity/permissionsverification และยังไม่มีHTTP/UI/Storageworkerสำเร็จ
+Foundation สร้าง buckets แบบ private/ไม่ force destroy, named Firestore พร้อม deletion protection, TTL, service accounts ห้าชุด, custom get/create/signBlob roles, Secret container และ Artifact Registry โดยไม่ใส่ Secret payload ใน Terraform ตั้ง CORS เฉพาะ origin จริงหลัง workloads พร้อม
 
+Workloads ตรึง image digest, ให้ worker invoker เฉพาะ Portal/trigger SA, เปิดหน้า login ของ Portal ผ่าน App auth และตั้ง fault flags เป็น false ค่าเริ่มต้น ใช้ /livez สำหรับ startup/liveness ไม่ทำให้ความขัดข้องของ Firestore กลายเป็น process-health โดยอัตโนมัติ
 
-### Worker orchestration checkpoint
+[CI 39991195096](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39991195096) ผ่าน domain/state/tooling/guide checks, SDK/HTTP/runtime tests, 18 Firestore emulator tests, Chrome journey, container build/import/non-root/private-file exclusion และ Terraform fmt/init-backend=false/validate ทั้งสอง roots
 
-เพิ่ม [processor](app/processor.py) เชื่อมCSVdomainกับFirestoreclaim/finishและStorageadaptercontract: readsourcegenerationที่bind, canonicalsummary, create-or-verifyผล, fencedpublish และsafeack/retryreason มีdurablefaultmarkerสำหรับจำลองช่องว่างoutputเขียนแล้วแต่metadataยังไม่success
+Firestore emulator ใช้ named database บน loopback และ anonymous credentials ไม่ fallback ไป GCP ส่วน Chrome ใช้ HTTPS loopback กับ Storage/signing test doubles จึงไม่พิสูจน์ IAM, ลายเซ็นจริง, Eventarc delivery, CORS หรือ performance บน GCP การตรวจ Terraform ไม่ใช่ plan/apply
 
-[CI39932999988](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39932999988) ผ่านชุดก่อนหน้า รวม8Firestoreemulatortestsและ19puretestsแล้ว ชุดworkerเพิ่ม4integrationtestsใช้Firestoreemulatorจริงแต่Storageเป็นtestdouble จึงยังไม่พิสูจน์GCSgenerationpreconditions/permissions ชุดใหม่นี้รอCI ต้องต่อStorageadapterจริงและCloudEvent/HTTPก่อนใช้งานได้
-
-
-### GCS adapter checkpoint
-
-เพิ่ม [GCS adapter](app/gcs_objects.py) สำหรับgeneration-pinnedrawrange reads พร้อมmetadata-size check/boundedbuffer และrejectcontent-encoding/MIMEผิด; outputเขียนif_generation_match=0พร้อมCRC32C ถ้ามีอยู่แล้วจะตรึงgenerationและเทียบbytes/SHA/processor metadataก่อนreuse ไม่overwriteผลที่ไม่ตรง จำกัดoutputต่ำกว่า8MiBและปิดSDKretryเพื่อให้workerคุมdeadlineได้
-
-[7SDKcontracttests](tests/test_gcs_objects.py) ใช้autospecของBlobที่ติดตั้งจริงแต่mocktransport ตรวจprecondition/range/bounds/mismatch/nooverwrite ยังไม่ใช่ผลGCSจริง ต้องผู้เรียนพิสูจน์IAM/preconditions/CRC/latencyในการทำLab และยังรอCIชุดนี้ [Blob API](https://docs.cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.blob.Blob)
-
-
-### CloudEvent validation checkpoint
-
-เพิ่ม [binary CloudEvent parser](app/storage_events.py) และ [5tests](tests/test_storage_events.py) ตรวจspec/type/id/contenttype/body64KiB, bucket/source/subject/objectnamespace, numericgenerationและtimeCreatedแบบUTC ปฏิเสธduplicateJSONkeys/NaN/invalidencoding ไม่ตามmediaLinkและไม่ใช้eventIDเป็นbusinessdeduplicationkey
-
-Parserนี้ไม่ใช่authentication ต้องใช้หลังCloudRunIAMเท่านั้น โดยjobIDจากservernamespace/generationจะถูกตรวจซ้ำในFirestoreclaim ส่วนforeignbucket/namespaceคืนignored ไม่สร้างjobจากmetadataที่clientใส่เอง [Eventarc HTTP binding](https://docs.cloud.google.com/eventarc/docs/cloudevents)
-
-CI39933281841ของworkerชุดก่อนผ่านlab006-domainและlab006-firestoreแล้ว; GCScontractชุด39933551789ยังin_progressตอนตรวจ CloudEventชุดใหม่นี้ยังรอCI และยังต้องต่อHTTPreceiverจริง
-
-
-### Worker HTTP receiver checkpoint
-
-เพิ่ม [Flask receiver](app/worker_http.py) ที่ /events/storage รับbinaryCloudEventแบบจำกัด64KiB ตรวจeventก่อนเรียกprocessor, ack204เฉพาะterminal/success/ignored และคืน503ให้retryเมื่อbusy/dependencyerror มีrequestID/structuredlogsที่ไม่บันทึกpayload/query/credentials แยกprocess/liveกับmetadatahealth
-
-build_appเลือกnamedFirestoredatabaseอย่างชัดเจน, ปฏิเสธemulatorenvในruntime และผูกObjects/Jobs/Processorจริง มี [6HTTPtests](tests/test_worker_http.py) สำหรับdispatch/retry/sanitization/foreignevents/bodylimit/health เป็นFlasktestclientไม่ใช่CloudRunIAMverification **ต้องdeployworkerโดยไม่grantallUsersInvoker** ส่วนce-headersไม่ใช่หลักฐานauthentication [CI39933551789](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39933551789) GCScontract/emulatorชุดก่อนผ่านแล้ว HTTPชุดใหม่นี้ยังรอCI
-
-
-### Signed access checkpoint
-
-เพิ่ม [signed access service](app/signed_access.py) ตรวจowner/state/expiryก่อนขอtokenและsign: V4POSTpolicyตรึงbucket/key/text-csv/size/201พร้อมdeadlineไม่เกิน300s ส่วนGETตรึงoutputgenerationและอายุไม่เกิน60sหรือเวลางานที่เหลือ ใช้service_account_email+runtimeaccess_tokenสำหรับkeylesssignBlob ไม่ใช้privatekeyfile
-
-[5tests](tests/test_signed_access.py) เรียกSDKจริงเพื่อdecodepolicyและตรวจGETquery แต่แทนsignBlobtransportด้วยdummy signature จึงยังไม่พิสูจน์GoogleIAM/signaturevalidity/actualupload/expiryenforcement ต้องต่อportaltoken supplierและrouteที่ไม่logpolicy/URLก่อนใช้งาน ชุดใหม่นี้รอCI [SDK3.4.1 policy implementation](https://github.com/googleapis/python-storage/blob/v3.4.1/google/cloud/storage/client.py)
-
-
-### Portal API checkpoint
-
-เพิ่ม [Portal HTTP API](app/portal_http.py) สำหรับanonymousCSRFbootstrap/login/logout, signedSecureHttpOnlysession30min, exactinputcontract, customerjobcreate/replay, ownerstatusและownercheckedupload/downloadlinks พร้อมrequestID/no-store/no-referrer/structuredlogsที่ไม่บันทึกsignedcapabilities มี [6tests](tests/test_portal_http.py) ตรวจcookie/session/CSRF, anonymous, clientownerinjection, replay, bob404/operator403และerror sanitization
-
-ส่วนนี้ยังเป็นfactoryที่รับJobs/Access/Authเข้ามา ไม่ใช่portalที่deployพร้อมแล้ว ยังต้องruntimeSecrets/tokenprovider, boundedlist/operatorretry, UIจริงและbrowser/emulatorintegration ชุดใหม่รอCI ไม่อ้างจากmockrepositoryว่าพิสูจน์FirestoreหรือCloudIAMครบ
-
-
-### รายการงานแบบแบ่งหน้า
-
-เพิ่มJobs.list_ownedด้วยFirestoreowner-equalityfilter+documentIDordering+limitสูงสุด20/cursor และGET/api/jobsที่ใช้ownerจากsessionเท่านั้น ไม่รับownerqueryหรือqueryซ้ำ ลบinternalobject/attempttokenก่อนส่งstatus/listให้Browser cursorเป็นตำแหน่งเรียง ไม่ใช่สิทธิ์เข้าถึง
-
-เพิ่มemulatortestกรองowner/แบ่งหน้า/foreigncursorและHTTPtestสำหรับsessionowner/querybounds/fieldprojection ชุดใหม่นี้รอCI; CI39934400587และ39934698336 lab006-domain/firestoreผ่านsignedaccess/PortalAPIชุดก่อนแล้ว ไม่ใช่CloudRunIAMหรือGCSจริง ส่วนcompositeindex/productionqueryต้องตรวจตอนทำIaC/Guide ไม่ใช้emulatorแทนข้อกำหนดindexจริง
-
-
-### Operator metadata และ attempt history
-
-เพิ่มoperator-onlylist/detailแบบboundedpaginationและsafeprojection ไม่ออกdownloadlinkหรือเผยobjectpathให้operatorโดยอ้อม เก็บhistoryในtransactionเดียวกับstatechange สูงสุด100entriesพร้อมcount/truncatedflag มีเวลา/state/epoch/attempt/safereason ไม่มีattempttoken/credentials/rawexceptions Duplicateที่ไม่เปลี่ยนstateไม่เพิ่มhistory
-
-เพิ่ม2emulatortestsสำหรับatomicboundedhistory/operatorlookupและ1HTTPtestสำหรับcustomer403/metadata-onlyprojection ชุดใหม่นี้รอCI การมีoperatorreadไม่ใช่manualretryสำเร็จ ยังต้องต่อretrydispatchที่รักษาgeneration/epochและruntimeidentityก่อนGuide-ready
-
-
-### เตรียม operator retry แบบ idempotent
-
-เพิ่มprepare_operator_retryที่hashoperator+requestkeyและเพิ่มepochในFirestoretransactionเดียว คำขอซ้ำคืนepochเดิม ไม่เปิดรอบเพิ่ม มีไม่เกิน2manualepochsต่อjob; read_retry_dispatchตรวจepochปัจจุบัน/การเตรียมคำขอ/expiryและgenerationเดิมก่อนส่งworker เก็บinput_finalized_atตั้งแต่bindครั้งแรกเพื่อreplayตามเวลาไฟล์จริง ไม่เดาจากเวลาoperatorกดretry
-
-เพิ่ม2emulatortestsสำหรับคำขอretryพร้อมกัน/responseหายจำลองด้วยsamekey และoldrequestที่ห้ามdispatchepochใหม่ ชุดใหม่นี้รอCI ยังไม่ใช่HTTPmanualretryครบวงจร ต้องต่อoperatorrole+CSRFrouteและauthenticatedworkerdispatchก่อนใช้จริง
-
-
-### Manual retry HTTP dispatch
-
-เพิ่มoperator+CSRFrouteที่prepareepochก่อนnetworkcallและworker/events/retryที่อ่านgeneration/finalizedtimeจากstoredjob ไม่รับobjectpathจากPortal มี [boundeddispatcher](app/retry_dispatch.py) ส่งIDtokenกับaudienceตรงworkerHTTPSrun.apporiginเท่านั้น, timeout10s, ไม่ตามredirect/ไม่อ่านresponsebodyและไม่retryอัตโนมัติ
-
-Portalตอบ202พร้อมdispatchacknowledgedหรือunconfirmed; ทั้งสองไม่ใช่ผลธุรกิจว่าสำเร็จ ต้องอ่านjobstatusต่อ ถ้าresponseหายใช้requestkeyเดิมเพื่อไม่เพิ่มepoch callback/token supplierยังต้องผูกกับattachedruntimecredentialsก่อนdeploy มี3testsใหม่ของPortal/worker/transport ชุดใหม่รอCI ไม่พิสูจน์CloudRunIAMจากheadersในtestclient
-
-
-### Runtime และข้อมูล login
-
-เพิ่ม [privatebundle generator](scripts/create-secrets.py) สร้างdirectoryใหม่mode700/ไฟล์mode600 ไม่overwriteหรือพิมพ์รหัส auth.jsonมีsessionkeyและscryptpasswordhash ส่วนdemo-logins.jsonมีรหัสสังเคราะห์สำหรับผู้เรียนและต้องอยู่privateเท่านั้น
-
-[Portal runtime factory](app/portal_runtime.py) อ่านauthmountแบบbounded เลือกnamedFirestore, ประกอบJobs/Access/RetryDispatcher และรับOAuth/IDtokensจากattachedCloudRunmetadataด้วยtimeout3s/responsebounds/no-redirect ไม่ใช้serviceaccountkeyfile ปฏิเสธemulator/privatekeyenvในruntime ใช้Secretversionตัวเลขที่deploymentต้องระบุ ยังต้องทำIaC/Guideให้mountถูกต้อง
-
-มี [5tests](tests/test_portal_runtime.py) สำหรับpermissions/nooverwrite/hashmatching/metadataaudience/tokenbounds/runtimeguards แต่metadataเป็นmocktransport ไม่ใช่CloudRunจริง [Service-to-service](https://docs.cloud.google.com/run/docs/authenticating/service-to-service), [Secret mounts](https://docs.cloud.google.com/run/docs/configuring/services/secrets) ชุดใหม่นี้รอCI
-
-
-### Portal UI implementation checkpoint
-
-เพิ่มหน้า [Sales File Desk](app/static/index.html) พร้อม [browserlogic](app/static/app.js) / [styles](app/static/style.css): login/logout, customerupload, owner/operatorpaginatedlist, jobdetail, boundedpoll30รอบ, signeddownloadและmanualretry UIใช้textContentไม่รันHTMLจากfilename และไม่เก็บpassword/CSRF/policy/signedURLในsessionStorage
-
-ก่อนcreateเก็บrequestkey+fileSHA/ชื่อไฟล์ และหลังได้jobIDเก็บอ้างอิงเดิมสำหรับresponseหาย ต้องเลือกไฟล์เดิมเพื่อresolve ไม่สร้างlogicaljobใหม่เงียบ ๆ Uploadส่งFormDataตรงStorageและไม่setmultipartboundaryเอง ตรวจ201ก่อนเรียกว่าส่งสำเร็จ หากresponseหายยังเก็บpendingให้ตรวจjobเดิม ส่วนoperatorเปิดretryepochใหม่ต้องกดยืนยันแยกจากresendkeyเดิม
-
-ตอนนี้เพิ่มJSsyntaxcheckในCI ยังต้องbrowserintegration/renderreviewเพื่อพิสูจน์flowจริงและแก้UIตามภาพ ไม่ใช้การมีไฟล์HTMLแทนผลใช้งานได้ และยังไม่มีGCPdeploy
-
-
-### Browser integration checkpoint
-
-เพิ่ม [Chrome journey test](tests/test_browser_journey.py) เปิดPortalจริงผ่านHTTPSloopbackบนGitHubrunner → login → POSTcreatecommitเข้าFirestoreemulator → จำลองBrowserไม่ได้รับresponse → reload/เลือกไฟล์เดิม → keyเดิมได้jobเดิม → uploadผ่านStoragetestdouble → Processor/Firestoreจริง → summary72400สตางค์หนึ่งผล เก็บPNGสำหรับตรวจภาพภายหลัง
-
-การทดสอบใช้certเฉพาะloopbackและacceptInsecureCertsในCI ไม่ใช่วิธีข้ามTLSในGCP ตัวStorage/signingเป็นtestdoubleและroute/uploadhookมีเฉพาะในtest ไม่ใส่productionApp ชุดนี้กำลังรอCI ไม่ถือว่ามีภาพหรือbrowserPASSจนตรวจผลแล้ว
-
-
-### Container packaging checkpoint
-
-เพิ่ม [Dockerfile](Dockerfile) สำหรับทั้งPortal/worker เลือกSERVICE_ROLEชัดเจน, process1worker/Portal8threads/worker1thread, bindPORTที่validateแล้วและnon-rootUID10001 ไม่ต่อshellจากinput ใช้explicitCOPYและdockerignoreไม่ส่งSecretbundle/fixtures/tests/stateเข้าbuildcontext ค่าauth/tokenอ่านตอนruntimeไม่bakeลงimage
-
-เพิ่ม3containercontracttestsและCIbuild/import/imagecontentcheckโดยไม่ใช้GCPcredentials Baseเป็นofficialPython3.12.15-slim-bookwormที่อาจได้รับrebuildpatch จึงต้องจดresolvedbase/image digestจากbuildจริงก่อนdeploy ไม่อ้างbit-reproducibleจากtagหรือtransitivepipdependenciesเพียงอย่างเดียว ชุดใหม่นี้รอCI ส่วนBrowserrun39936909967ยังpendingตอนตรวจ ต้องตรวจภาพ/ผลจริงก่อนGuide-ready
-
+Image base ใช้ official Python 3.12.15-slim-bookworm ซึ่งอาจได้รับ rebuild ต้องบันทึก resolved image digest ของการ build จริง ไม่อ้าง bit-reproducible จาก tag หรือ dependencies ที่ไม่ได้ล็อกทุกชั้น
 
 ## หลักฐาน UI จาก CI (ไม่ใช่ผล Deploy GCP)
 
@@ -353,23 +262,6 @@ Portalตอบ202พร้อมdispatchacknowledgedหรือunconfirmed; �
 
 ตรวจภาพรอบนี้แล้ว: แถบสถานะและแถวงานแสดงsucceededตรงกัน อ่านรายละเอียดjob/limits/attemptได้ครบ ภาพไม่แสดงsignedURL/password ส่วนcontainerbuild/import/nonroot/privatefileexclusionและTerraformvalidateทั้งสองrootsผ่านในworkflowเดียวกัน ผลเหล่านี้ยังไม่พิสูจน์CloudRunIAM/Eventarc/GCSจริง
 
-
-### Terraform foundation checkpoint
-
-เพิ่มinfra/foundation: namedFirestorelab006-files พร้อมdeletionprotection/PREVENT, TTLdelete_afterของjobs/idempotency/owner_quotas, privateincoming/resultsbucketsที่ไม่force_destroy, lifecycle2วัน/softdelete7วัน, identities5ชุด, database-scopedIAMcondition, customrolesเฉพาะobjectget/createและsignBlob, authSecretcontainerไม่มีpayload, ArtifactRegistry และEventarc/Storagepublisherprerequisites
-
-CORSincomingเริ่มว่างและจะตั้งเฉพาะportal_originจริงหลังรู้CloudRunURL ไม่ใช้wildcard ไม่มีCloudRun/Eventarctriggerในrootนี้และยังไม่มีGCPapply หน่วยCIตรวจTerraform1.9.8/provider6.50.0ด้วยfmt/init-backendfalse/validateเท่านั้น ไม่ใช้การvalidateแทนIAMหรือserviceavailabilityจริง
-
-TTLและlifecycleไม่ลบทันที softdeleteยังเก็บและคิดค่าใช้จ่ายตามนโยบาย ต้องบันทึก7วันในcleanup ส่วนidempotencyมีขอบเขตเก็บ48ชั่วโมง หลังrecordถูกTTLลบไม่อ้างdedupeถาวร [Database IAM conditions](https://firebase.google.com/docs/firestore/manage-databases), [provider schemaที่ตรึง](https://github.com/hashicorp/terraform-provider-google/blob/v6.50.0/website/docs/r/firestore_database.html.markdown)
-
-
-### Workloads และ Eventarc checkpoint
-
-เพิ่มinfra/workloadsสำหรับCloudRunPortal/workerและincoming-finalizedtriggerในregionเดียวกัน imageต้องตรึงsha256และauthversionต้องเป็นเลข Portalอ่านSecretmountเฉพาะruntime, workerไม่มีauthSecret/signBlob; workerinvokerให้portal/triggerSAเท่านั้น ไม่มีallUsers ส่วนPortalเปิดให้เข้าloginผ่านAppauth
-
-maxinstances2/Portalconcurrency8/worker1, startup/livenessใช้/livezไม่ผูกกับFirestorehealth และfaultflagfalseเป็นdefault มีกำแพงdeletionprotectionก่อนcleanup CORSยังอยู่foundationให้updateด้วยportal_uriจริงหลังworkloadsพร้อม ไม่ใส่wildcardเพื่อแก้ปัญหาbrowser
-
-CI39937892197ชุดfoundation/containerก่อนหน้านี้สำเร็จแล้ว ส่วนworkloadsชุดใหม่รอfmt/init-backendfalse/validate ไม่ได้plan/applyหรือพิสูจน์CloudRunIAM/triggerdeliveryจริง Secretmountmode292คือ0444สำหรับnonrootcontainerอ่านได้; ไม่ใช่per-processIAMisolation ต้องถือruntimecontainerเป็นtrustedboundary
 
 ## เริ่มทำ Lab — สร้างระบบจาก sandbox ว่าง
 
@@ -679,12 +571,6 @@ console.log({missingCsrf:csrfDenied.status});
 **จุดบันทึก T06:** UUID/fixture/rejectedreason/outputprefixแต่ละกรณี …; historyก่อน/หลัง …; bobstatus/link/operatorlist …; anonymous401 …; missingCSRF403 …; operatorอ่านmetadataได้แต่ไม่download …; ข้อจำกัด เช่นยังไม่ทดสอบStorage-levelsize/MIME …  
 **เกณฑ์ไปต่อ:** ผลnegativeเชื่อมกับidentity/เวลา/UUIDได้ ไม่มีข้อมูลหรือcapabilityรั่ว และระบุส่วนที่ยังไม่ได้พิสูจน์ตามจริง ไม่ติ๊กR2/R3ครบจากtestใดtestหนึ่ง
 
-
-### Learner HTTP tooling checkpoint
-
-เพิ่ม [boundedPortalclient](scripts/portal_client.py) สำหรับเครื่องมือaccess/boundaryที่จะใช้ในGuide: verifiedHTTPSorigin/no-redirect/no-proxy, cookiejar/CSRFrotation, requestbudget30/timeout10s/bodylimits และprivate-login-filereaderที่ปฏิเสธsymlink/permissionกว้าง ไม่พิมพ์credentialsหรือresponseที่มีcapabilities มี [3real-loopbackHTTPtests](tests/test_portal_client.py) ตรวจlogin/cookie/CSRF/bounds/redirect/privatefiles ชุดใหม่นี้รอCI
-
-ไฟล์นี้เป็นclientlibrary ยังไม่ใช่เครื่องมือส่งไฟล์เกินขนาดครบชุด ไม่ใช้ผลtestนี้แทนGCSPOSTpolicyenforcement ต้องต่อcase-specificboundaryrunnerและหลักฐานStorageจริงก่อนปิดR3
 
 ### Task 7 — ทดสอบ signed POST ที่ Storage โดยไม่พึ่ง UI guard
 

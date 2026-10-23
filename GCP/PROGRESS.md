@@ -231,3 +231,6 @@ Lab06 / Full guide draft Tasks11–13: เพิ่มcapability60s/300s/App24h/
 
 
 Lab06 / Full-guide CI verified + diagram authoring: CI39991195096 ของ source6bd5cffee995c873502ce82f98ca0dc0076b92b8 completed success ทั้งworkflow รวม Lab006domain/firestore-browser/container/infra และLab04timeoutregressionที่แก้แล้ว ไม่มีGCPprovisioning; แก้คู่มือไม่อ้างwall-clockdeadline45sที่โค้ดยังไม่enforceและไม่อ้างupload-deadlinereconcilerที่ไม่มี เพิ่มcloud-onlydiagramgenerator/CIสำหรับtopology+recovery ใช้officialarchiveพร้อมper-iconhashหรือgenericที่ติดป้ายชัด ยังต้องrender/ตรวจภาพ/บันทึกSVG-PNG/consolidateคู่มือ/fullreviewก่อนGuide-ready
+
+
+Lab06 / Guide consolidation: รวมmaterialschangelogเป็นแผนที่ไฟล์และคำอธิบายพฤติกรรมปัจจุบัน แยกCIproofจากCloudActual เก็บcontract/quota/recovery/security/retentionและTasks0–13ไว้ครบ ลบคำอ้างยังไม่มีApp/รอCIเก่าที่ขัดกับผล39991195096 เพิ่มguidecheckไม่ให้ย้อนเป็นauthoringhistory Diagramรอบ124renderผ่านแต่พบเส้นstateทับheadingจึงแก้source3a560e05และรอrun126 ไม่publishภาพที่ยังไม่ตรงsource/ไม่Guide-readyก่อนreviewครบ ไม่มีGCPwrites
