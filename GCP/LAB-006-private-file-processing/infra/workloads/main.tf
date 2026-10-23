@@ -37,6 +37,7 @@ resource "google_cloud_run_v2_service" "worker" {
         for_each = merge(local.common_env, {
           SERVICE_ROLE = "worker"
           FAIL_AFTER_OUTPUT_ONCE = tostring(var.worker_fail_after_output_once)
+          FAIL_BEFORE_READ = tostring(var.worker_fail_before_read)
         })
         content {
           name = env.key

@@ -13,10 +13,11 @@ class IntegrityFailure(Exception):
 
 
 class Processor:
-    def __init__(self, jobs, objects, *, fail_after_output_once=False):
+    def __init__(self, jobs, objects, *, fail_after_output_once=False, fail_before_read=False):
         self.jobs = jobs
         self.objects = objects
         self.fail_after_output_once = fail_after_output_once
+        self.fail_before_read = fail_before_read
 
     def run(self, job_id, generation, finalized_at):
         token = uuid.uuid4().hex
@@ -32,6 +33,9 @@ class Processor:
             return {"status": 204, "reason": disposition}
         job = claimed["job"]
         try:
+            if self.fail_before_read:
+                self.jobs.release_transient(job_id, token)
+                return {"status": 503, "reason": "intentional_before_read"}
             data = self.objects.read_source(job["object_name"], generation,
                                             job["max_bytes"])
             summary = summarize(data, max_bytes=job["max_bytes"],

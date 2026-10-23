@@ -36,3 +36,8 @@ variable "allow_destroy" {
   type = bool
   default = false
 }
+
+variable "worker_fail_before_read" {
+  type = bool
+  default = false
+}

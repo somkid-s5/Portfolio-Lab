@@ -311,5 +311,29 @@ class FirestoreJobsTests(unittest.TestCase):
             self.jobs.prepare_operator_retry(self.job_id, "operator", "retry-request-003")
 
 
+
+    def test_persistent_fault_exhausts_budget_then_manual_retry_recovers_same_input(self):
+        objects = MemoryObjects(
+            b"sale_id,sku,quantity,unit_price_satang\nS1,BOOK-01,2,100\n")
+        broken = Processor(self.jobs, objects, fail_before_read=True)
+        for _ in range(5):
+            self.assertEqual(broken.run(self.job_id, "123", NOW)["status"], 503)
+        exhausted = broken.run(self.job_id, "123", NOW)
+        self.assertEqual((exhausted["status"], exhausted["reason"]),
+                         (204, "needs_operator"))
+        self.assertEqual((objects.reads, objects.creates), (0, 0))
+        failed = self.jobs.read_operator(self.job_id)
+        self.assertEqual((failed["state"], failed["safe_reason"]), ("failed", "retry_budget"))
+        prepared = self.jobs.prepare_operator_retry(self.job_id, "operator", "retry-fault-001")
+        stored = self.jobs.read_retry_dispatch(self.job_id, prepared["epoch"])
+        recovered = Processor(self.jobs, objects).run(
+            self.job_id, stored["input_generation"], stored["input_finalized_at"])
+        self.assertEqual(recovered["reason"], "succeeded")
+        final = self.jobs.read_operator(self.job_id)
+        self.assertEqual((final["input_generation"], final["attempt_epoch"],
+                          final["output_generation"]), ("123", 1, "456"))
+        self.assertEqual(objects.creates, 1)
+
+
 if __name__ == "__main__":
     unittest.main()

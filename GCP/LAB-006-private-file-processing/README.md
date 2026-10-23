@@ -522,6 +522,7 @@ export TF_VAR_image="$PINNED_IMAGE"
 export TF_VAR_auth_version="$AUTH_VERSION"
 export TF_VAR_upload_limit_mode='baseline'
 export TF_VAR_worker_fail_after_output_once=false
+export TF_VAR_worker_fail_before_read=false
 terraform -chdir=infra/workloads init -input=false
 terraform -chdir=infra/workloads validate
 terraform -chdir=infra/workloads plan -out=workloads.tfplan
@@ -715,3 +716,89 @@ cd "$LAB_DIR"
 
 **จุดบันทึก T07:** positiveUUID/status/processingผล …; oversizeUUID/status/errorcode/objectabsence …; mimeUUID/status/errorcode/objectabsence …; policyversion/workerrevision/เวลา …; ข้อจำกัดหรือสาเหตุที่ยังสรุปไม่ได้ …; journalsที่ต้องเก็บprivate/งานค้าง …  
 **เกณฑ์ไปต่อ:** positivecontrolสำเร็จและnegativeมีหลักฐานตรงเงื่อนไขจริง แยกStorage-levelrejectionจากBrowserguardและworkerCSVvalidation ไม่แชร์policyหรือsignedURLลงหลักฐาน
+
+### Task 8 — กู้ช่องว่าง “เขียนรายงานแล้วแต่ยังไม่บันทึก success”
+
+**ขอบเขต:** faultสังเคราะห์ในworkerเฉพาะsandboxนี้ ไม่ใช่การทำให้GCS/Firestoreล่มทั้งบริการ ต้องไม่มีผู้ใช้อื่นuploadระหว่างทดลอง และต้องมีbaselineT05–07ที่ตรวจแล้ว
+
+**ทำที่ไหน:** Cloud Shell ใช้variables/state/image/authversionเดิมจากT04 เปลี่ยนเฉพาะworkerfaultconfig:
+
+```bash
+cd "$LAB_DIR"
+export TF_VAR_worker_fail_before_read=false
+export TF_VAR_worker_fail_after_output_once=true
+terraform -chdir=infra/workloads plan -out=worker-output-gap.tfplan
+terraform -chdir=infra/workloads show -no-color worker-output-gap.tfplan
+terraform -chdir=infra/workloads apply worker-output-gap.tfplan
+gcloud run services describe lab006-worker --region="$REGION" --format='yaml(status.conditions,status.latestReadyRevisionName,status.traffic)'
+
+```
+
+Reviewplanต้องเปลี่ยนเฉพาะworkerrevision/env ไม่เปลี่ยนimage/Secret/Portal/Firestore/IAM ถ้ามีdiffอื่นหยุดตรวจ รอreadyrevision/trafficชัดเจนก่อนส่งไฟล์ใหม่หนึ่งงานจากalice ใช้valid-sales.csvผ่านBrowserตามT05 ถ้าUIมีpendingrequestเดิมให้resolveก่อน ไม่เปลี่ยนไฟล์หรือkeyเพื่อเริ่มfault
+
+**Expected:** workerclaim → เขียนoutputcreate-only → บันทึกdurablefaultmarker → ตอบ503 → Eventarcส่งใหม่ → verify/reuseoutputเดิม → fencedsuccess ไม่รับประกันว่าBrowserจะเห็นช่องว่างก่อนretryจบ เพราะอาจเกิดเร็ว ต้องใช้logs/history/Storagegenerationเป็นหลักฐาน
+
+จดjobUUIDแล้วตรวจlogsแบบไม่พิมพ์payload:
+
+```bash
+export JOB_ID='ใส่-jobUUID-ของการทดลองนี้'
+gcloud logging read "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"lab006-worker\" AND jsonPayload.job_id=\"$JOB_ID\"" --project="$PROJECT_ID" --freshness=30m --limit=30 --format='table(timestamp,resource.labels.revision_name,jsonPayload.request_id,jsonPayload.event_id,jsonPayload.status,jsonPayload.result_reason)'
+gcloud storage ls --long "gs://$RESULTS_BUCKET/results/$JOB_ID/**"
+
+```
+
+Console → Firestore → lab006-files/jobs/UUID ดูoutput_fault_consumed=true, input_generationเดิม, history/attemptsและoutput_generation จากนั้นStorageดูgenerationของsummaryobjectและเทียบreportตามT05 ควรมีlogicaloutputเดียว ไม่ใช้eventIDsที่ต่างกันตีความว่าเป็นคนละbusinessjob
+
+หากไม่พบintentional_after_outputในlogsแต่มีsucceeded ไม่อ้างว่าfaultเกิดแล้ว ตรวจreadyrevision/env/งานที่ใช้ให้ตรง หากพบ503แต่ไม่recoverให้ตรวจEventarc/metadata/Storagepermissionsและleaseก่อน ไม่ลบoutputเพื่อให้retryเขียนใหม่ หากมีfailed_integrityให้หยุดตรวจbytes/metadata ห้ามoverwrite
+
+จำกัดช่วงสังเกตรอบแรก10นาที ถ้ายังไม่จบให้บันทึกอาการ/ช่วงเวลาที่เห็น แล้วปิดfaultก่อนหาสาเหตุต่อ ไม่ทิ้งfaultrevisionค้างไว้:
+
+```bash
+export TF_VAR_worker_fail_after_output_once=false
+terraform -chdir=infra/workloads plan -out=worker-output-gap-backout.tfplan
+terraform -chdir=infra/workloads show -no-color worker-output-gap-backout.tfplan
+terraform -chdir=infra/workloads apply worker-output-gap-backout.tfplan
+
+```
+
+หลังคืนbaselineส่งvalidfixtureเป็นงานใหม่ที่ตั้งใจสร้าง ตรวจsucceeded/report/flagsfalse ถ้างานfaultเดิมยังไม่แน่นอนต้องเก็บUUID/resolveต่อ อย่าสรุปว่าbackoutหมายถึงงานค้างสำเร็จแล้ว
+
+**จุดบันทึก T08:** before/fault/backoutrevision …; UUID/inputgeneration …; first503/retry/successเวลา …; faultmarker …; outputgeneration/จำนวนlogicaloutputs …; reportverification …; backout/retest …; ข้อจำกัดที่สังเกตไม่ทัน …  
+**เกณฑ์ไปต่อ:** ผลเดียวเชื่อมกับgenerationเดิมและผลตรวจจริง หรือบันทึกfailureที่ต้องแก้ก่อนต่อ ไม่อ้างexactly-oncedelivery/zeroerrorจากrecoveryนี้
+
+### Task 9 — งานล้มเหลวครบ budget และ operator retry ไฟล์เดิม
+
+ทำเมื่อT08คืนปกติ ไม่มีunresolvedงานที่ปะปน ใช้faultก่อนอ่านไฟล์เพื่อจำลองdependencyfailureซ้ำ ไม่ถอนIAMของprojectหรือเปิดworkerpublic
+
+```bash
+export TF_VAR_worker_fail_after_output_once=false
+export TF_VAR_worker_fail_before_read=true
+terraform -chdir=infra/workloads plan -out=worker-pre-read-fault.tfplan
+terraform -chdir=infra/workloads show -no-color worker-pre-read-fault.tfplan
+terraform -chdir=infra/workloads apply worker-pre-read-fault.tfplan
+
+```
+
+รอworkerrevisionพร้อม แล้วaliceส่งvalidfixtureใหม่หนึ่งjob จดUUID ดูoperatorprofile → รายการ/รายละเอียด และlogsตามT08 ควรเห็นintentional_before_read/503 แล้วattemptcountเพิ่มไม่เกิน5ต่อepoch การส่งครั้งถัดไปเมื่อbudgetครบทำให้failed/retry_budgetและackแทนวนไม่จบ ยังไม่มีoutputจากการอ่านไฟล์รอบนี้
+
+Eventarcretryอาจหน่วงและเวลาไม่คงที่ สังเกตเป็นช่วงไม่เกิน10นาทีก่อนตัดสินใจ ไม่สร้างjobเพิ่มเพื่อเร่งให้ครบbudget ถ้าไม่ถึงfailedในwindowนี้ให้บันทึกว่าscenarioยังไม่ครบ ปิดfaultและตรวจdelivery/backoffต่อ ห้ามแก้Firestorecount/stateด้วยมือให้ดูผ่าน
+
+**ก่อนกดoperatorretryต้องปิดfaultและรอreadyrevisionใหม่ก่อน:**
+
+```bash
+export TF_VAR_worker_fail_before_read=false
+terraform -chdir=infra/workloads plan -out=worker-pre-read-backout.tfplan
+terraform -chdir=infra/workloads show -no-color worker-pre-read-backout.tfplan
+terraform -chdir=infra/workloads apply worker-pre-read-backout.tfplan
+gcloud run services describe lab006-worker --region="$REGION" --format='yaml(status.conditions,status.latestReadyRevisionName,status.traffic)'
+
+```
+
+ในoperatorprofileเปิดjobที่failed/retry_budget กด “Retry คำขอเดิม” หนึ่งครั้ง Portalต้องprepareepoch1ก่อนdispatch Workerอ่านinputgeneration/finalizedtimeจากjob ไม่รับpathใหม่จากBrowser สถานะHTTP202/dispatchacknowledgedไม่ใช่businesssuccess ต้องอ่านjobต่อจนได้ผลแน่นอน
+
+หากresponseหายหรือdispatchunconfirmed ให้กดคำขอเดิมต่อ ไม่ล้างsessionStorageหรือเปิดepochใหม่เพราะไม่แน่ใจ keyเดิมต้องคืนepochเดิม ไม่กินmanualbudgetซ้ำ หากงานล้มครบbudgetอีกจริงจึงพิจารณาปุ่ม “เปิดรอบ retry ใหม่” พร้อมยืนยัน ไม่เกิน2manualepochs ห้ามใช้rejected/expired/failed_integrityเพื่อหลบvalidation/integrityfailure
+
+**Expectedหลังแก้:** owner/inputgeneration/processorversion/limitsเดิม, epochเพิ่มหนึ่งครั้ง, summary/reportถูกต้องและoutputlogicalเดียว customerเรียกoperatorretryไม่ได้ และoperatorยังไม่ได้สิทธิ์downloadไฟล์ของaliceแทนเจ้าของ
+
+**จุดบันทึก T09:** UUID/faultrevision …; window/attempttimeline …; failedreason/budget …; faultfalse-readyrevision …; retryrequest/epochแรกและreplay …; dispatchผลและการreconcile …; finalgeneration/report …; negativecustomer403 …; ข้อจำกัด/งานที่ยังไม่จบ …  
+**เกณฑ์ไปต่อ:** faultflagsfalseทั้งคู่, ไม่เหลือunknownoutcome และอธิบายได้ว่ากู้ด้วยข้อมูลเดิมโดยไม่เพิ่มรอบซ้ำ การทดลองนี้เป็นdependencyfaultสังเคราะห์ ไม่ใช่หลักฐานว่าFirestore/GCS outageจริง

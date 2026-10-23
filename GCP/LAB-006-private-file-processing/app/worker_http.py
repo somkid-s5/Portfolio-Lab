@@ -3,6 +3,7 @@ Never expose this application with allUsers Invoker. ce-* is not authentication.
 """
 import json
 import os
+import re
 import uuid
 from flask import Flask, g, jsonify, request
 from werkzeug.exceptions import HTTPException
@@ -30,6 +31,9 @@ def create_app(processor, incoming_bucket, *, metadata_health=None, retry_jobs=N
         if hasattr(g, "event_id"):
             record.update(event_id=g.event_id, job_id=g.job_id,
                           generation=g.generation)
+        reason = getattr(g, 'result_reason', None)
+        if isinstance(reason, str) and re.fullmatch(r'[A-Za-z_]{1,64}', reason):
+            record['result_reason'] = reason
         emit(record)
         return response
 
@@ -68,6 +72,7 @@ def create_app(processor, incoming_bucket, *, metadata_health=None, retry_jobs=N
         g.event_id, g.job_id, g.generation = (
             event.event_id, event.job_id, event.generation)
         result = processor.run(event.job_id, event.generation, event.finalized_at)
+        g.result_reason = result.get("reason")
         if result["status"] == 204:
             return "", 204
         if result["status"] != 503:
@@ -93,6 +98,7 @@ def create_app(processor, incoming_bucket, *, metadata_health=None, retry_jobs=N
         g.event_id = "manual-epoch-" + str(data["epoch"])
         result = processor.run(job["job_id"], job["input_generation"],
                                job["input_finalized_at"])
+        g.result_reason = result.get("reason")
         if result["status"] == 204:
             return "", 204
         return jsonify(error="retry_event"), 503
@@ -116,12 +122,14 @@ def build_app():
     incoming = os.environ["INCOMING_BUCKET"]
     results = os.environ["RESULTS_BUCKET"]
     fault = os.environ.get("FAIL_AFTER_OUTPUT_ONCE", "false")
-    if fault not in ("true", "false"):
+    before_read = os.environ.get("FAIL_BEFORE_READ", "false")
+    if fault not in ("true", "false") or before_read not in ("true", "false"):
         raise ValueError("invalid_fault_configuration")
     client = firestore.Client(project=project, database=database)
     jobs = Jobs(client)
     objects = Objects(storage.Client(project=project), incoming, results)
-    processor = Processor(jobs, objects, fail_after_output_once=fault == "true")
+    processor = Processor(jobs, objects, fail_after_output_once=fault == "true",
+                          fail_before_read=before_read == "true")
     def health():
         client.collection("_health").document("probe").get(timeout=3)
     return create_app(processor, incoming, metadata_health=health, retry_jobs=jobs)
