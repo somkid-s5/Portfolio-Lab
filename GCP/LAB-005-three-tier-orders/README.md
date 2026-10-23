@@ -191,7 +191,7 @@ UI เก็บเฉพาะ pending cart + idempotency key ใน sessionStor
 
 ## เริ่มทำ Lab — จาก Cloud Shell ถึง release ที่ตรวจสอบได้
 
-**สถานะคู่มือ: กำลังเขียน** ส่วนด้านล่างครอบคลุม Tasks 0–10 (รวม 7A/7B/9B) ยังไม่ครบทั้ง Lab ยังต้องต่อ Secret/bootstrap/เปิดระบบ/ทดสอบ/operations/change/cleanup ก่อนใช้เป็นคู่มือจบทั้ง Solution ไม่มีผล GCP จริงถูกบันทึกไว้ล่วงหน้า
+**สถานะคู่มือ: กำลังเขียน** ส่วนด้านล่างมีร่าง Tasks 0–14 พร้อม 7A/7B/9B; ยังต้องตรวจทานและเติม Diagram ยังต้องต่อ Secret/bootstrap/เปิดระบบ/ทดสอบ/operations/change/cleanup ก่อนใช้เป็นคู่มือจบทั้ง Solution ไม่มีผล GCP จริงถูกบันทึกไว้ล่วงหน้า
 
 ### Task 0 — เตรียมพื้นที่ฝึกและบันทึกเวอร์ชัน
 
@@ -898,3 +898,126 @@ terraform -chdir=infra/workloads apply api-capacity2.tfplan
 
 **จุดบันทึก T12:** เหตุผล/ทางเลือก …; quota+connectionbudget …; baselinerelease/replicas …; 4replicasผลจริง …; before/afterloadที่ตั้งเหมือนกัน …; errors/latency/CPU/connectionข้อจำกัด …; invariants …; decision …; backout2replicasผล …  
 **เกณฑ์ไปต่อ:** บอกได้ว่าchangeตอบโจทย์หรือไม่จากหลักฐาน พร้อมคืนbaselineหรือระบุfinalcapacityที่ผู้เรียนตัดสินใจ ไม่อ้างproductioncapacityจากprobeเล็กนี้
+
+### Task 13 — สรุปหลักฐานและเขียน Case Study
+
+**ทำก่อนCleanup** เก็บเฉพาะข้อมูลสังเคราะห์และผลที่ตรวจแล้ว หากยังมีorder/journalที่ได้ผลไม่แน่นอนให้resolveก่อน อย่าสรุปว่าPASSจากCIหรือจากการมีresourceชื่อถูกต้อง
+
+| Requirement | หลักฐานของคุณ / ผลจริง / ข้อจำกัด |
+|---|---|
+| R1 HTTPSjourney | T05–06: domain/cert, UI, UUID/status, เวลา … |
+| R2 tier/identity | T08: attachedSA, positivecontrol, deniedSecret, effectivepolicy … |
+| R3 correctness | T07A/B: journalreference, repeatedUUID, raceoutcomes, snapshots/invariants … |
+| R4 Web/APIfault | T09/9B: target/survivorIDs, health/action/error/recoverytimeline … |
+| R5 release/backout | T11: source/hash/template/version, badstartup, backout, retest … |
+| R6 SQLfailover | T10: operationID, observederror/recoverywindow, samekeyresolve, ledger … |
+| R7 capacitychange | T12: alternatives/budget/quota, equivalentload, metrics, decision/backout … |
+| R8 handover | runbook, resourceinventory, costs, Cleanup/rebuild และสิ่งที่ยังไม่ได้พิสูจน์ … |
+
+**สรุปผลงานด้วยคำของคุณ**
+
+- ปัญหาทีมและขอบเขตที่รับผิดชอบ: …
+- Solutionและเหตุผลที่เลือกVM/MIG/internalpassthrough/SQLHA: …
+- สิ่งที่ลงมือทำเอง/ใช้ชุดโค้ดประกอบ/ตัดสินใจเพิ่มเติม: …
+- เหตุขัดข้องหนึ่งเรื่อง: อาการ → หลักฐาน → สาเหตุ → แก้ → retest: …
+- Change Request: ทางเลือก → trade-off → สิ่งที่เลือก → ผลจริง: …
+- ผลที่พิสูจน์ได้ พร้อมsamplewindow/ข้อจำกัด: …
+- สิ่งที่จะปรับก่อนproduction เช่นSSO/mTLS/abuseprotection/observability: …
+- ต้นทุนที่เห็นจริงและเวลาเปิดระบบ/ทรัพยากรที่ยังretained: …
+
+รูปarchitectureต้องตรงfinalconfiguration ถ้าAPIจบที่2หรือ4ให้ระบุ ชื่อWeb/API/SQLscopeและเส้นทางconnector3307ต้องไม่ขัดกับของจริง อย่าใช้รูปCI/UIfixtureเป็นภาพGCPConsoleหรือแต่งpercentimprovement/zero-downtime
+
+ก่อนเผยแพร่หลักฐาน ให้ตรวจทุกภาพ/logด้วยตา: ไม่มีpassword/sessionkey/Cookie/CSRF/access_token/Secretpayload/HARเต็ม/state/planbinary ข้อมูลprivateอยู่secretsหรือพื้นที่ควบคุมสิทธิ์ ไม่ต้องเผยแพร่ทั้งหมดเพื่อให้ดูครบ ผลที่ไม่มีหลักฐานให้ระบุNot run/ยังสรุปไม่ได้
+
+### Task 14 — Cleanup และตรวจค่าใช้จ่ายค้าง
+
+**คำเตือน:** ขั้นนี้ลบApp/database/data/Secrets/artifactsของLabจริง ทำเฉพาะsandboxที่ตรวจPROJECT_IDแล้ว เก็บหลักฐานและสิ่งที่ต้องการกู้คืนก่อน ไม่รันกับprojectทีมอื่น คำสั่งdestroyไม่ใช่ขั้นทดสอบที่ย้อนกลับได้ด้วยการกดundo
+
+Inventoryก่อนลบ:
+
+| เจ้าของ | รายการ |
+|---|---|
+| workloadsstate | HTTPSforwarding/proxy/cert/URLmap/backend/publicIP, internalVIP/forwarding/backend, Web/API M​​IG/templates/disks/healthchecks, diagnosticถ้าเปิด |
+| bootstrapstate | initializerVM/diskถ้ายังไม่ถูกลบในT04 |
+| foundationstate | SQL/ordersDB, Secretcontainers+IAM, serviceaccounts/projectgrants, artifactbucket, firewall/NAT/router/subnets/PSA/peering/VPC |
+| นอกTerraform | DNSrecordที่แก้, releaseobjects/versions, Secretversions, localprivatebundle/journals/evidence, retainedbackups/softdeletedstorage/logretention/การตั้งbudget |
+| ไม่ใช่เป้าลบอัตโนมัติ | project, Billing, domainzoneทั้งzone, sharedresources และremoteTerraformbackendที่ผู้เรียนเตรียมเอง |
+
+1. หยุดprobe/งานทดสอบและwritersทั้งหมด จดfinalsnapshot/SQLbackupdecision หากต้องการเก็บข้อมูลให้ทำbackup/exportและบันทึกที่เก็บ/retention/costก่อนลบ การrebuildจากseedไม่คืนorderเดิม
+2. คืนหรือลบเฉพาะDNSrecordของLabตามค่าเดิมT05 **ก่อนปล่อยpublicIP** ป้องกันdanglingDNS ห้ามลบzoneทั้งzoneหรือrecordบริการอื่น
+3. CloudShellใช้checkout/stateเดิม ตั้งworkloadvariablesให้ตรงfinalconfigurationรวมflagfalse แล้วreviewdestroyplan:
+
+```bash
+cd "$LAB_DIR"
+gcloud config get-value project
+terraform -chdir=infra/workloads plan -destroy -out=workloads-cleanup.tfplan
+terraform -chdir=infra/workloads show -no-color workloads-cleanup.tfplan
+terraform -chdir=infra/workloads apply workloads-cleanup.tfplan
+terraform -chdir=infra/workloads state list
+```
+
+**Expected:** workloadsstateว่าง, ไม่มีLabMIG/VM/LB/IPที่stateเป็นเจ้าของ ไม่ใช่แค่หยุดVMแล้วทิ้งdisk/NAT/SQL หากrootbootstrapยังมีresource ให้reviewplan -destroy/show/applyของinfra/bootstrapตามT04ก่อนต่อ อย่าใช้state rmแทนการลบของจริง
+
+4. ตรวจbucketที่Terraformเป็นเจ้าของให้ตรงตัวแปร ห้ามพิมพ์ชื่อbucketจากความจำ:
+
+```bash
+export EXPECTED_BUCKET="$(terraform -chdir=infra/foundation output -raw artifact_bucket)"
+test -n "$ARTIFACT_BUCKET"
+test "$ARTIFACT_BUCKET" = "$EXPECTED_BUCKET"
+printf 'Review Lab-only bucket: gs://%s\n' "$ARTIFACT_BUCKET"
+gcloud storage buckets describe "gs://$ARTIFACT_BUCKET"
+gcloud storage ls --all-versions --long "gs://$ARTIFACT_BUCKET/releases/**"
+```
+
+หลังอ่านlistและยืนยันว่ามีเฉพาะLabreleaseที่ไม่ต้องเก็บแล้ว จึงลบทุกgenerationเฉพาะprefixreleases **ไม่ลบbucketทั้งproject**:
+
+```bash
+gcloud storage rm --all-versions "gs://$ARTIFACT_BUCKET/releases/**"
+gcloud storage ls --all-versions --long "gs://$ARTIFACT_BUCKET/**"
+```
+
+ถ้าไม่มีmatchingobjectsตั้งแต่แรก ให้บันทึกว่าemptyไม่ใช่retrydeleteซ้ำ หากพบไฟล์นอกreleasesให้ตรวจที่มา/เก็บหรือเลือกเป้าลบทีละไฟล์ ไม่เปลี่ยนforce_destroy=trueเพื่อกลบปัญหา bucketถูกตั้งforce_destroy=falseจึงต้องemptyก่อนfoundationdestroy
+
+ObjectVersioningกับsoftdeleteเป็นคนละอย่าง [softdelete](https://docs.cloud.google.com/storage/docs/soft-delete) อาจretainobjects/bucketต่อและคิดค่าเก็บถึงวันหมดอายุ การไม่เห็นliveobjectไม่ได้แปลว่าค่าใช้จ่ายเป็นศูนย์ ตรวจStorageConsole → Protection/Soft-deletedobjects และบันทึกexpiry/owner ไม่ปิดretentionย้อนหลังแล้วอ้างว่าของsoftdeletedเดิมหายทันที
+
+5. ปลดSQLdeletionprotectionอย่างมีแผนเฉพาะตอนพร้อมลบ แล้วdestroyfoundation:
+
+```bash
+terraform -chdir=infra/foundation plan -var=allow_destroy=true -out=foundation-unlock.tfplan
+terraform -chdir=infra/foundation show -no-color foundation-unlock.tfplan
+terraform -chdir=infra/foundation apply foundation-unlock.tfplan
+terraform -chdir=infra/foundation plan -destroy -var=allow_destroy=true -out=foundation-cleanup.tfplan
+terraform -chdir=infra/foundation show -no-color foundation-cleanup.tfplan
+terraform -chdir=infra/foundation apply foundation-cleanup.tfplan
+terraform -chdir=infra/foundation state list
+```
+
+Reviewunlockdiffต้องไม่มีเปลี่ยนschema/release/ระบบอื่น ตรวจSQLlocationpreferenceหลังfailoverหากplanมีdriftที่ไม่คาดหมายให้อ่านก่อน ไม่applyทั้งที่ไม่เข้าใจ ส่วนdestroyต้องครอบคลุมLabSQL/Secret/SA/NAT/VPCตามinventory หากresourceinuseให้หาว่าworkload/bootstrapยังค้าง ไม่ลบpeeringร่วม/ใช้force-unlockเพื่อข้ามdependency
+
+SQLลบแล้วอาจยังมี [retained/finalbackups](https://docs.cloud.google.com/sql/docs/postgres/backup-recovery/manage-standard-backups) ตามsetting/นโยบาย เปิดSQL → Backupsตรวจของlab005-sql/instance-deletiontime จดretention/costและลบเฉพาะbackupที่ตัดสินใจไม่เก็บผ่านConsoleตามสิทธิ์ ห้ามลบbackupระบบอื่นเพราะชื่อคล้ายกัน
+
+6. ตรวจของจริงหลังstateว่าง ไม่อาศัยstateเพียงอย่างเดียว:
+
+```bash
+gcloud compute instances list --filter='name~^lab005-' --format='table(name,zone,status)'
+gcloud compute instance-groups managed list --filter='name~^lab005-'
+gcloud compute forwarding-rules list --filter='name~^lab005-'
+gcloud compute addresses list --filter='name~^lab005-'
+gcloud sql instances list --filter='name=lab005-sql'
+gcloud secrets list --filter='name:lab005-'
+gcloud compute networks list --filter='name=lab005-vpc'
+```
+
+ตรวจConsoleเพิ่มเติมเรื่องdisks/templates/healthchecks/router/PSArange/SAและbucketที่ยังretained รวมBillingReportsตามlabels/project ช่วงเวลาของLab ค่าBillingอาจเข้าช้า ให้บันทึกตรวจครั้งล่าสุดกับรายการretentionที่ยังมี ไม่เขียน“ไม่มีค่าใช้จ่ายแล้ว”จากVMlistว่าง
+
+7. localprivatebundle/journalsและstate/planเป็นข้อมูลสำคัญ เก็บในที่privateตามอายุที่กำหนดหรือลบไฟล์ที่ระบุหลังยืนยันcloudcleanupและbackupแล้ว ไม่ใช้recursiveลบhome/checkoutเพื่อให้ดูเรียบร้อย ไม่commitprivatefilesหรือstate ส่วนCloudLoggingretention/budgetalerts/remotebackendที่ตั้งนอกLabให้ตรวจownerและตัดสินใจแยก ไม่ลบเงียบ ๆ
+
+**จุดบันทึก T14:** DNSคืนค่า …; destroyplansที่review …; workloads/bootstrap/foundationstate …; cloudinventoryหลังลบ …; SQLbackup/StorageSoftdelete/Logretention+expiry …; privatefilepolicy …; Billingตรวจเวลาใด/รายการค้าง …; ล้มเหลวตรงไหนและแก้อย่างไร …
+
+#### Rebuild จากเวอร์ชันที่บันทึก
+
+ใช้commitเต็มจากT00และimageชื่อจริงจากT04ในcheckoutใหม่ที่persistent กู้หรือเลือกTerraformbackendที่ถูกต้องและตรวจว่าstateเก่าemptyจริงก่อน อย่าเอาstateของระบบที่ยังเปิดอยู่มารันทับ
+
+ทำTask0→1→2→3→4→5ตามลำดับด้วยsandbox/ชื่อbucketที่พร้อมใช้ สร้างSecretbundleใหม่สำหรับenvironmentใหม่ ไม่reusejournalคำสั่งซื้อของDBที่ถูกลบไปแล้ว เพราะseedใหม่ไม่มีidempotencyledgerเดิม จากนั้นทำjourney/snapshot/accessmatrixใหม่ เก็บhash/template IDsของrebuildและบันทึกสิ่งที่เปลี่ยน เช่นimageเดิมยังมีให้ใช้หรือไม่ ถ้าต้องเปลี่ยนversionให้แสดงdiff ไม่อ้างidenticalrebuild
+
+Rebuildจากschema/seedเป็นการสร้างบริการใหม่ **ไม่ใช่การrestoreข้อมูลธุรกิจ** หากต้องคืนorderเดิมต้องมีbackup/exportและrunbookrestore/reconciliationแยก ขอบเขตDRจะเจาะลึกในLabที่เกี่ยวข้อง ไม่ใช้Lab05HAแทนbackupstrategy
