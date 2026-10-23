@@ -14,6 +14,7 @@ LAB = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(LAB/"app"))
 from order_domain import OrderEvent, canonical, parse_event
 from orders import Orders, Conflict, IntegrityFailure
+from outbox import Outbox
 
 
 def connection(role=None):
@@ -61,6 +62,7 @@ class SQLTests(unittest.TestCase):
         self.admin("UPDATE lab007.products SET unit_price_satang=12500 WHERE sku='BOOK-01'")
         self.api=Orders(lambda:connection("order_api"))
         self.worker=Orders(lambda:connection("order_worker"))
+        self.dispatcher=Outbox(lambda:connection("outbox_dispatcher"))
 
     def admin(self, sql, parameters=()):
         con=connection()
@@ -234,6 +236,87 @@ class SQLTests(unittest.TestCase):
         self.assertEqual(self.admin("""SELECT unit_price_satang FROM lab007.reservations
             WHERE order_id=%s AND sku='BOOK-01'""",(order["order_id"],))[0][0],12500)
         self.assert_stock()
+
+
+    def test_outbox_concurrent_claims_have_one_owner(self):
+        self.create()
+        barrier=threading.Barrier(2)
+        def run(_):
+            barrier.wait(timeout=10)
+            return self.dispatcher.claim()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            claims=list(pool.map(run,range(2),timeout=30))
+        self.assertEqual(sorted(c["disposition"] for c in claims),["claimed","empty"])
+        claimed=next(c for c in claims if c["disposition"]=="claimed")
+        self.assertEqual(claimed["attempts"],1)
+        self.assertEqual(parse_event(claimed["payload"]).event_id,claimed["event_id"])
+
+    def test_outbox_lease_reclaim_fences_old_completion(self):
+        self.create()
+        old=self.dispatcher.claim()
+        self.admin("""UPDATE lab007.outbox
+            SET lease_until=clock_timestamp()-INTERVAL '1 second'
+            WHERE event_id=%s""",(old["event_id"],))
+        current=self.dispatcher.claim()
+        self.assertNotEqual(old["token"],current["token"])
+        self.assertEqual(current["attempts"],2)
+        self.assertEqual(current["payload"],old["payload"])
+        with self.assertRaisesRegex(Conflict,"stale_dispatch_claim"):
+            self.dispatcher.finish(old["event_id"],old["token"],published=True)
+        result=self.dispatcher.finish(current["event_id"],current["token"],published=True)
+        self.assertEqual(result["state"],"published")
+        self.assertEqual(self.dispatcher.claim()["disposition"],"empty")
+
+    def test_outbox_release_republishes_same_event_without_new_order(self):
+        order=self.create()
+        first=self.dispatcher.claim()
+        # A publish reply may be lost even when the worker has already committed.
+        self.worker.process(parse_event(first["payload"]))
+        before=self.worker.stock_snapshot()
+        self.dispatcher.finish(first["event_id"],first["token"],published=False)
+        second=self.dispatcher.claim()
+        self.assertEqual((second["event_id"],second["payload"]),
+                         (first["event_id"],first["payload"]))
+        self.assertEqual(self.worker.process(parse_event(second["payload"]))["disposition"],
+                         "duplicate")
+        self.dispatcher.finish(second["event_id"],second["token"],published=True)
+        self.assertEqual(self.api.read_owned("alice",order["order_id"])["state"],"confirmed")
+        self.assertEqual(before,self.worker.stock_snapshot())
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.orders")[0][0],1)
+
+    def test_outbox_retry_budget_is_finite_and_does_not_reject_order(self):
+        order=self.create()
+        for attempt in range(1,11):
+            claim=self.dispatcher.claim()
+            self.assertEqual(claim["attempts"],attempt)
+            self.dispatcher.finish(claim["event_id"],claim["token"],published=False)
+        self.assertEqual(self.dispatcher.claim()["disposition"],"exhausted")
+        self.assertEqual(self.dispatcher.claim()["disposition"],"empty")
+        self.assertEqual(self.api.read_owned("alice",order["order_id"])["state"],"accepted")
+        self.assertEqual(tuple(self.admin("SELECT attempts,last_outcome FROM lab007.outbox")[0]),
+                         (10,"dispatch_budget"))
+        self.assert_stock()
+
+    def test_outbox_corruption_is_quarantined_without_publish_or_stock_write(self):
+        order=self.create()
+        self.admin("UPDATE lab007.outbox SET payload=payload || ' ' WHERE order_id=%s",
+                   (order["order_id"],))
+        self.assertEqual(self.dispatcher.claim()["disposition"],"integrity_blocked")
+        self.assertEqual(self.dispatcher.claim()["disposition"],"empty")
+        self.assertEqual(self.admin("SELECT last_outcome FROM lab007.outbox")[0][0],
+                         "invalid_canonical")
+        self.assertEqual(self.api.read_owned("alice",order["order_id"])["state"],"accepted")
+        self.assert_stock()
+
+    def test_outbox_expired_current_token_cannot_finish_without_reclaim(self):
+        self.create()
+        claim=self.dispatcher.claim()
+        self.admin("""UPDATE lab007.outbox
+            SET lease_until=clock_timestamp()-INTERVAL '1 second'
+            WHERE event_id=%s""",(claim["event_id"],))
+        with self.assertRaisesRegex(Conflict,"stale_dispatch_claim"):
+            self.dispatcher.finish(claim["event_id"],claim["token"],published=False)
+        self.assertEqual(self.dispatcher.claim()["attempts"],2)
 
 
 if __name__ == "__main__":

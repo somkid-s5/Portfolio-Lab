@@ -264,3 +264,6 @@ Lab07 / PG harness repair: run136 CI39998517007 job120568813797สร้างsc
 
 
 CI network bound: run136ยังliveที่lab006-firestore/InstallThaiFontsตามjobsAPI หลังเกิดaptwaitingซ้ำ เพิ่มnetwork30s/retry2และwholecommand180sให้aptupdate/installที่ยังไม่มีboundสำหรับรอบหน้า ไม่ตัดbrowser/diagrams/assertionsและไม่cancel/restartliveworkflow Lab007repairedSQL/domainยังรอคิวตามhandle39998969114 ไม่มีGCPwrites
+
+
+Lab07 / First SQL verified + outbox draft: CI39999204524 source10bace2db521edd3a1cc2be87eaf0b9ad86e4dca jobs120571400843/120571400868ผ่าน11domain+12realPG16tests อ่านlogsยืนยันrace/rollback/grants/price/bindingแล้ว (wholeworkflowยังติดตามแยก) เพิ่มOutboxshortclaimSKIPLOCKED/120slease-tokenfencing/finish/release/10attemptbudget/canonicalintegrityquarantine และ6PGtestsใหม่ รวมSQL18ชุดใหม่รอCI ยังไม่มีactualPubSubpublisher/Cloudผลจริง

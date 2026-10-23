@@ -293,7 +293,7 @@ SQLbackup retentionไม่ใช่การรับประกันrestore
 
 ตัวอ่าน wrapped Pub/Sub รับ messageId/message_id และ publishTime/publish_time ตามตัวอย่างทางการ โดย aliases ที่มีพร้อมกันต้องตรงกัน แยก message ID จาก canonical event ID รองรับ deliveryAttempt แบบ optional แต่ไม่ใช้ตัวเลขนั้นเป็น hard retry budget และ **ไม่ใช้ JSON fields เป็น authentication**
 
-มี [11 tests](tests/test_domain.py) สำหรับ normal/canonical/bounds/duplicates/encoding/schema/alias-conflict และ [คำขอตัวอย่าง](fixtures/order-request.json) / [catalog สังเคราะห์](fixtures/catalog.json) ชุดนี้ยังต้องผ่าน CI และต่อ PostgreSQL transaction tests ก่อนพิสูจน์ race, stock reservation หรือ outbox reliability
+มี [11 tests](tests/test_domain.py) สำหรับ normal/canonical/bounds/duplicates/encoding/schema/alias-conflict และ [คำขอตัวอย่าง](fixtures/order-request.json) / [catalog สังเคราะห์](fixtures/catalog.json) ส่วน domain และ PostgreSQL 12 tests แรกผ่าน [CI 39999204524](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39999204524) แล้วตามขอบเขตด้านล่าง ไม่ใช่ผล Pub/Sub/GCP จริง
 
 ## ฐานข้อมูลและการจองสต็อก
 
@@ -303,6 +303,14 @@ SQLbackup retentionไม่ใช่การรับประกันrestore
 
 การ create ใช้ transaction advisory lock ตาม owner/key hash ก่อนตรวจ idempotency อ่านราคาจาก catalog และ commit order/items/outbox พร้อมกัน การ process ล็อก order ก่อน แล้วล็อกสินค้าเรียง SKU ตรวจครบทุกชิ้นก่อนเปลี่ยนยอด และ commit stock/reservations/processed result/order state พร้อมกัน ไม่มี publish หรือ network ไปบริการอื่นระหว่างถือ locks
 
-[12 integration tests](tests/test_sql.py) ใช้ PostgreSQL 16 จริงกับ pg8000 1.31.5 และ SET ROLE เพื่อทดสอบ grants: concurrent create, duplicate processing, LAST-01 race, multi-item rejection, partial-write rollback, commit-before-ack replay, owner/event binding, ledger corruption และ price snapshot คำสั่งทดสอบยอมรับเฉพาะ disposable loopback database ชื่อ lab007_ci ไม่ fallback ไป Cloud SQL
+[integration tests](tests/test_sql.py) ใช้ PostgreSQL 16 จริงกับ pg8000 1.31.5 และ SET ROLE เพื่อทดสอบ grants: concurrent create, duplicate processing, LAST-01 race, multi-item rejection, partial-write rollback, commit-before-ack replay, owner/event binding, ledger corruption และ price snapshot คำสั่งทดสอบยอมรับเฉพาะ disposable loopback database ชื่อ lab007_ci ไม่ fallback ไป Cloud SQL
 
-ชุดนี้กำลังรอ CI ไม่ใช่ผล Cloud SQL/IAM/TLS/secret login จริง และยังต้องต่อ outbox dispatcher, HTTP/runtime, bootstrap, UI, infrastructure, Diagram และคู่มือก่อน Guide-ready
+[CI 39999204524](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39999204524) jobs lab007-domain/lab007-postgres ผ่าน 11 domain และ 12 PostgreSQL tests แรกแล้ว ใช้ SET ROLE ไม่ใช่ผล Cloud SQL/IAM/TLS/secret login จริง และยังต้องต่อ publisher/HTTP/runtime/bootstrap/UI/infrastructure/Diagram/คู่มือก่อน Guide-ready
+
+## การ claim และบันทึกผลส่ง outbox
+
+[Outbox repository](app/outbox.py) claim งานด้วย FOR UPDATE/SKIP LOCKED แล้ว commit ก่อนคืน payload ให้ publisher ใช้ lease 120 วินาทีและ token ต่อ attempt หากรอบเก่ากลับมาเมื่อ lease หมดหรือมี token ใหม่จะ finish ไม่ได้ ส่วน publish ที่ไม่ทราบผลคืน pending เพื่อส่ง canonical event ID เดิมในรอบหน้า ไม่สร้าง order ใหม่
+
+เกิน 10 attempts ต่อ epoch ให้ exhausted โดยไม่เปลี่ยน business state เป็น rejected หาก canonical bytes/hash/event/order binding เสียจะ block ด้วย invalid_canonical แทนส่งข้อความที่ผิดออกไป ต้องหาสาเหตุ ไม่แก้ hash หรือเปิด retry เพื่อกลบความเสียหาย
+
+เพิ่ม SQL tests อีก 6 กรณี: concurrent claim, lease reclaim/stale fencing, unconfirmed publish หลัง worker commit, retry budget, canonical corruption และ expired-token completion ชุดใหม่นี้รอ CI รวม SQL suite เป็น 18 tests การเร่ง expiry ด้วย SQL ทำเฉพาะ disposable CI เพื่อทดสอบ transition ไม่ใช่หลักฐานว่ารอเวลา 120 วินาทีบน Cloud จริง
