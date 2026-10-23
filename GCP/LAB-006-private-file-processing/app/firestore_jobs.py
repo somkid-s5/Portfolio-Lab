@@ -205,3 +205,39 @@ class Jobs:
         if not snapshot.exists:
             raise KeyError("job_not_found")
         return snapshot.to_dict()
+
+
+    def prepare_operator_retry(self, job_id, operator, request_key):
+        """Caller enforces operator role. One request key opens one epoch at most."""
+        if (not isinstance(operator, str) or
+                not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", operator) or
+                not isinstance(request_key, str) or
+                not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", request_key)):
+            raise ValueError("invalid_retry_request")
+        key_hash = hashlib.sha256((operator + "\0" + request_key).encode()).hexdigest()
+        def transition(previous, now):
+            if now >= previous["expires_at"]:
+                raise job_state.Conflict("job_expired")
+            requests = dict(previous.get("retry_requests", {}))
+            if key_hash in requests:
+                return previous, {"epoch": requests[key_hash], "replayed": True}
+            updated = job_state.operator_retry(previous, now)
+            requests[key_hash] = updated["attempt_epoch"]
+            if len(requests) > 2:
+                raise job_state.Conflict("retry_not_allowed")
+            updated["retry_requests"] = requests
+            return updated, {"epoch": updated["attempt_epoch"], "replayed": False}
+        return self._change(job_id, transition)
+
+    def read_retry_dispatch(self, job_id, epoch):
+        """Bind an authenticated retry delivery to the prepared epoch and input."""
+        if type(epoch) is not int or not 1 <= epoch <= 2:
+            raise ValueError("invalid_retry_epoch")
+        job = self.read_operator(job_id)
+        if (job["attempt_epoch"] != epoch or
+                epoch not in job.get("retry_requests", {}).values() or
+                job["input_generation"] is None or
+                "input_finalized_at" not in job or
+                self.clock() >= job["expires_at"]):
+            raise job_state.Conflict("retry_dispatch_not_allowed")
+        return job

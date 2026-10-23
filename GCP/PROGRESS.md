@@ -180,3 +180,6 @@ Lab06 / Bounded owner listing: CI39934400587+39934698336 lab006jobsสำเร�
 
 
 Lab06 / Operator inspection draft: เพิ่มboundedoperatorlist/detailและsafehistoryprojection; transactionstatechangesเก็บbounded100entryhistoryพร้อมtruncatedflag ไม่มีtoken/payload เพิ่ม3tests(emulator2/HTTP1) รอCIชุดใหม่ ก่อนเริ่มmanualretrydispatch/runtime/UI ยังไม่มีGCPwrites ไม่ใช่Guide-ready
+
+
+Lab06 / Idempotent manual-retry preparation: เพิ่มoperator-requesthash→epoch transaction, 2epochbudget, stale-epochdispatchguardและimmutableinputfinalizedtime พร้อม2emulatorraces/replaytests ชุดใหม่รอCI; operatorinspectionชุด39935199632ยังติดตามhandleเดิม ไม่อ้างHTTPdispatchสำเร็จ ไม่มีGCPwrites

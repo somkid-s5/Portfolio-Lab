@@ -297,3 +297,10 @@ build_appเลือกnamedFirestoredatabaseอย่างชัดเจน,
 เพิ่มoperator-onlylist/detailแบบboundedpaginationและsafeprojection ไม่ออกdownloadlinkหรือเผยobjectpathให้operatorโดยอ้อม เก็บhistoryในtransactionเดียวกับstatechange สูงสุด100entriesพร้อมcount/truncatedflag มีเวลา/state/epoch/attempt/safereason ไม่มีattempttoken/credentials/rawexceptions Duplicateที่ไม่เปลี่ยนstateไม่เพิ่มhistory
 
 เพิ่ม2emulatortestsสำหรับatomicboundedhistory/operatorlookupและ1HTTPtestสำหรับcustomer403/metadata-onlyprojection ชุดใหม่นี้รอCI การมีoperatorreadไม่ใช่manualretryสำเร็จ ยังต้องต่อretrydispatchที่รักษาgeneration/epochและruntimeidentityก่อนGuide-ready
+
+
+### เตรียม operator retry แบบ idempotent
+
+เพิ่มprepare_operator_retryที่hashoperator+requestkeyและเพิ่มepochในFirestoretransactionเดียว คำขอซ้ำคืนepochเดิม ไม่เปิดรอบเพิ่ม มีไม่เกิน2manualepochsต่อjob; read_retry_dispatchตรวจepochปัจจุบัน/การเตรียมคำขอ/expiryและgenerationเดิมก่อนส่งworker เก็บinput_finalized_atตั้งแต่bindครั้งแรกเพื่อreplayตามเวลาไฟล์จริง ไม่เดาจากเวลาoperatorกดretry
+
+เพิ่ม2emulatortestsสำหรับคำขอretryพร้อมกัน/responseหายจำลองด้วยsamekey และoldrequestที่ห้ามdispatchepochใหม่ ชุดใหม่นี้รอCI ยังไม่ใช่HTTPmanualretryครบวงจร ต้องต่อoperatorrole+CSRFrouteและauthenticatedworkerdispatchก่อนใช้จริง

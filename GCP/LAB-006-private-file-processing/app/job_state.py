@@ -68,6 +68,7 @@ def claim(job, generation, token, now, *, finalized_at):
             item.update(state="expired", safe_reason="upload_deadline")
             return item, "terminal"
         item["input_generation"] = generation
+        item["input_finalized_at"] = finalized_at
     if item["state"] == "failed":
         return item, "needs_operator"
     if (item["state"] == "processing" and item["lease_until"] is not None and

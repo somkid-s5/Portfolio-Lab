@@ -270,5 +270,46 @@ class FirestoreJobsTests(unittest.TestCase):
             self.jobs.list_operator(limit=21)
 
 
+
+    def fail_budget(self):
+        for _ in range(5):
+            self.jobs.claim(self.job_id, "123", "a"*32, finalized_at=NOW)
+            self.jobs.release_transient(self.job_id, "a"*32)
+        self.jobs.claim(self.job_id, "123", "a"*32, finalized_at=NOW)
+
+    def test_operator_retry_key_race_opens_one_epoch_and_preserves_input(self):
+        self.fail_budget()
+        gate = threading.Barrier(2, timeout=10)
+        def prepare(_):
+            gate.wait()
+            return self.jobs.prepare_operator_retry(
+                self.job_id, "operator", "retry-request-001")
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(prepare, range(2)))
+        self.assertEqual([r["epoch"] for r in results], [1, 1])
+        self.assertCountEqual([r["replayed"] for r in results], [False, True])
+        job = self.jobs.read_retry_dispatch(self.job_id, 1)
+        self.assertEqual((job["input_generation"], job["input_finalized_at"]), ("123", NOW))
+        self.assertEqual(job["owner"], "alice")
+        self.assertEqual(len(job["retry_requests"]), 1)
+        self.assertNotIn("retry-request-001", str(job["retry_requests"]))
+        with self.assertRaises(Conflict):
+            self.jobs.prepare_operator_retry(self.job_id, "operator", "new-key-while-pending")
+
+    def test_old_retry_request_cannot_open_or_dispatch_newer_epoch(self):
+        self.fail_budget()
+        self.jobs.prepare_operator_retry(self.job_id, "operator", "retry-request-001")
+        self.fail_budget()
+        self.jobs.prepare_operator_retry(self.job_id, "operator", "retry-request-002")
+        old = self.jobs.prepare_operator_retry(self.job_id, "operator", "retry-request-001")
+        self.assertEqual(old, {"epoch": 1, "replayed": True})
+        with self.assertRaises(Conflict):
+            self.jobs.read_retry_dispatch(self.job_id, old["epoch"])
+        self.assertEqual(self.jobs.read_retry_dispatch(self.job_id, 2)["attempt_epoch"], 2)
+        self.fail_budget()
+        with self.assertRaises(Conflict):
+            self.jobs.prepare_operator_retry(self.job_id, "operator", "retry-request-003")
+
+
 if __name__ == "__main__":
     unittest.main()
