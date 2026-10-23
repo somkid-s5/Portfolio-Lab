@@ -55,11 +55,10 @@ class BoundaryTests(unittest.TestCase):
     def test_storage_reply_exposes_only_status_and_safe_code(self):
         response = Mock(code=403)
         response.read.return_value = b"<Error><Code>AccessDenied</Code><Message>private-policy-secret</Message></Error>"
-        context = Mock()
-        context.__enter__ = Mock(return_value=response)
-        context.__exit__ = Mock(return_value=False)
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
         opener = Mock()
-        opener.open.return_value = context
+        opener.open.return_value = response
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             result = tool.send(tool.multipart(policy(), JOB, BUCKET, "mime"), opener=opener)
