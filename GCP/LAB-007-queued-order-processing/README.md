@@ -13,7 +13,7 @@ last_verified: null
 
 Solution นี้ชื่อ **Order Queue Desk** ผลสำเร็จทางธุรกิจคือจองสต็อกและเปลี่ยนคำสั่งซื้อเป็น confirmed ไม่ใช่การตัดเงิน ส่งสินค้า หรือรับประกัน exactly-once ของบริการภายนอก
 
-**สถานะ:** กำลังสร้าง Materials — มี Portal/Queue worker/dispatcher, PostgreSQL transactions และ serving image ที่ตรวจใน CI แล้ว แต่ยังขาด bootstrap, operator replay/DLQ tooling, infrastructure และคู่มือครบทุก Task จึงยังไม่ Guide-ready และไม่มีผลทดสอบ GCP จริง
+**สถานะ:** กำลังสร้าง Materials — มี Portal/Queue worker/dispatcher, PostgreSQL transactions และ serving image ที่ตรวจใน CI แล้ว แต่ยังขาด bootstrap, infrastructure, Diagram และคู่มือครบทุก Task จึงยังไม่ Guide-ready และไม่มีผลทดสอบ GCP จริง
 
 ## ผู้ใช้และงานที่ต้องทำได้
 
@@ -145,7 +145,7 @@ Cloud SQL, backups/storage, Queue retention/operations, network, images, logs �
 | Worker | lab007-worker; IAM-required, max 1/revision → change 3, concurrency 1, request timeout 60s, memory 512 MiB |
 | Dispatcher trigger | Cloud Scheduler HTTP POST ทุกหนึ่งนาทีตาม UTC ใช้ OIDC; audience เป็น dispatcher origin และ target เป็น /internal/outbox/drain |
 | Queue | lab007-orders topic; lab007-orders-worker push subscription → worker /events/orders; explicit push identity/audience |
-| Dead-letter | lab007-orders-dead topic + lab007-orders-dead-inspect pull subscription; max delivery attempts 10 แบบ best-effort ไม่ใช่ hard counter |
+| Dead-letter | lab007-orders-dead topic + lab007-orders-dead-inspect pull subscription (ack deadline600s); max delivery attempts 10 แบบ best-effort ไม่ใช่ hard counter |
 | Retry/retention | source retry backoff 10–60s, ack deadline 60s, retention 1 วัน; DLT topic/subscription retention 1 วัน; ไม่เปิด retain acknowledged messages โดยไม่จำเป็น |
 | Database | PostgreSQL 16, Enterprise, ZONAL, dedicated db-custom-2-7680; database order_queue; ไม่เปิด public IP |
 | Network | lab007-vpc, regional Direct VPC subnet 10.77.10.0/26, PSA range 10.77.240.0/24; ไม่ใช้ subnet CIDR ซ้ำกับระบบอื่น |
@@ -452,3 +452,63 @@ Expected: HTTP สำเร็จคืน outcome=prepared หรือ already
 [CI40013192441](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40013192441) / source3da00980842285dbc86576eb386c7b13d8776914 ผ่านทั้ง workflow; Lab07รวม **119 tests** (34pure/entry/request/client +85SDK/HTTP/runtime/auth/PG/browser) พร้อม container checks การทดสอบ [browser journey](tests/test_browser_journey.py) เพิ่ม real operator client → HTTPS Portal → PostgreSQL โดยใช้ CA ของ loopback certificate ที่เชื่อถือเฉพาะ CI ไม่ปิด TLS verification แล้วตัดคำตอบหลัง server commit audit ก่อนส่งซ้ำด้วย journal เดิม ได้ replayed=true, auditหนึ่งแถว และ stock/ledger/orderไม่เพิ่ม
 
 ใน test นี้เปลี่ยน origin allowlist เฉพาะ test ให้เป็น loopback; CLI ที่ส่งมอบยังปฏิเสธ localhost/HTTP และไม่ตาม redirect ข้อมูลอ้างอิงต้นทางเป็น explicit CI transport fixture ไม่ใช่ dead-letter message จริง จึงยังไม่ยืนยัน forwarding format, source IAM หรือ acknowledgment บน Pub/Sub
+
+## ตรวจ DLQ และ ack หลังยืนยันผล
+
+[Dead-letter inspector](scripts/dead-letter.py) ใช้ synchronous Pub/Sub SDK pull ครั้งเดียว ไม่ใช้ streaming callback หรือ auto-ack ดึงได้สูงสุด5ข้อความ ตั้ง retry=None/timeout10s และไม่รับชื่อ subscription จาก caller นอกเหนือ lab007-orders-dead-inspect ของ project ที่ระบุ
+
+**ข้อควรเข้าใจ:** pull ไม่ใช่การ peek ที่ไม่มีผลใด ๆ ข้อความจะอยู่ในช่วง lease ชั่วคราว แม้เครื่องมือไม่ ack ข้อความที่ไม่รู้จักจะถูก hold จน deadline แล้วส่งใหม่ตามบริการ การ pull ว่างครั้งเดียวไม่พิสูจน์ว่า backlog ว่าง อ้างอิง [Pull API](https://docs.cloud.google.com/pubsub/docs/reference/rest/v1/projects.subscriptions/pull)
+
+เครื่องมือตรวจ source subscription/project จาก forwarding attributes, จำกัด data4KiB/JSON depth8 และรับเฉพาะ canonical event version1 หรือ schema-only poison99 ของ Lab ไม่พยายามถอด nested wrapper ที่ไม่รู้จักหรือแก้ arbitrary JSON ให้ผ่าน SDK คืน message.data เป็น bytes แล้ว จึงไม่ base64-decode ซ้ำแบบ REST หากพบรูปแบบอื่นให้หยุดตรวจจาก private diagnostic/Console โดยไม่ ack และบันทึกข้อแตกต่างก่อนปรับ parser
+
+source_delivery_count เป็น observation จาก CloudPubSubDeadLetterSourceDeliveryCount ไม่ใช่ hard retry counter และไม่ใช่ deliveryAttempt ของการส่ง DLQ รอบปัจจุบัน source attributes/digest ไม่ใช่ลายเซ็นหรือ authentication; ต้องมี IAM scope ของ dedicated subscription และเทียบ canonical event กับ DB เสมอ ข้อกำหนด forwarding/approximate attempts อ้างอิง [Dead-letter topics](https://docs.cloud.google.com/pubsub/docs/dead-letter-topics)
+
+### ขั้น Inspect
+
+ก่อนใช้ต้อง deploy source/DLT/push และ Portal ตาม Design แล้ว ระบุ PROJECT_ID/PROJECT_NUMBER จริงของ sandbox, Portal origin และ credentials สังเคราะห์ของ environment เดียวกัน ใช้ Cloud Shell/Linux รันจากโฟลเดอร์ Lab
+
+```bash
+python scripts/dead-letter.py \
+  --project "$PROJECT_ID" --project-number "$PROJECT_NUMBER" \
+  inspect --out secrets/dlq-pull-001
+```
+
+Expected: stdout มี inspected/held_unrecognized/acknowledged0 พร้อม event/order/IDs/hashes และชื่อ receipt_file เท่านั้น **ไม่มี ack token หรือ raw payload** ผลทั้งหมดเป็นข้อมูลที่ต้องเทียบกับ Actual ไม่ใช่การยืนยันว่า recovery สำเร็จ
+
+โฟลเดอร์ต้องใหม่ เครื่องมือไม่เขียนทับชุดก่อน receipt mode600/directory700 เก็บ ack token ไว้ส่วนตัว ไม่แนบไฟล์นี้ลง Repo/รูปภาพ/หลักฐานสาธารณะ หาก held_unrecognized>0 ห้ามสร้าง order ใหม่แทนข้อความที่อ่านไม่ได้
+
+เลือก event/digest ของข้อความที่ต้องดูแล อ่าน operator outbox/คำสั่งซื้อและหาสาเหตุ ปิด fault/แก้ dependency ก่อน ใช้ operator-replay.py กับ journal ของ action เดิมเพื่อ prepare canonical event ตามหัวข้อก่อนหน้า **ไม่ publish bytes จาก receipt หรือ raw poison กลับเข้า Queue เอง**
+
+### ขั้น Ack หนึ่งรายการ
+
+[Terminal verification API](app/replay.py) อ่าน canonical outbox/order/items/processed event/reservations ภายใน transaction ก่อนคืน terminal_verified=true ไม่ถือ order.state หรือ published เพียงอย่างเดียวเป็นหลักฐาน เมื่อยัง accepted เครื่องมือจะไม่ ack และจะไม่อนุมัติ terminal audit ให้
+
+```bash
+python scripts/dead-letter.py \
+  --project "$PROJECT_ID" --project-number "$PROJECT_NUMBER" \
+  ack \
+  --receipt "$RECEIPT_FILE" \
+  --portal "$PORTAL_URL" \
+  --demo-logins secrets/demo-logins.json \
+  --reason delivery_restored \
+  --journal "$TERMINAL_AUDIT_JOURNAL"
+```
+
+RECEIPT_FILE คือไฟล์ส่วนตัวที่ inspect สร้าง TERMINAL_AUDIT_JOURNAL เป็น action ใหม่สำหรับอนุมัติ ack ของ source_digest นี้ เช่นใน secrets/operator-journals/ แยกจาก prepare replay ครั้งก่อน และต้องใช้ไฟล์เดิมหากคำตอบหาย
+
+เครื่องมือตรวจ receipt อายุไม่เกิน90s ก่อนและหลัง HTTP checks เทียบ event/order/fingerprint/canonical SHA กับ Portal จากนั้นบันทึก operator action แบบ already_resolved ก่อนส่ง AcknowledgeRequest เฉพาะ ack token เดียว retry=None/timeout5s ไม่ ack ทั้ง batch
+
+ถ้า receipt หมดอายุให้ pull ชุดใหม่หลังข้อความพร้อมส่งอีกครั้งและเลือก message ID/source_digest เดิม ใช้ terminal audit journal เดิม ไม่เปลี่ยน key เพื่อหลบ unknown outcome หากเป็น forwarding คนละข้อความซึ่งมี message ID/digest ใหม่ ต้องพิจารณาเป็นอีก action อย่างชัดเจน ไม่สวม receipt ของคนละรายการ
+
+Expected เมื่อ RPC ตอบรับ: ack_request=accepted และ absence_verified=false นี่ไม่ใช่ PASS ว่าข้อความหายจาก subscription แน่นอน การ ack token ที่ deadline หมดอาจตอบสำเร็จแต่ยังส่งใหม่ได้ตาม [Acknowledge API](https://docs.cloud.google.com/pubsub/docs/reference/rest/v1/projects.subscriptions/acknowledge) ต้องตรวจ message IDs/metrics/การส่งซ้ำตามช่วงสังเกตจริง โดยไม่ใช้ pull ว่างครั้งเดียวเป็นหลักฐานจบ
+
+ตั้ง dead-inspect ack deadline600s ตาม deployment design เพื่อมีเวลาตรวจ แต่เครื่องมือยังใช้หน้าต่าง90s ของตัวเอง ไม่ต่อ lease อัตโนมัติ ไม่ seek/delete/purge subscription หากคำตอบ ack ไม่แน่นอนให้ hold/repull/reconcile กับ terminal proof และ journal เดิม ไม่มีการสร้างผลธุรกิจซ้ำเพื่อแก้สถานะ transport
+
+
+### ขอบเขตการตรวจเครื่องมือ DLQ
+
+[SDK/protocol tests](tests/test_dead_letter.py) ใช้ PubsubMessage/ReceivedMessage/PullRequest/AcknowledgeRequest และ real installed GAPIC client โดย mock เฉพาะ RPC ตรวจ max5/timeout/retry, source metadata, schema-only poison, data/depth/attribute bounds, stale receipts, terminal proof/audit gates และ unknown ack outcome ไม่ติดต่อ Pub/Sub หรือสร้าง Cloud resources
+
+[CI40014805061](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40014805061) / source08a64c0153b77b59645fd648f349218e13a760ec: jobs ของ Lab07 ผ่าน **139 tests** (34pure/client +105SDK/HTTP/runtime/auth/PG/browser) รวม SQL43/API17/DLQ15 ภายใน [browser/HTTPS journey](tests/test_browser_journey.py) ตัว operator client อ่าน terminal proof และบันทึก audit ผ่าน Portal/PostgreSQL จริงก่อน ack ไปยัง Pub/Sub double ตรวจ audit เพิ่มเฉพาะ approval ที่ตั้งใจ และ order/stock/processed ledger ไม่เปลี่ยนเพิ่ม
+
+อีก3 CLI tests สำหรับ inspect/private receipts, ack workflow/journal และ lost-audit-response เพิ่มภายหลัง source นี้ยังรอ CI; ไม่ใช้จำนวน142เป็นผลผ่านก่อนมี log ยืนยัน ตัวอย่าง forwarded metadata/poison ใน CI เป็น fixture ตาม contract ไม่ใช่ broker-forwarded message จริง จึงยังต้องกรอกผล source IAM/forwarding/dead-letter/ack บน GCP ในขั้นลงมือ
