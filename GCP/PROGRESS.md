@@ -9,7 +9,7 @@
 | 03 | [เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS](LAB-003-public-docs-cdn/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 07 | ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue | Planned | Not run | — |
 | 08 | ระบบรายงานตามเวลาและงาน Batch รายวัน | Planned | Not run | — |
 | 09 | ระบบส่ง Webhook ให้ระบบคู่ค้า | Planned | Not run | — |
@@ -240,3 +240,6 @@ Lab06 / Replay and validation coverage: เพิ่ม authenticated replay ≤
 
 
 Lab06 / Diagram publication: run129 CI39993882867 job120554175358 render topology+recoveryจากsourceffc7f89b5dfbbdefcf05f501c3385d5a9149a210สำเร็จ ตรวจภาพ960pxแล้วเส้นstateไม่ทับheading/Firestorelabel ขอบเขตproject-regionไม่มีVPCเทียมและdirectuploadแยกจากevent บันทึกSVG/PNG2ภาพ+officialiconpath/SHA/attributionลงassetsและembedREADME งานreplayชุดก่อนผ่านlab006-domainในrun129 ส่วนroundtrip/UTF8fixtureเพิ่มล่าสุดรอrun130 CI39994451947ก่อนclaimครบ ยังAuthoring/CloudNotrun ไม่มีGCPwrites
+
+
+Lab06: Guide-ready — review ครบ R1–R8 และ Tasks0–13/8B: direct signed POST/private incoming+results, namedFirestore transactions/quota/lease-fencing, deterministic create-or-verify output, recovery/operator retry, validation/Storage bounds/expiry/change/backout/evidence/cleanup/rebuild พร้อมเครื่องมือและ fixtures จริง CI39994451947 source58b8f719b6a881c40936fd95c88c6c1733dec19f completed success ทั้งworkflow: 52domain/state/tooling/guide +53SDK/HTTP/runtime/emulator/browser =105tests, containerbuild/import/nonroot/exclusionและTerraformสองrootsผ่าน CI39994675895ของpublication61baf2d940bb6571009bb2f8b1ae9dbf5ccd9e6b joblab006-domainผ่านหลังเพิ่มภาพ/links (25Bash/7JS); runtimecodeไม่เปลี่ยน ภาพSVG/PNGสองชุดreview960pxและpublishedพร้อมofficialiconpath/hash/attributionแล้ว ปรับการเว้นวรรคเฉพาะร้อยแก้วโดยfencedcommandsไม่เปลี่ยน ยังไม่มีGCPapply/IAM/signBlob/GCS/Eventarc/performance/retentionจริง ทุกLabCloud Notrun รอpublicationCIของสถานะใหม่ต่อ ขั้นถัดไป Lab07Brief ไม่ถือว่าGoal20Labเสร็จ

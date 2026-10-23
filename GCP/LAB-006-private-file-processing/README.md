@@ -1,7 +1,7 @@
 ---
 lab: LAB-006
 platform: GCP
-guide_status: authoring
+guide_status: guide-ready
 cloud_verification: not-run
 last_verified: null
 ---
@@ -19,7 +19,7 @@ Browser ขอสิทธิ์จาก Portal แล้วส่ง CSV ต�
 
 ผู้เรียนจะสร้าง Upload portal และระบบประมวลผลจริง ไม่ใช่เพียงสร้าง bucket กับ trigger ตัวอย่างนี้ใช้ข้อมูลสังเคราะห์ ไม่มีบัตรชำระเงินหรือข้อมูลลูกค้าจริง
 
-**สถานะ:** กำลังตรวจคู่มือฉบับเต็มและ Diagram ก่อน Guide-ready ผล GCP ยัง Not run ช่อง Actual และหลักฐานเป็นส่วนที่ผู้เรียนเติมจากการลงมือจริง
+**สถานะ:** Guide-ready — คู่มือและไฟล์ประกอบผ่านการตรวจตามขอบเขตด้านล่าง ผล GCP ยัง Not run ช่อง Actual และหลักฐานเป็นส่วนที่ผู้เรียนเติมจากการลงมือจริง
 
 ## ผู้ใช้และผลลัพธ์
 
@@ -34,13 +34,13 @@ CSV baseline: คอลัมน์ sale_id,sku,quantity,unit_price_satang; จ�
 | ID | ข้อกำหนด | วิธีพิสูจน์ |
 |---|---|---|
 | R1 | ส่งไฟล์และรับรายงานครบวงจร | Browser login → upload → pending/processing → succeeded → download; เทียบผลกับ expected fixture ที่คำนวณไว้ |
-| R2 | แยก owner และ runtime identity | bob อ่านสถานะหรือขอ link ของ alice ได้404; anonymous401; worker ปฏิเสธ anonymous; bucketไม่มี allUsers/allAuthenticatedUsers |
-| R3 | จำกัด upload ทั้งทางเข้าและการอ่านจริง | baseline1MiB/10,000rows; ทดสอบ oversized, MIMEปลอม, invalidUTF-8, headerผิด, duplicate sale_id และตัวเลขผิด; rejectedไม่มี published output |
-| R4 | รับ event ซ้ำ/ต่างลำดับอย่างถูกต้อง | replay CloudEvent เดิมและ eventIDต่างกันแต่ bucket/name/generationเดิม; มี logical result เดียว, ownerเดิม และ immutable input binding |
-| R5 | กู้จาก failure ระหว่าง storage กับ metadata | ฉีด fault หลัง output create ก่อน success commit; retry ตรวจ output เดิมและทำงานจบโดยไม่เขียนผลซ้ำ; leaseหมดอายุถูก reclaim อย่างมี fencing |
-| R6 | สิทธิ์เข้าถึงมีอายุและ retention ตรวจได้ | upload permissionหมดอายุใช้งานไม่ได้; download linkเป็น bearer capabilityที่มีTTLสั้น; Appไม่ออกlinkหลังหมดอายุงาน; บันทึก lifecycle/softdelete/metadata expiry ตามจริง |
-| R7 | Change request เพิ่มขนาดไฟล์อย่างมีเพดาน | baseline1MiB→5MiB พร้อมเพิ่ม row/timeout/memory budgetที่มีเหตุผล; ทดสอบก่อน–หลัง/negative cases/คืนbaseline ไม่เพียงแก้ UI |
-| R8 | ดูแลและปิดระบบได้ | request/job/event correlation, stuck-job inspection, bounded retry/backout, evidence/case study, cleanupทั้งobjects/generations/metadata/trigger/services/identities และrebuild |
+| R2 | แยก owner และ runtime identity | bob อ่านสถานะหรือขอ link ของ alice ได้ 404; anonymous401; worker ปฏิเสธ anonymous; bucket ไม่มี allUsers/allAuthenticatedUsers |
+| R3 | จำกัด upload ทั้งทางเข้าและการอ่านจริง | baseline1MiB/10,000rows; ทดสอบ oversized, MIME ปลอม, invalidUTF-8, header ผิด, duplicate sale_id และตัวเลขผิด; rejected ไม่มี published output |
+| R4 | รับ event ซ้ำ/ต่างลำดับอย่างถูกต้อง | replay CloudEvent เดิมและ eventID ต่างกันแต่ bucket/name/generation เดิม; มี logical result เดียว, owner เดิม และ immutable input binding |
+| R5 | กู้จาก failure ระหว่าง storage กับ metadata | ฉีด fault หลัง output create ก่อน success commit; retry ตรวจ output เดิมและทำงานจบโดยไม่เขียนผลซ้ำ; lease หมดอายุถูก reclaim อย่างมี fencing |
+| R6 | สิทธิ์เข้าถึงมีอายุและ retention ตรวจได้ | upload permission หมดอายุใช้งานไม่ได้; download link เป็น bearer capability ที่มี TTL สั้น; App ไม่ออก link หลังหมดอายุงาน; บันทึก lifecycle/softdelete/metadata expiry ตามจริง |
+| R7 | Change request เพิ่มขนาดไฟล์อย่างมีเพดาน | baseline1MiB→5MiB พร้อมเพิ่ม row/timeout/memory budget ที่มีเหตุผล; ทดสอบก่อน–หลัง/negative cases/คืน baseline ไม่เพียงแก้ UI |
+| R8 | ดูแลและปิดระบบได้ | request/job/event correlation, stuck-job inspection, bounded retry/backout, evidence/case study, cleanup ทั้ง objects/generations/metadata/trigger/services/identities และ rebuild |
 
 ## สถาปัตยกรรมและขอบเขต
 
@@ -52,43 +52,43 @@ Portal ใช้ HTTPS ของ Cloud Run และ App session/CSRF/owner chec
 
 ทาง upload ใช้ V4 signed POST policy ที่ตรึง bucket/key/Content-Type/expiry และ content-length-range เหตุผลคือโจทย์ต้องจำกัดขนาดตั้งแต่ทางเข้า ไม่ใช้คำอธิบายว่า signed URL ธรรมดาบังคับขนาด/ตรวจเนื้อหาได้เอง Worker ต้องตรวจ bytes/rows/schema ซ้ำเสมอ CORS ไม่ใช่ authentication และ MIME/filename จาก client ไม่ใช่หลักฐานชนิดไฟล์
 
-ทาง download ใช้ V4 signed GET อายุสั้นเฉพาะ output object generation ที่ jobสำเร็จและ ownerผ่านแล้ว ไม่ใส่ signed URL/query/session/cookie ใน logs หรือหลักฐาน ลิงก์ที่ออกไปแล้วเป็น bearer capability: คนที่ได้ลิงก์อาจอ่านได้จนหมดอายุ จึงไม่อ้างว่า owner login ถูกตรวจทุกครั้งที่ Storage รับ download
+ทาง download ใช้ V4 signed GET อายุสั้นเฉพาะ output object generation ที่ job สำเร็จและ owner ผ่านแล้ว ไม่ใส่ signed URL/query/session/cookie ใน logs หรือหลักฐาน ลิงก์ที่ออกไปแล้วเป็น bearer capability: คนที่ได้ลิงก์อาจอ่านได้จนหมดอายุ จึงไม่อ้างว่า owner login ถูกตรวจทุกครั้งที่ Storage รับ download
 
 ไม่ใช้ service-account private key file ใน repo หรือ runtime ใช้ IAM Credentials signBlob แบบ keyless โดยแยก upload signer/download signer และกำหนดสิทธิ์เฉพาะ resource ที่ต้องใช้ ขอบเขต IAM/custom role อยู่ในตารางสิทธิ์ด้านล่าง
 
 ## ข้อตกลงข้อมูลและความถูกต้อง
 
-1. สร้าง job UUID/owner/object key/limits ก่อนออก upload permission; object key กำหนดโดย server ไม่รับ pathจาก client
-2. incoming ต้องป้องกัน overwrite โดย uploader identity มี create ไม่ใช่ update/delete; bindingเลือก generationหนึ่งครั้งใน transaction และไม่เปลี่ยนตาม eventที่มาทีหลัง
-3. ระบุตัวตนงานจาก bucket/name/generation ไม่ใช้ eventIDอย่างเดียว ตรวจ bucketและjob bindingก่อนอ่านไฟล์
-4. Firestore transaction callback ไม่มี network I/O หรือเขียน Storage เพราะ callbackอาจถูก retry
-5. claim ใช้ attempt token/fencing + lease expiry; publish success เฉพาะ tokenปัจจุบัน ไม่ให้ workerเก่าทับสถานะหลังถูก reclaim
-6. output ชื่อ deterministic จาก job/generation/processor-version, create-only precondition และ verify bytes/hash เมื่อพบของเดิม; StorageกับFirestoreไม่ใช่ transactionเดียวกัน ต้องมี recoveryสำหรับช่องว่างนี้
-7. validation failureเป็น terminal rejectedพร้อมreason codeที่ปลอดภัยและack; transient failureคืน retryable response ไม่ackเป็นsuccess; stale/unknown eventsต้องมีpolicyไม่เขียนข้อมูลผิดowner
-8. result expiryตรวจใน App ก่อนออกlink; FirestoreTTL/Storagelifecycleเป็น cleanupภายหลัง ไม่ใช่ตัวปฏิเสธaccessทันทีและไม่รับประกันลบตรงวินาที
-9. initial limits/processor versionถูกบันทึกใน job; change requestไม่เปลี่ยน contractของงานเก่ากลางทาง
-10. operator retryต้อง authenticated/authorized, จำกัดจำนวนและอายุ, เก็บattempt history และกลับไปอ่าน generationเดิม ไม่สร้าง jobใหม่เงียบ ๆ
+1. สร้าง job UUID/owner/object key/limits ก่อนออก upload permission; object key กำหนดโดย server ไม่รับ path จาก client
+2. incoming ต้องป้องกัน overwrite โดย uploader identity มี create ไม่ใช่ update/delete; binding เลือก generation หนึ่งครั้งใน transaction และไม่เปลี่ยนตาม event ที่มาทีหลัง
+3. ระบุตัวตนงานจาก bucket/name/generation ไม่ใช้ eventID อย่างเดียว ตรวจ bucket และ job binding ก่อนอ่านไฟล์
+4. Firestore transaction callback ไม่มี network I/O หรือเขียน Storage เพราะ callback อาจถูก retry
+5. claim ใช้ attempt token/fencing + lease expiry; publish success เฉพาะ token ปัจจุบัน ไม่ให้ worker เก่าทับสถานะหลังถูก reclaim
+6. output ชื่อ deterministic จาก job/generation/processor-version, create-only precondition และ verify bytes/hash เมื่อพบของเดิม; Storage กับ Firestore ไม่ใช่ transaction เดียวกัน ต้องมี recovery สำหรับช่องว่างนี้
+7. validation failure เป็น terminal rejected พร้อม reason code ที่ปลอดภัยและ ack; transient failure คืน retryable response ไม่ ack เป็น success; stale/unknown events ต้องมี policy ไม่เขียนข้อมูลผิด owner
+8. result expiry ตรวจใน App ก่อนออก link; FirestoreTTL/Storagelifecycle เป็น cleanup ภายหลัง ไม่ใช่ตัวปฏิเสธ access ทันทีและไม่รับประกันลบตรงวินาที
+9. initial limits/processor version ถูกบันทึกใน job; change request ไม่เปลี่ยน contract ของงานเก่ากลางทาง
+10. operator retry ต้อง authenticated/authorized, จำกัดจำนวนและอายุ, เก็บ attempt history และกลับไปอ่าน generation เดิม ไม่สร้าง job ใหม่เงียบ ๆ
 
 ## Failure และ change scenarios
 
-- ส่ง eventซ้ำพร้อมกันสอง worker และส่ง eventของ generationอื่นหลัง jobถูกbindแล้ว
-- ข้อมูลเสียเป็น rejectedโดยไม่วน retryไม่จบ; งานค้างเพราะ transient faultสามารถ inspectและretryได้
-- worker crashหลัง outputเขียนสำเร็จ แต่ก่อนmetadata success ต้อง convergeเป็นresultเดียว
-- workerที่leaseหมดอายุพยายามcommitหลังattemptใหม่ ต้องถูกfence
-- ถอดสิทธิ์เฉพาะ sandbox test identity/ใช้ fault revision เพื่อทดสอบ access failure ไม่แก้ IAMกว้างทั้งproject
-- ขยาย1→5MiB และวัดเวลา/memory/error/ผลรวมถูกต้อง พร้อมกลับค่าเดิม; ใช้synthetic fixturesไม่ใช่ไฟล์จริงของทีม
+- ส่ง event ซ้ำพร้อมกันสอง worker และส่ง event ของ generation อื่นหลัง job ถูก bind แล้ว
+- ข้อมูลเสียเป็น rejected โดยไม่วน retry ไม่จบ; งานค้างเพราะ transient fault สามารถ inspect และ retry ได้
+- worker crash หลัง output เขียนสำเร็จ แต่ก่อน metadata success ต้อง converge เป็น result เดียว
+- worker ที่ lease หมดอายุพยายาม commit หลัง attempt ใหม่ ต้องถูก fence
+- ถอดสิทธิ์เฉพาะ sandbox test identity/ใช้ fault revision เพื่อทดสอบ access failure ไม่แก้ IAM กว้างทั้ง project
+- ขยาย 1→5MiB และวัดเวลา/memory/error/ผลรวมถูกต้อง พร้อมกลับค่าเดิม; ใช้ synthetic fixtures ไม่ใช่ไฟล์จริงของทีม
 
 ## เตรียมสิทธิ์ ต้นทุน และ Cleanup
 
-ใช้ sandbox projectที่เปิด Billing และมีสิทธิ์สร้าง Cloud Run/Eventarc/Storage/Firestore/Artifact Registry/Secret Manager/IAM Credentials และกำหนด IAM bindings ต้องตรวจว่ามี Firestore databaseเดิมหรือไม่ ไม่เปลี่ยน location/type ของระบบอื่นเพื่อทำLab
+ใช้ sandbox project ที่เปิด Billing และมีสิทธิ์สร้าง Cloud Run/Eventarc/Storage/Firestore/Artifact Registry/Secret Manager/IAM Credentials และกำหนด IAM bindings ต้องตรวจว่ามี Firestore database เดิมหรือไม่ ไม่เปลี่ยน location/type ของระบบอื่นเพื่อทำ Lab
 
-กำหนด max instances/concurrency/timeouts/ขนาดไฟล์/จำนวนงาน/retentionก่อนทดสอบ Budget alertไม่ใช่hard cap Storage operations, Eventarc/PubSub transport, Firestore reads/writes, Cloud Run/build/image/logs และsoftdeletedobjectsอาจคิดค่าใช้จ่าย ไม่มีการprovisionในงานเขียนเอกสารนี้
+กำหนด max instances/concurrency/timeouts/ขนาดไฟล์/จำนวนงาน/retention ก่อนทดสอบ Budget alert ไม่ใช่ hard cap Storage operations, Eventarc/PubSub transport, Firestore reads/writes, Cloud Run/build/image/logs และ softdeletedobjects อาจคิดค่าใช้จ่าย ไม่มีการ provision ในงานเขียนเอกสารนี้
 
-Cleanupต้องหยุดรับงาน/triggerก่อนลบworker, resolve/บันทึกงานค้าง, ตรวจobjectsทุกgeneration/softdelete, metadataและTTL, triggertransportที่ระบบสร้าง, service accounts/IAM/secrets/imagesและservices โดยแยกของLabจากFirestoreหรือprojectที่แชร์ ไม่ลบdefaultdatabaseทั้งก้อนถ้ามีข้อมูลอื่น
+Cleanup ต้องหยุดรับงาน/trigger ก่อนลบ worker, resolve/บันทึกงานค้าง, ตรวจ objects ทุก generation/softdelete, metadata และ TTL, triggertransport ที่ระบบสร้าง, service accounts/IAM/secrets/images และ services โดยแยกของ Lab จาก Firestore หรือ project ที่แชร์ ไม่ลบ defaultdatabase ทั้งก้อนถ้ามีข้อมูลอื่น
 
 ## แหล่งอ้างอิงที่ใช้ตั้งโจทย์
 
-ตรวจวันที่23ตุลาคม2026 รายละเอียด version/IAM/location/SDKจะตรวจอีกครั้งใน Design
+ตรวจวันที่ 23 ตุลาคม 2026 รายละเอียด version/IAM/location/SDK จะตรวจอีกครั้งใน Design
 
 - [Eventarc retry และ duplicate delivery](https://docs.cloud.google.com/eventarc/docs/retry-events)
 - [Cloud Storage events ไป Cloud Run](https://docs.cloud.google.com/run/docs/triggering/storage-triggers)
@@ -105,78 +105,78 @@ Cleanupต้องหยุดรับงาน/triggerก่อนลบworke
 |---|---|
 | Portal/API | Cloud Run service lab006-portal, asia-southeast1; HTTPS URL ของบริการ; min0/max2 instances, concurrency8, timeout30s, memory512MiB |
 | Worker | Cloud Run service lab006-worker, asia-southeast1; ต้องผ่าน Cloud Run IAM, min0/max2, concurrency1, timeout60s, memory512MiB |
-| Incoming / results | bucketคนละใบ ชื่อ globally unique ที่ผู้เรียนกำหนด, regional ASIA-SOUTHEAST1, uniform access/public-access prevention; ไม่มี static website/public ACL |
-| Metadata | Firestore Native Standard named database lab006-files ใน asia-southeast1 ไม่ใช้หรือเปลี่ยน default database; server SDKเลือก database IDชัดเจน |
+| Incoming / results | bucket คนละใบ ชื่อ globally unique ที่ผู้เรียนกำหนด, regional ASIA-SOUTHEAST1, uniform access/public-access prevention; ไม่มี static website/public ACL |
+| Metadata | Firestore Native Standard named database lab006-files ใน asia-southeast1 ไม่ใช้หรือเปลี่ยน default database; server SDK เลือก database ID ชัดเจน |
 | Events | Eventarc Standard trigger lab006-incoming-finalized, asia-southeast1, filter finalized+incoming bucket, destination worker path /events/storage |
-| Image / Secret | Artifact Registry repositoryของLab, image digestที่บันทึกไว้; auth Secret versionเป็นเลข, ไม่มีpayloadในTerraform |
-| Signing | แยก service accounts upload-signer และ download-signer; portalขอ signBlob ไม่ใช้keyfile |
-| Observability | structured stdout/stderr และ Cloud Run metrics; job_id/request_id/event_id ใช้เชื่อมเหตุการณ์ ไม่บันทึก attempt token ไม่มีCSV/policy/signedqueryในlogs |
+| Image / Secret | Artifact Registry repository ของ Lab, image digest ที่บันทึกไว้; auth Secret version เป็นเลข, ไม่มี payload ใน Terraform |
+| Signing | แยก service accounts upload-signer และ download-signer; portal ขอ signBlob ไม่ใช้ keyfile |
+| Observability | structured stdout/stderr และ Cloud Run metrics; job_id/request_id/event_id ใช้เชื่อมเหตุการณ์ ไม่บันทึก attempt token ไม่มี CSV/policy/signedquery ใน logs |
 
-ทุกresourceอยู่projectเดียวกัน Eventarc locationตรงincoming bucket; Firestoreเป็นmanaged regional service ไม่วาดอยู่ในVPCsubnet และCloud Runในโจทย์นี้ไม่ได้ใช้VM/privateVPC/NATเพิ่มเพียงเพื่อให้Diagramใหญ่ Workerใช้ingress allพร้อมIAMauthenticationเพื่อให้Eventarcและเครื่องมือoperatorที่ได้รับอนุญาตเรียกได้ **ไม่อ้างว่าเป็นprivate network endpoint** Public portalต้องผ่านAppauthสำหรับทุกbusinessendpoint ยกเว้นlogin/health/static
+ทุก resource อยู่ project เดียวกัน Eventarc location ตรง incoming bucket; Firestore เป็น managed regional service ไม่วาดอยู่ใน VPCsubnet และ Cloud Run ในโจทย์นี้ไม่ได้ใช้ VM/privateVPC/NAT เพิ่มเพียงเพื่อให้ Diagram ใหญ่ Worker ใช้ ingress all พร้อม IAMauthentication เพื่อให้ Eventarc และเครื่องมือ operator ที่ได้รับอนุญาตเรียกได้ **ไม่อ้างว่าเป็น private network endpoint** Public portal ต้องผ่าน Appauth สำหรับทุก businessendpoint ยกเว้น login/health/static
 
-Named Firestore databaseแยกจากข้อมูลระบบอื่นเพื่อลดความเสี่ยงตอนCleanup แต่IAMต้องตรวจscopeตามdatabaseที่ใช้จริง ไม่อ้างว่าแยกdatabaseแล้วproject-widegrantsจะหายไปโดยอัตโนมัติ
+Named Firestore database แยกจากข้อมูลระบบอื่นเพื่อลดความเสี่ยงตอน Cleanup แต่ IAM ต้องตรวจ scope ตาม database ที่ใช้จริง ไม่อ้างว่าแยก database แล้ว project-widegrants จะหายไปโดยอัตโนมัติ
 
 ### Identity และ permission matrix
 
 | Identity | อนุญาต | ไม่อนุญาต / จุดตรวจ |
 |---|---|---|
-| portal SA | อ่านauth Secretที่ระบุ; อ่าน/สร้าง/แก้jobผ่านFirestore; signBlobบนsignerทั้งสอง; invoke workerเฉพาะserviceเพื่อmanualretry | ไม่มีStorageobjectadmin/ไม่อ่านincomingbytes; ไม่มีprivatekey; signBlobไม่จำเป็นต้องgrantTokenCreatorทั้งproject |
-| upload signer | storage.objects.create เฉพาะincoming bucket | ไม่มีget/list/delete/update; replaypolicyต้องไม่overwriteobjectเดิม |
-| download signer | storage.objects.get เฉพาะresults bucket | ไม่มีcreate/delete/list; portalต้องตรวจownerก่อนออกGET URL |
-| worker SA | Firestorejob transactions; getincoming generation; create/getresults | ไม่มีsignBlob/ไม่มีauth Secret/ไม่ลบหรือแก้incoming; ไม่ให้Editor |
-| Eventarc trigger SA | eventarc.eventReceiverตามscopeที่บริการกำหนด และrun.invokerเฉพาะworker | ไม่มีpermissionอ่านไฟล์เพื่อทำแทนworker |
-| Cloud Storage service agent | pubsub.publisherสำหรับdirecteventtransportตามเอกสาร | แยกจากtrigger SA/runtimeworker ไม่ให้StorageAdminแทน |
-| ผู้ดูแลLab | deploy/actAs/inspectตามความจำเป็นและreviewIAM | สิทธิ์ผู้ดูแลไม่ใช้เป็นหลักฐานว่ารันtimeidentityทำได้ |
+| portal SA | อ่าน auth Secret ที่ระบุ; อ่าน/สร้าง/แก้ job ผ่าน Firestore; signBlob บน signer ทั้งสอง; invoke worker เฉพาะ service เพื่อ manualretry | ไม่มี Storageobjectadmin/ไม่อ่าน incomingbytes; ไม่มี privatekey; signBlob ไม่จำเป็นต้อง grantTokenCreator ทั้ง project |
+| upload signer | storage.objects.create เฉพาะ incoming bucket | ไม่มี get/list/delete/update; replaypolicy ต้องไม่ overwriteobject เดิม |
+| download signer | storage.objects.get เฉพาะ results bucket | ไม่มี create/delete/list; portal ต้องตรวจ owner ก่อนออก GET URL |
+| worker SA | Firestorejob transactions; getincoming generation; create/getresults | ไม่มี signBlob/ไม่มี auth Secret/ไม่ลบหรือแก้ incoming; ไม่ให้ Editor |
+| Eventarc trigger SA | eventarc.eventReceiver ตาม scope ที่บริการกำหนด และ run.invoker เฉพาะ worker | ไม่มี permission อ่านไฟล์เพื่อทำแทน worker |
+| Cloud Storage service agent | pubsub.publisher สำหรับ directeventtransport ตามเอกสาร | แยกจาก trigger SA/runtimeworker ไม่ให้ StorageAdmin แทน |
+| ผู้ดูแล Lab | deploy/actAs/inspect ตามความจำเป็นและ reviewIAM | สิทธิ์ผู้ดูแลไม่ใช้เป็นหลักฐานว่ารัน timeidentity ทำได้ |
 
-สร้างcustom roleสำหรับ iam.serviceAccounts.signBlob แล้วbindบนsignerแต่ละตัวให้portal แทนroleที่รวมgetAccessTokenโดยไม่จำเป็น หากนโยบายองค์กรไม่อนุญาตcustom roleต้องบันทึกทางเลือก/สิทธิ์ส่วนเกินก่อนdeploy ไม่เพิ่มOwnerเพื่อให้ผ่าน สิทธิ์Firestoreต้องใช้IAMcondition/database scopeที่providerรองรับและตรวจpolicyจริงก่อนเรียกleast-privilege; tests emulatorไม่พิสูจน์IAM
+สร้าง custom role สำหรับ iam.serviceAccounts.signBlob แล้ว bind บน signer แต่ละตัวให้ portal แทน role ที่รวม getAccessToken โดยไม่จำเป็น หากนโยบายองค์กรไม่อนุญาต custom role ต้องบันทึกทางเลือก/สิทธิ์ส่วนเกินก่อน deploy ไม่เพิ่ม Owner เพื่อให้ผ่าน สิทธิ์ Firestore ต้องใช้ IAMcondition/database scope ที่ provider รองรับและตรวจ policy จริงก่อนเรียก least-privilege; tests emulator ไม่พิสูจน์ IAM
 
 ### HTTP และ upload contract
 
-Portalใช้Flask signed session, Secure/HttpOnly/SameSite=Lax, CSRFสำหรับทุกmutation, hashedsyntheticpasswordsและoperatorrole; HTML/JSใช้same-originAPI ไม่มีpasswordหรือCSRFในlocalStorage ไม่มีinlineexecutionจากfilename/CSV
+Portal ใช้ Flask signed session, Secure/HttpOnly/SameSite=Lax, CSRF สำหรับทุก mutation, hashedsyntheticpasswords และ operatorrole; HTML/JS ใช้ same-originAPI ไม่มี password หรือ CSRF ใน localStorage ไม่มี inlineexecution จาก filename/CSV
 
 | Endpoint | สัญญา |
 |---|---|
-| POST /api/login, POST /api/logout | จำกัดrequestbody, CSRFที่เหมาะกับsession, genericbadlogin, ไม่logcredentials |
-| GET /api/session | คืนuser/role/CSRFสำหรับsessionที่เปิดอยู่ ไม่คืนpasswordhash |
-| POST /api/jobs | ownerจากsession ไม่รับownerจากbody; รับdisplaynameที่จำกัดและidempotencykey; สร้างjob+quotareservationในtransaction |
-| POST /api/jobs/{id}/upload-policy | ownerผ่านก่อน; ออกpolicyเฉพาะawaiting_uploadและภายในupload deadline; retryได้แต่ใช้objectkeyเดิม |
-| GET /api/jobs, GET /api/jobs/{id} | queryownerฝั่งserver, จำกัดpage size20/cursor; other-owner404; ไม่คืนpolicyหรือobjectstorageURL |
-| POST /api/jobs/{id}/download-link | owner+CSRF+success+notexpired; signedGETตรึงoutputgeneration; Cache-Control:no-store |
-| POST /api/operator/jobs/{id}/retry | operator+CSRF; จำกัดepoch/attempt; preservegeneration/limits/version; เรียกworkerด้วยIDtokenและaudienceของworker |
-| POST worker /events/storage | Cloud Run IAMก่อนเข้าApp; CloudEvents binary headers+JSONdata; จำกัดbody64KiB; ตรวจeventtype/source/bucket/key/generationซ้ำ |
-| GET /livez, GET /healthz | ไม่แก้ข้อมูล; livezprocess/config, healthz boundedmetadataread ไม่มีlistทุกjob |
+| POST /api/login, POST /api/logout | จำกัด requestbody, CSRF ที่เหมาะกับ session, genericbadlogin, ไม่ logcredentials |
+| GET /api/session | คืน user/role/CSRF สำหรับ session ที่เปิดอยู่ ไม่คืน passwordhash |
+| POST /api/jobs | owner จาก session ไม่รับ owner จาก body; รับ displayname ที่จำกัดและ idempotencykey; สร้าง job+quotareservation ใน transaction |
+| POST /api/jobs/{id}/upload-policy | owner ผ่านก่อน; ออก policy เฉพาะ awaiting_upload และภายใน upload deadline; retry ได้แต่ใช้ objectkey เดิม |
+| GET /api/jobs, GET /api/jobs/{id} | queryowner ฝั่ง server, จำกัด page size20/cursor; other-owner404; ไม่คืน policy หรือ objectstorageURL |
+| POST /api/jobs/{id}/download-link | owner+CSRF+success+notexpired; signedGET ตรึง outputgeneration; Cache-Control:no-store |
+| POST /api/operator/jobs/{id}/retry | operator+CSRF; จำกัด epoch/attempt; preservegeneration/limits/version; เรียก worker ด้วย IDtoken และ audience ของ worker |
+| POST worker /events/storage | Cloud Run IAM ก่อนเข้า App; CloudEvents binary headers+JSONdata; จำกัด body64KiB; ตรวจ eventtype/source/bucket/key/generation ซ้ำ |
+| GET /livez, GET /healthz | ไม่แก้ข้อมูล; livezprocess/config, healthz boundedmetadataread ไม่มี list ทุก job |
 
-Baseline: input1,048,576bytes/10,000rows; change5,242,880bytes/50,000rows; แต่ละfieldไม่เกิน128chars, SKUรูปแบบallowlist, quantity1..1,000,000และunit_price_satang0..100,000,000; จำกัดผลรวมไม่เกินsigned64-bit integer ปฏิเสธNaN/decimal/bool/extra columns/nullbytes/quotednewlineถ้าparsercontractไม่รองรับ BOM/CRLFต้องกำหนดและทดสอบชัดเจนก่อนประกาศใช้งานได้
+Baseline: input1,048,576bytes/10,000rows; change5,242,880bytes/50,000rows; แต่ละ field ไม่เกิน 128chars, SKU รูปแบบ allowlist, quantity1..1,000,000 และ unit_price_satang0..100,000,000; จำกัดผลรวมไม่เกิน signed64-bit integer ปฏิเสธ NaN/decimal/bool/extra columns/nullbytes/quotednewline ถ้า parsercontract ไม่รองรับ BOM/CRLF ต้องกำหนดและทดสอบชัดเจนก่อนประกาศใช้งานได้
 
-POSTpolicyอายุสูงสุด300s และไม่เกินupload_deadline; keyตรงincoming/{jobUUID}/source.csv, Content-Type=text/csv, lengthrange1..job.max_bytes ไม่มีstarts-withkeyที่เปิดให้เลือกpathเอง Browserใช้FormDataส่งpolicyfieldsตามที่APIให้และfileเป็นfieldสุดท้าย ไม่ตั้งmultipartboundaryเอง กำหนดsuccess_action_status201แล้วตรวจresponseก่อนpolljob
+POSTpolicy อายุสูงสุด 300s และไม่เกิน upload_deadline; key ตรง incoming/{jobUUID}/source.csv, Content-Type=text/csv, lengthrange1..job.max_bytes ไม่มี starts-withkey ที่เปิดให้เลือก path เอง Browser ใช้ FormData ส่ง policyfields ตามที่ API ให้และ file เป็น field สุดท้าย ไม่ตั้ง multipartboundary เอง กำหนด success_action_status201 แล้วตรวจ response ก่อน polljob
 
-Storagepolicyตรวจheaders/size แต่ไม่รู้ว่าbytesเป็นCSVจริง Workerdownloadแบบbounded max_bytes+1และตรึงgeneration ไม่ใช้download_as_bytesแบบไม่จำกัดกับeventsizeที่เชื่อจากclient ไม่followURLในevent ไม่evalformulaหรือเปิดspreadsheetเพื่อรันmacro
+Storagepolicy ตรวจ headers/size แต่ไม่รู้ว่า bytes เป็น CSV จริง Workerdownload แบบ bounded max_bytes+1 และตรึง generation ไม่ใช้ download_as_bytes แบบไม่จำกัดกับ eventsize ที่เชื่อจาก client ไม่ followURL ใน event ไม่ evalformula หรือเปิด spreadsheet เพื่อรัน macro
 
-Uploadpolicyเป็นbearerpermissionและreplayได้ระหว่างTTL การcreateobjectชื่อเดิมอีกรอบต้องถูกปฏิเสธจากsignerที่ไม่มีdelete/update; ต้องพิสูจน์บนGCPจริง หากstorageAPI/libraryต้องการpermissionเกินที่ตั้งไว้ให้ทบทวนcontract ไม่ให้overwriteเพื่อทำให้testผ่าน
+Uploadpolicy เป็น bearerpermission และ replay ได้ระหว่าง TTL การ createobject ชื่อเดิมอีกรอบต้องถูกปฏิเสธจาก signer ที่ไม่มี delete/update; ต้องพิสูจน์บน GCP จริง หาก storageAPI/library ต้องการ permission เกินที่ตั้งไว้ให้ทบทวน contract ไม่ให้ overwrite เพื่อทำให้ test ผ่าน
 
-DownloadTTLสูงสุด60sและไม่เกินเวลาที่jobเหลือก่อนexpires_at ออกURLเฉพาะgenerationที่ตรวจแล้ว Content-Disposition attachmentชื่อserverกำหนดและContent-Type application/json; ผลใกล้หมดอายุจนเหลือไม่ถึง1sให้ปฏิเสธ การlogoutไม่เพิกถอนlinkที่ออกไปแล้ว
+DownloadTTL สูงสุด 60s และไม่เกินเวลาที่ job เหลือก่อน expires_at ออก URL เฉพาะ generation ที่ตรวจแล้ว Content-Disposition attachment ชื่อ server กำหนดและ Content-Type application/json; ผลใกล้หมดอายุจนเหลือไม่ถึง 1s ให้ปฏิเสธ การ logout ไม่เพิกถอน link ที่ออกไปแล้ว
 
 ### Metadata และ state machine
 
-jobs/{UUID} มี owner, display_name, object_name, created_at/upload_deadline/expires_at/delete_after, max_bytes/max_rows, processor_version, state, input_generation, input_sha256, attempt_epoch/count/token/lease_until, output_name/generation/sha256, safe_reason และtimestamps ส่วนidempotencyrecordsใช้hash(owner+key)พร้อมfingerprintและjobreference ไม่เก็บrawkeyในlogs
+jobs/{UUID} มี owner, display_name, object_name, created_at/upload_deadline/expires_at/delete_after, max_bytes/max_rows, processor_version, state, input_generation, input_sha256, attempt_epoch/count/token/lease_until, output_name/generation/sha256, safe_reason และ timestamps ส่วน idempotencyrecords ใช้ hash(owner+key)พร้อม fingerprint และ jobreference ไม่เก็บ rawkey ใน logs
 
-ตั้งexpires_at=created+24hสำหรับAppaccess; upload_deadline=created+5min; delete_after=created+48hสำหรับTTLcleanup หลังuploaddeadlineจะขอpolicyใหม่ไม่ได้ แต่metadataอาจยังเป็นawaiting_uploadจนถึงAppexpiryหรือมีการประมวลผลevent ไม่ได้มีreconcilerเปลี่ยนทุกงานเป็นexpiredทันที TTLdeleteอาจล่าช้าและไม่ลบStorageobjectsโดยอัตโนมัติ
+ตั้ง expires_at=created+24h สำหรับ Appaccess; upload_deadline=created+5min; delete_after=created+48h สำหรับ TTLcleanup หลัง uploaddeadline จะขอ policy ใหม่ไม่ได้ แต่ metadata อาจยังเป็น awaiting_upload จนถึง Appexpiry หรือมีการประมวลผล event ไม่ได้มี reconciler เปลี่ยนทุกงานเป็น expired ทันที TTLdelete อาจล่าช้าและไม่ลบ Storageobjects โดยอัตโนมัติ
 
 | สถานะเดิม | เหตุการณ์ | ผล |
 |---|---|---|
-| awaiting_upload | finalizedeventที่ตรงkey/bucketและไม่เลยdeadline/expiry | transactionbindgenerationครั้งเดียวแล้วclaimprocessing |
-| processing / leaseยังไม่หมด | duplicategenerationเดิม | retryable503 ไม่ackแล้วพึ่งworkerเดิมเพียงตัวเดียว |
-| processing / leaseหมด | eventเดิมส่งใหม่ | claimtokenใหม่; workerเก่าไม่มีสิทธิ์publishstatus |
-| processing | validationไม่ผ่าน | rejected+safe_reason แล้วack204; ไม่มีpublishedoutput |
-| processing | outputverified + tokenยังตรง | succeededพร้อมgeneration/hashแล้วack204 |
-| processing | transientstorage/metadata failure | ปล่อยleaseให้หมดหรือreleaseโดยtoken; return503สำหรับtransportretry |
-| succeeded/rejected/expired | duplicateevent | ack204โดยไม่สร้างผลใหม่ |
-| ทุกสถานะที่bindแล้ว | generationต่างจากที่bind | ignore+reasonlogged ไม่เปลี่ยนowner/input/result |
-| retrybudgetครบ | transientครั้งถัดไป | failedพร้อมsafe_reasonและack; operatorretryได้ตามpolicy ไม่วนตลอดไป |
+| awaiting_upload | finalizedevent ที่ตรง key/bucket และไม่เลย deadline/expiry | transactionbindgeneration ครั้งเดียวแล้ว claimprocessing |
+| processing / lease ยังไม่หมด | duplicategeneration เดิม | retryable503 ไม่ ack แล้วพึ่ง worker เดิมเพียงตัวเดียว |
+| processing / lease หมด | event เดิมส่งใหม่ | claimtoken ใหม่; worker เก่าไม่มีสิทธิ์ publishstatus |
+| processing | validation ไม่ผ่าน | rejected+safe_reason แล้ว ack204; ไม่มี published output |
+| processing | outputverified + token ยังตรง | succeeded พร้อม generation/hash แล้ว ack204 |
+| processing | transientstorage/metadata failure | ปล่อย lease ให้หมดหรือ release โดย token; return503 สำหรับ transportretry |
+| succeeded/rejected/expired | duplicateevent | ack204 โดยไม่สร้างผลใหม่ |
+| ทุกสถานะที่ bind แล้ว | generation ต่างจากที่ bind | ignore+reasonlogged ไม่เปลี่ยน owner/input/result |
+| retry budget ครบ | transient ครั้งถัดไป | failed พร้อม safe_reason และ ack; operatorretry ได้ตาม policy ไม่วนตลอดไป |
 
-Lease120sเป็นช่วงถือสิทธิ์ก่อนclaimใหม่ ไม่ใช่ตัวหยุดprocess; Cloud Run request timeout60s และGunicorn timeout65s ส่วนGCSแต่ละoperationตั้งtimeout5sและretry=None โค้ดยังไม่มีwall-clock deadlineรวม45s จึงไม่รับประกันว่าoperationทั้งหมดจะจบภายใน45sหรือว่าHTTPtimeoutหยุดงานทันที ใช้token-fencedpublishและcreate-or-verifyoutputรับมือattemptที่ทับช่วงกัน และต้องทดสอบtimeout/recoveryบนCloudจริง ไม่ต่อleaseไม่จำกัด attemptไม่เกิน5ต่อepoch, manualretryไม่เกิน2epochsเพิ่มจากครั้งแรก; rejected/expiredไม่เปิดretryเพื่อหลบvalidation ต้องสร้างjobใหม่ผ่านขั้นตอนปกติ งานfailedเก็บgenerationเดิมและนำoutputที่ถูกต้องกลับมาใช้ได้
+Lease120s เป็นช่วงถือสิทธิ์ก่อน claim ใหม่ ไม่ใช่ตัวหยุด process; Cloud Run request timeout60s และ Gunicorn timeout65s ส่วน GCS แต่ละ operation ตั้ง timeout5s และ retry=None โค้ดยังไม่มี wall-clock deadline รวม 45s จึงไม่รับประกันว่า operation ทั้งหมดจะจบภายใน 45s หรือว่า HTTPtimeout หยุดงานทันที ใช้ token-fencedpublish และ create-or-verifyoutput รับมือ attempt ที่ทับช่วงกัน และต้องทดสอบ timeout/recovery บน Cloud จริง ไม่ต่อ lease ไม่จำกัด attempt ไม่เกิน 5 ต่อ epoch, manualretry ไม่เกิน 2epochs เพิ่มจากครั้งแรก; rejected/expired ไม่เปิด retry เพื่อหลบ validation ต้องสร้าง job ใหม่ผ่านขั้นตอนปกติ งาน failed เก็บ generation เดิมและนำ output ที่ถูกต้องกลับมาใช้ได้
 
-Unknown/malformedevents: invalidenvelope400เพื่อให้เห็นconfigurationerror; authenticแต่ไม่อยู่bucket/key/jobnamespaceของLabให้ack204และsafeignoredreason ไม่สร้างjobจากevent หากmetadataอ่านไม่ได้เป็น503ไม่เหมาว่าunknownแล้วack งานที่หาไม่เจอจริงต้องlogignoredและให้runbookreconcile ไม่สร้างownerจากobjectmetadataที่clientปลอมได้
+Unknown/malformedevents: invalidenvelope400 เพื่อให้เห็น configurationerror; authentic แต่ไม่อยู่ bucket/key/jobnamespace ของ Lab ให้ ack204 และ safeignoredreason ไม่สร้าง job จาก event หาก metadata อ่านไม่ได้เป็น 503 ไม่เหมาว่า unknown แล้ว ack งานที่หาไม่เจอจริงต้อง logignored และให้ runbookreconcile ไม่สร้าง owner จาก objectmetadata ที่ client ปลอมได้
 
 ### Output commit และการกู้ช่องว่างข้ามบริการ
 
@@ -185,29 +185,29 @@ Unknown/malformedevents: invalidenvelope400เพื่อให้เห็นc
 [SVG การกู้คืน](assets/recovery.svg): หากผลเขียนแล้วแต่สถานะยังไม่สำเร็จ รอบถัดไปต้องตรวจและใช้ผลเดิม ไม่เขียนทับเพื่อให้ผ่าน
 
 
-คำนวณsummaryแบบdeterministic ใช้integer, sortedSKU, canonicalUTF-8JSON ไม่มีcurrenttime/attempttokenในbusinessbytes Outputkeyคือ results/{jobUUID}/{inputGeneration}/{processorVersion}/summary.json เขียนif_generation_match=0 พร้อมmetadatainputSHA/processorversion ไม่updateobjectที่มีอยู่
+คำนวณ summary แบบ deterministic ใช้ integer, sortedSKU, canonicalUTF-8JSON ไม่มี currenttime/attempttoken ใน businessbytes Outputkey คือ results/{jobUUID}/{inputGeneration}/{processorVersion}/summary.json เขียน if_generation_match=0 พร้อม metadatainputSHA/processorversion ไม่ updateobject ที่มีอยู่
 
-ถ้าได้preconditionfailed ให้GETexistinggenerationแบบboundedและเทียบcanonicalbytes/SHA/inputgeneration/versionก่อนreuse หากไม่ตรงให้failed_integrityและหยุด ไม่overwriteเพื่อให้เลขตรง ส่วนtimestampการattemptเก็บในFirestoreแยกจากผลสรุป
+ถ้าได้ preconditionfailed ให้ GETexistinggeneration แบบ bounded และเทียบ canonicalbytes/SHA/inputgeneration/version ก่อน reuse หากไม่ตรงให้ failed_integrity และหยุด ไม่ overwrite เพื่อให้เลขตรง ส่วน timestamp การ attempt เก็บใน Firestore แยกจากผลสรุป
 
-หลังเขียนหรือverifyoutputแล้วจึงFirestoretransactionตรวจtoken/generation/version/expiryก่อนpublishsuccess ถ้าworkerเก่าถูกfenceoutputที่คำนวณเหมือนกันอาจยังเกิดได้ แต่ไม่เปลี่ยนstateและไม่มีผลธุรกิจซ้ำ workerใหม่verifyreuseแล้วcommitต่อ ถ้างานexpireระหว่างทำต้องไม่publishdownloadable success; เก็บorphanoutputให้cleanupตามretention
+หลังเขียนหรือ verifyoutput แล้วจึง Firestoretransaction ตรวจ token/generation/version/expiry ก่อน publishsuccess ถ้า worker เก่าถูก fenceoutput ที่คำนวณเหมือนกันอาจยังเกิดได้ แต่ไม่เปลี่ยน state และไม่มีผลธุรกิจซ้ำ worker ใหม่ verifyreuse แล้ว commit ต่อ ถ้างาน expire ระหว่างทำต้องไม่ publishdownloadable success; เก็บ orphanoutput ให้ cleanup ตาม retention
 
-Faultcontrolเป็นrevisionconfigสำหรับsandbox: fail_after_output_onceตามjobmarkerที่เก็บในFirestore ไม่รับflagจากclientทั่วไป ปิดfaultแล้วreplayeventgenerationเดิมต้องจบได้ด้วยoutputเดิม ไม่อ้างexactly-oncedelivery แต่พิสูจน์logicalresultconvergence
+Faultcontrol เป็น revisionconfig สำหรับ sandbox: fail_after_output_once ตาม jobmarker ที่เก็บใน Firestore ไม่รับ flag จาก client ทั่วไป ปิด fault แล้ว replayeventgeneration เดิมต้องจบได้ด้วย output เดิม ไม่อ้าง exactly-oncedelivery แต่พิสูจน์ logicalresultconvergence
 
 ### ขอบเขตการทดสอบ
 
 1. Domain parserfixtures: valid/CRLF/BOMcontract, duplicateID, invalidUTF8/header/quantity/price, maxbytes/rows/field/total bounds; exactexpectedsummary
-2. Firestore emulatorจริง: owner/idempotencytransaction, concurrentclaim, generationbinding, leaseexpiry, stale-tokencommit, retrybudget/manualepoch, expiration และquotareservation ไม่ใช้fakeอย่างเดียว
-3. Storageadapter: boundedgenerationread, create-onlyoutput, existinghashmismatch, signedpolicyexactconditions/keylesssigner; mockrequestใช้ตรวจAPIcontractแต่ไม่เรียกGCPจริง
-4. HTTP/browser: aliceupload/status/download, bob404, anonymous401, operator403, CSRF, workerIAMแยกจากAppunit checks, UIerror/retry/pollboundedโดยไม่เผยsignedquery
-5. Recoveryintegration: outputcreated→fault→duplicateevent→sameoutputgeneration→success; invalidfileackterminal; failedtransientสามารถmanualretry; expiredjobไม่ออกlink
-6. Terraform: fmt/init-backendfalse/validate; IAM/triggerlocation/Firestoreisolation/staticconfigtests; actualplan/applyและsignedupload/permission/expiryต้องผู้เรียนรันบนGCP
-7. Guide: expected/actualข้างทุกTask, fixtures+boundedtools, resourceinventoryและcleanuporder; ไม่มีCloudPASSล่วงหน้า
+2. Firestore emulator จริง: owner/idempotencytransaction, concurrentclaim, generationbinding, leaseexpiry, stale-tokencommit, retry budget/manualepoch, expiration และ quotareservation ไม่ใช้ fake อย่างเดียว
+3. Storageadapter: boundedgenerationread, create-onlyoutput, existinghashmismatch, signedpolicyexactconditions/keylesssigner; mockrequest ใช้ตรวจ APIcontract แต่ไม่เรียก GCP จริง
+4. HTTP/browser: aliceupload/status/download, bob404, anonymous401, operator403, CSRF, workerIAM แยกจาก Appunit checks, UIerror/retry/pollbounded โดยไม่เผย signedquery
+5. Recoveryintegration: outputcreated→fault→duplicateevent→sameoutputgeneration→success; invalidfileackterminal; failedtransient สามารถ manualretry; expiredjob ไม่ออก link
+6. Terraform: fmt/init-backendfalse/validate; IAM/triggerlocation/Firestoreisolation/staticconfigtests; actualplan/apply และ signedupload/permission/expiry ต้องผู้เรียนรันบน GCP
+7. Guide: expected/actual ข้างทุก Task, fixtures+boundedtools, resourceinventory และ cleanuporder; ไม่มี CloudPASS ล่วงหน้า
 
-Quotaฝึก: ไม่เกิน5activejobs/ownerและ20newjobs/owner/UTCdayด้วยtransactioncounter; จำกัดรวมชุดทดสอบ40jobsและไฟล์changeสูงสุด5MiBต่อไฟล์ นี่เป็นAppguardไม่ใช่Billinghardcap publicloginยังไม่ใช่productionabuseprotection ต้องตั้งเวลาเปิดและmaxinstancesร่วมด้วย
+Quota ฝึก: ไม่เกิน 5activejobs/owner และ 20newjobs/owner/UTCday ด้วย transactioncounter; จำกัดรวมชุดทดสอบ 40jobs และไฟล์ change สูงสุด 5MiB ต่อไฟล์ นี่เป็น Appguard ไม่ใช่ Billinghardcap publiclogin ยังไม่ใช่ productionabuseprotection ต้องตั้งเวลาเปิดและ maxinstances ร่วมด้วย
 
-Retention: incoming/results lifecycledeleteหลัง2วันและบันทึกsoftdeletepolicyจริง; FirestoreTTLใช้delete_afterเมื่อเปิดpolicyแล้ว Appตรวจexpiryเองก่อนTTL; ไม่เปิดbucketversioningโดยไม่จำเป็น แต่ทุกread/resultbindingยังใช้generation Lifecycle/TTLไม่ใช่backupstrategyและไม่รับประกันไม่มีค่าใช้จ่ายหลังUIซ่อนงาน
+Retention: incoming/results lifecycledelete หลัง 2 วันและบันทึก softdeletepolicy จริง; FirestoreTTL ใช้ delete_after เมื่อเปิด policy แล้ว App ตรวจ expiry เองก่อน TTL; ไม่เปิด bucketversioning โดยไม่จำเป็น แต่ทุก read/resultbinding ยังใช้ generation Lifecycle/TTL ไม่ใช่ backupstrategy และไม่รับประกันไม่มีค่าใช้จ่ายหลัง UI ซ่อนงาน
 
-แหล่งอ้างอิงDesign: [Eventarc Storage routing/location](https://docs.cloud.google.com/eventarc/standard/docs/run/route-trigger-cloud-storage), [Eventarc identities](https://docs.cloud.google.com/eventarc/docs/roles-permissions), [Python signed POST policy API](https://docs.cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.client.Client), [Firestore database locations](https://docs.cloud.google.com/firestore/native/docs/locations), [Firestore transaction retries](https://firebase.google.com/docs/firestore/manage-data/transactions)
+แหล่งอ้างอิง Design: [Eventarc Storage routing/location](https://docs.cloud.google.com/eventarc/standard/docs/run/route-trigger-cloud-storage), [Eventarc identities](https://docs.cloud.google.com/eventarc/docs/roles-permissions), [Python signed POST policy API](https://docs.cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.client.Client), [Firestore database locations](https://docs.cloud.google.com/firestore/native/docs/locations), [Firestore transaction retries](https://firebase.google.com/docs/firestore/manage-data/transactions)
 
 ข้อจำกัด SDK/API และสิทธิ์จริงต้องตรวจตอน deploy ตามจุดตรวจใน Tasks ผล CI ด้านล่างไม่ใช่หลักฐานว่าโครงสร้างนี้ถูกสร้างบน GCP แล้ว
 
@@ -259,9 +259,11 @@ Foundation สร้าง buckets แบบ private/ไม่ force destroy, na
 
 Workloads ตรึง image digest, ให้ worker invoker เฉพาะ Portal/trigger SA, เปิดหน้า login ของ Portal ผ่าน App auth และตั้ง fault flags เป็น false ค่าเริ่มต้น ใช้ /livez สำหรับ startup/liveness ไม่ทำให้ความขัดข้องของ Firestore กลายเป็น process-health โดยอัตโนมัติ
 
-[CI 39991195096](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39991195096) ผ่าน domain/state/tooling/guide checks, SDK/HTTP/runtime tests, 18 Firestore emulator tests, Chrome journey, container build/import/non-root/private-file exclusion และ Terraform fmt/init-backend=false/validate ทั้งสอง roots
+[CI 39994451947](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39994451947) ของ source `58b8f719b6a881c40936fd95c88c6c1733dec19f` ผ่านทั้ง workflow: 52 domain/state/tooling/guide tests และ 53 SDK/HTTP/runtime/Firestore/browser tests รวม 105 tests พร้อม container build/import/non-root/private-file exclusion และ Terraform validate สอง roots
 
-Firestore emulator ใช้ named database บน loopback และ anonymous credentials ไม่ fallback ไป GCP ส่วน Chrome ใช้ HTTPS loopback กับ Storage/signing test doubles จึงไม่พิสูจน์ IAM, ลายเซ็นจริง, Eventarc delivery, CORS หรือ performance บน GCP การตรวจ Terraform ไม่ใช่ plan/apply
+[CI 39994675895](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39994675895) job lab006-domain ตรวจคู่มือหลังเพิ่มภาพแล้วผ่าน: Bash 25 blocks, JavaScript Console 7 blocks, Tasks 0–13/8B และ relative links ส่วนภาพ SVG/PNG สองชุดตรวจด้วยสายตาที่ 960px จาก source เดียวกับ generator ที่เผยแพร่ โดยเก็บที่มาไอคอนและ source commit ไว้ใน provenance
+
+การตรวจชุดนี้ไม่ใช่ผลสร้างระบบบน GCP: Firestore ใช้ emulator, browser ใช้ HTTPS loopback, Storage/signing ใช้ test doubles ไม่พิสูจน์ IAM, ลายเซ็นจริง, Eventarc delivery, CORS หรือ performance บน GCP การตรวจ Terraform ไม่ใช่ plan/apply และช่อง Actual ของผู้เรียนยังว่าง
 
 Image base ใช้ official Python 3.12.15-slim-bookworm ซึ่งอาจได้รับ rebuild ต้องบันทึก resolved image digest ของการ build จริง ไม่อ้าง bit-reproducible จาก tag หรือ dependencies ที่ไม่ได้ล็อกทุกชั้น
 
@@ -269,9 +271,9 @@ Image base ใช้ official Python 3.12.15-slim-bookworm ซึ่งอาจ
 
 ![Portal หลัง resume งานเดิมใน Chrome บน GitHub Actions](assets/ui-ci-preview.png)
 
-[CI39991195096](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39991195096) / job120543077262 ผ่านBrowserlost-create-response→reload→samekey→onejob/oneoutput รวมถึง18FirestoreintegrationtestsและชุดSDK/HTTP/runtimeที่อยู่ในjobเดียวกัน ภาพนี้ใช้HTTPSloopback/Firestoreemulatorจริง ส่วนStorage/signingเป็นtestdouble ไม่ใช่GoogleCloudConsoleหรือGCS/IAMverification [รายละเอียดที่มาภาพ](assets/ui-ci-provenance.json)
+[CI39991195096](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39991195096) / job120543077262 ผ่าน Browserlost-create-response→reload→samekey→onejob/oneoutput รวมถึง 18Firestoreintegrationtests และชุด SDK/HTTP/runtime ที่อยู่ใน job เดียวกัน ภาพนี้ใช้ HTTPSloopback/Firestoreemulator จริง ส่วน Storage/signing เป็น testdouble ไม่ใช่ GoogleCloudConsole หรือ GCS/IAMverification [รายละเอียดที่มาภาพ](assets/ui-ci-provenance.json)
 
-ตรวจภาพรอบนี้แล้ว: แถบสถานะและแถวงานแสดงsucceededตรงกัน อ่านรายละเอียดjob/limits/attemptได้ครบ ภาพไม่แสดงsignedURL/password ส่วนcontainerbuild/import/nonroot/privatefileexclusionและTerraformvalidateทั้งสองrootsผ่านในworkflowเดียวกัน ผลเหล่านี้ยังไม่พิสูจน์CloudRunIAM/Eventarc/GCSจริง
+ตรวจภาพรอบนี้แล้ว: แถบสถานะและแถวงานแสดง succeeded ตรงกัน อ่านรายละเอียด job/limits/attempt ได้ครบ ภาพไม่แสดง signedURL/password ส่วน containerbuild/import/nonroot/privatefileexclusion และ Terraformvalidate ทั้งสอง roots ผ่านใน workflow เดียวกัน ผลเหล่านี้ยังไม่พิสูจน์ Cloud Run IAM/Eventarc/GCS จริง
 
 
 ## เริ่มทำ Lab — สร้างระบบจาก sandbox ว่าง
@@ -311,18 +313,18 @@ python3 --version
 
 ```
 
-**Expected:** active account/project ตรง sandbox, SHA เต็ม40ตัว, Terraform1.9.x (CIใช้1.9.8), Dockerใช้งานได้ และ Python3.12ที่รองรับdependencies ถ้าไม่มีTerraformให้ติดตั้งรุ่นที่รองรับจากHashiCorpก่อน ไม่ลดconstraintเพื่อข้ามการตรวจ providerตรึง6.50.0 ไม่ใช้init-upgradeระหว่างทำLabโดยไม่ทบทวนdiff
+**Expected:** active account/project ตรง sandbox, SHA เต็ม 40 ตัว, Terraform1.9.x (CI ใช้ 1.9.8), Docker ใช้งานได้ และ Python3.12 ที่รองรับ dependencies ถ้าไม่มี Terraform ให้ติดตั้งรุ่นที่รองรับจาก HashiCorp ก่อน ไม่ลด constraint เพื่อข้ามการตรวจ provider ตรึง 6.50.0 ไม่ใช้ init-upgrade ระหว่างทำ Lab โดยไม่ทบทวน diff
 
-พื้นที่นี้อยู่persistent home ไม่ใช่ /tmp เก็บpathและstateของทั้งสองTerraformrootsไว้จนCleanupจบ หากเปิดCloudShellใหม่ให้กลับcheckout/stateเดิมและตั้งvariablesคืน ไม่cloneใหม่แล้วapplyซ้ำโดยไม่ตรวจstate ไฟล์state/plan/Secretbundleเป็นprivate ห้ามcommitGitHub หากองค์กรไม่ให้เก็บstateในCloudShellต้องเตรียมcontrolledremote backendก่อนprovision
+พื้นที่นี้อยู่ persistent home ไม่ใช่ /tmp เก็บ path และ state ของทั้งสอง Terraformroots ไว้จน Cleanup จบ หากเปิด CloudShell ใหม่ให้กลับ checkout/state เดิมและตั้ง variables คืน ไม่ clone ใหม่แล้ว apply ซ้ำโดยไม่ตรวจ state ไฟล์ state/plan/Secretbundle เป็น private ห้าม commitGitHub หากองค์กรไม่ให้เก็บ state ใน CloudShell ต้องเตรียม controlledremote backend ก่อน provision
 
-**จุดบันทึก T00:** project/accountที่ตรวจ …; SOURCE_COMMIT …; versions …; persistentdirectory/ผู้มีสิทธิ์เข้าถึง …; budget/เวลาปิด …; quotas/orgpolicy …; prefixชื่อที่ยืนยันว่าไม่ชนระบบอื่น …  
-**เกณฑ์ไปต่อ:** project/สิทธิ์/งบ/พื้นที่stateครบ ถ้ายังไม่ครบหยุดก่อนapply ไม่เปลี่ยนworkerเป็นpublicเพื่อให้ขั้นตอนผ่าน
+**จุดบันทึก T00:** project/account ที่ตรวจ …; SOURCE_COMMIT …; versions …; persistentdirectory/ผู้มีสิทธิ์เข้าถึง …; budget/เวลาปิด …; quotas/orgpolicy …; prefix ชื่อที่ยืนยันว่าไม่ชนระบบอื่น …  
+**เกณฑ์ไปต่อ:** project/สิทธิ์/งบ/พื้นที่ state ครบ ถ้ายังไม่ครบหยุดก่อน apply ไม่เปลี่ยน worker เป็น public เพื่อให้ขั้นตอนผ่าน
 
 ### Task 1 — สร้าง foundation โดยยังไม่เปิดบริการ
 
-**เป้าหมาย:** privatebucketsสองใบ, Firestoredatabaseแยก, identities, IAM, authSecretcontainerว่าง และArtifactRegistry ไม่มีSecretpayloadในTerraformstate
+**เป้าหมาย:** privatebuckets สองใบ, Firestoredatabase แยก, identities, IAM, authSecretcontainer ว่าง และ ArtifactRegistry ไม่มี Secretpayload ใน Terraformstate
 
-**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR จาก T00 ทุกapplyด้านล่างผู้เรียนต้องอ่านplanและยืนยันเอง
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR จาก T00 ทุก apply ด้านล่างผู้เรียนต้องอ่าน plan และยืนยันเอง
 
 ```bash
 cd "$LAB_DIR"
@@ -336,7 +338,7 @@ terraform -chdir=infra/foundation show -no-color foundation.tfplan
 
 ```
 
-ตรวจplan: databaseชื่อlab006-files/FIRESTORE_NATIVE/asia-southeast1 ไม่ใช่(default), protectionเปิด/PREVENT, bucketsชื่อตรงตัวแปรไม่ซ้ำกัน/publicaccessprevention/uniform/force_destroyfalse, lifecycle2วัน/softdelete7วัน, SA5ชุดและcustomroleget/create/signBlobตามmatrix ไม่มีSecretversion/privatekey/CloudRun/Eventarctriggerหรือresourceลบของระบบอื่น ถ้าไม่ตรงอย่าapply
+ตรวจ plan: database ชื่อ lab006-files/FIRESTORE_NATIVE/asia-southeast1 ไม่ใช่(default), protection เปิด/PREVENT, buckets ชื่อตรงตัวแปรไม่ซ้ำกัน/publicaccessprevention/uniform/force_destroyfalse, lifecycle2 วัน/softdelete7 วัน, SA5 ชุดและ customroleget/create/signBlob ตาม matrix ไม่มี Secretversion/privatekey/CloudRun/Eventarctrigger หรือ resource ลบของระบบอื่น ถ้าไม่ตรงอย่า apply
 
 ```bash
 terraform -chdir=infra/foundation apply foundation.tfplan
@@ -350,20 +352,20 @@ gcloud secrets get-iam-policy lab006-auth
 
 ```
 
-เปิด Console → Firestore → Databases → lab006-files ตรวจlocation/type/protection แล้วเปิดTTLpoliciesตรวจdelete_afterของjobs/idempotency/owner_quotas รอpolicyพร้อมตามoperationเดิม ไม่สร้างdatabaseซ้ำชื่ออื่นเพราะรอ จากนั้นStorage → bucketsแต่ละใบ → Permissions/Protection/Lifecycle ตรวจไม่publicและretentionตามแบบ
+เปิด Console → Firestore → Databases → lab006-files ตรวจ location/type/protection แล้วเปิด TTLpolicies ตรวจ delete_after ของ jobs/idempotency/owner_quotas รอ policy พร้อมตาม operation เดิม ไม่สร้าง database ซ้ำชื่ออื่นเพราะรอ จากนั้น Storage → buckets แต่ละใบ → Permissions/Protection/Lifecycle ตรวจไม่ public และ retention ตามแบบ
 
-**Expected:** ไม่มีallUsers/allAuthenticatedUsersที่bucket; upload signerมีcreateincomingอย่างเดียว, workergetincoming/create+getresults, download signergetresults, portalไม่มีobjectaccessโดยตรง ส่วนauthSecretAccessorให้portalเท่านั้น ต้องตรวจinheritedproject/orggrantsร่วมด้วย policyระดับbucketไม่ได้ถอนสิทธิ์กว้างที่มีอยู่ก่อน
+**Expected:** ไม่มี allUsers/allAuthenticatedUsers ที่ bucket; upload signer มี createincoming อย่างเดียว, workergetincoming/create+getresults, download signergetresults, portal ไม่มี objectaccess โดยตรง ส่วน authSecretAccessor ให้ portal เท่านั้น ต้องตรวจ inheritedproject/orggrants ร่วมด้วย policy ระดับ bucket ไม่ได้ถอนสิทธิ์กว้างที่มีอยู่ก่อน
 
-FirestoreIAMconditionต้องชี้databaseนี้โดยเฉพาะ ไม่ได้แยกสิทธิ์เป็นรายcollectionหรือรายAppuser และConsoleผู้ดูแลไม่ใช่หลักฐานว่าruntimeSAถูกจำกัดจริง TTL/lifecycleไม่รับประกันลบตรงเวลา softdeleteอาจเก็บของต่อ7วันและคิดค่าใช้จ่าย
+FirestoreIAMcondition ต้องชี้ database นี้โดยเฉพาะ ไม่ได้แยกสิทธิ์เป็นราย collection หรือราย Appuser และ Console ผู้ดูแลไม่ใช่หลักฐานว่า runtimeSA ถูกจำกัดจริง TTL/lifecycle ไม่รับประกันลบตรงเวลา softdelete อาจเก็บของต่อ 7 วันและคิดค่าใช้จ่าย
 
-**ถ้าไม่ผ่าน:** bucketnameชนให้เลือกชื่อใหม่ก่อนapply ไม่importbucketคนอื่น; permissioncustomrole/SAให้แก้สิทธิ์ผู้deploy ไม่ให้runtimeOwner; API/TTLoperationยังรันให้ตรวจoperationเดิมจนterminalก่อนapplyใหม่; Firestorelocationผิดให้หยุด ไม่ลบdatabaseเพื่อแก้แบบเดาสุ่ม
+**ถ้าไม่ผ่าน:** bucketname ชนให้เลือกชื่อใหม่ก่อน apply ไม่ importbucket คนอื่น; permissioncustomrole/SA ให้แก้สิทธิ์ผู้ deploy ไม่ให้ runtimeOwner; API/TTLoperation ยังรันให้ตรวจ operation เดิมจน terminal ก่อน apply ใหม่; Firestorelocation ผิดให้หยุด ไม่ลบ database เพื่อแก้แบบเดาสุ่ม
 
-**จุดบันทึก T01:** reviewedplan …; bucketpolicy/retention …; database/location/protection …; TTLสถานะ …; IAMcondition/runtimeSAที่ตรวจ …; inheritedgrants/ข้อจำกัด …; error/วิธีแก้ …  
-**เกณฑ์ไปต่อ:** foundationตรงDesignและstateถูกเก็บ ไม่ใช่เพียงexit0
+**จุดบันทึก T01:** reviewedplan …; bucketpolicy/retention …; database/location/protection …; TTL สถานะ …; IAMcondition/runtimeSA ที่ตรวจ …; inheritedgrants/ข้อจำกัด …; error/วิธีแก้ …  
+**เกณฑ์ไปต่อ:** foundation ตรง Design และ state ถูกเก็บ ไม่ใช่เพียง exit0
 
 ### Task 2 — สร้างบัญชีสังเคราะห์และ Secret version
 
-**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR ห้ามset-x, gcloud--log-http หรือถ่ายภาพไฟล์ที่มีรหัส
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR ห้าม set-x, gcloud--log-http หรือถ่ายภาพไฟล์ที่มีรหัส
 
 ```bash
 cd "$LAB_DIR"
@@ -378,17 +380,17 @@ gcloud secrets versions list lab006-auth --format='table(name,state)'
 
 ```
 
-**Expected:** generatorพิมพ์เฉพาะeventไม่พิมพ์รหัส, secretsdirectorymode700/auth.jsonกับdemo-logins.jsonmode600, AUTH_VERSIONเป็นเลขและENABLED auth.jsonมีhash/sessionkey ไม่มีplaintextpassword ส่วนdemo-logins.jsonเป็นprivateสำหรับอ่านรหัสตอนBrowserlogin ไม่อัปโหลดไฟล์นี้เป็นSecretที่Appไม่ต้องใช้
+**Expected:** generator พิมพ์เฉพาะ event ไม่พิมพ์รหัส, secretsdirectorymode700/auth.json กับ demo-logins.jsonmode600, AUTH_VERSION เป็นเลขและ ENABLED auth.json มี hash/sessionkey ไม่มี plaintextpassword ส่วน demo-logins.json เป็น private สำหรับอ่านรหัสตอน Browserlogin ไม่อัปโหลดไฟล์นี้เป็น Secret ที่ App ไม่ต้องใช้
 
-ถ้าdirectoryมีอยู่generatorจะปฏิเสธ อย่าลบเพื่อข้ามการป้องกันหรือออกbundleใหม่แล้วเปลี่ยนversionโดยไม่รู้ว่าใช้อะไรอยู่ หากuploadversionล้มให้ตรวจversionslistก่อนรันใหม่ ไม่ใช้latestเพื่อเลี่ยงการตัดสินใจ deploymentจะmountnumericversionและAppอ่านตอนstartup ถ้าmountอ่านไม่ได้ต้องแก้IAM/version ไม่ปิดauth
+ถ้า directory มีอยู่ generator จะปฏิเสธ อย่าลบเพื่อข้ามการป้องกันหรือออก bundle ใหม่แล้วเปลี่ยน version โดยไม่รู้ว่าใช้อะไรอยู่ หาก uploadversion ล้มให้ตรวจ versionslist ก่อนรันใหม่ ไม่ใช้ latest เพื่อเลี่ยงการตัดสินใจ deployment จะ mountnumericversion และ App อ่านตอน startup ถ้า mount อ่านไม่ได้ต้องแก้ IAM/version ไม่ปิด auth
 
-**จุดบันทึก T02:** AUTH_VERSION …; versionENABLED/IAM …; privatefilepermissionsที่ตรวจ …; ข้อผิดพลาด/retest …  
-ไม่บันทึกรหัส/passwordhash/sessionkey/payloadลงช่องนี้  
-**เกณฑ์ไปต่อ:** versionที่ตั้งใจใช้ชัดเจนและruntimeportalอ่านได้ตามpolicy workerไม่มีสิทธิ์อ่านauthSecret
+**จุดบันทึก T02:** AUTH_VERSION …; versionENABLED/IAM …; privatefilepermissions ที่ตรวจ …; ข้อผิดพลาด/retest …  
+ไม่บันทึกรหัส/passwordhash/sessionkey/payload ลงช่องนี้  
+**เกณฑ์ไปต่อ:** version ที่ตั้งใจใช้ชัดเจนและ runtimeportal อ่านได้ตาม policy worker ไม่มีสิทธิ์อ่าน authSecret
 
 ### Task 3 — Build และบันทึก image digest
 
-**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR; buildจากcheckoutSOURCE_COMMITที่สะอาด ไม่คัดลอกsecretsเข้าapp โครงDockerใช้explicitCOPY/dockerignoreแต่ผู้เรียนยังต้องตรวจไฟล์ก่อนbuild
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR; build จาก checkoutSOURCE_COMMIT ที่สะอาด ไม่คัดลอก secrets เข้า app โครง Docker ใช้ explicitCOPY/dockerignore แต่ผู้เรียนยังต้องตรวจไฟล์ก่อน build
 
 ```bash
 cd "$LAB_DIR"
@@ -407,18 +409,18 @@ printf 'Pinned image: %s\n' "$PINNED_IMAGE"
 
 ```
 
-**Expected:** digestเป็นsha256ตามด้วย64hex, PINNED_IMAGEอยู่repository/projectนี้และอ้าง@sha256ไม่ใช่tag ตรวจJSONจากdescribeร่วมด้วย หากfieldว่างหรือpushไม่สำเร็จให้หยุด ไม่แต่งdigestหรือใช้tagแทน [Artifact Registry describe](https://docs.cloud.google.com/sdk/gcloud/reference/artifacts/docker/images/describe)
+**Expected:** digest เป็น sha256 ตามด้วย 64hex, PINNED_IMAGE อยู่ repository/project นี้และอ้าง@sha256 ไม่ใช่ tag ตรวจ JSON จาก describe ร่วมด้วย หาก field ว่างหรือ push ไม่สำเร็จให้หยุด ไม่แต่ง digest หรือใช้ tag แทน [Artifact Registry describe](https://docs.cloud.google.com/sdk/gcloud/reference/artifacts/docker/images/describe)
 
-SourceimageรวมPortalและworker เลือกSERVICE_ROLEตอนruntime USER10001:10001 ไม่มีtests/fixtures/privatebundleในimage การbuildสำเร็จยังไม่พิสูจน์Firestore/Storage/IAMหรือCloudRunstartup Baseimageแม้ตรึงversiontagยังอาจถูกrebuild และpipdependenciesชั้นล่างอาจเปลี่ยน จึงจดbase/image digestจริง ไม่อ้างbit-identicalrebuildจากชื่อtagอย่างเดียว
+Sourceimage รวม Portal และ worker เลือก SERVICE_ROLE ตอน runtime USER10001:10001 ไม่มี tests/fixtures/privatebundle ใน image การ build สำเร็จยังไม่พิสูจน์ Firestore/Storage/IAM หรือ CloudRunstartup Baseimage แม้ตรึง versiontag ยังอาจถูก rebuild และ pipdependencies ชั้นล่างอาจเปลี่ยน จึงจด base/image digest จริง ไม่อ้าง bit-identicalrebuild จากชื่อ tag อย่างเดียว
 
-หากdockerpermission/daemonไม่พร้อมให้แก้CloudShellruntimeหรือเลือกcloudbuildenvironmentที่ได้รับอนุญาตก่อน ไม่ย้ายไปทำบนlaptopเพื่อพึ่งเครื่องเปิดค้าง หากpush403ตรวจArtifactRegistrywriterของผู้deploy ไม่เพิ่มstorageadminให้signer
+หาก dockerpermission/daemon ไม่พร้อมให้แก้ CloudShellruntime หรือเลือก cloudbuildenvironment ที่ได้รับอนุญาตก่อน ไม่ย้ายไปทำบน laptop เพื่อพึ่งเครื่องเปิดค้าง หาก push403 ตรวจ ArtifactRegistrywriter ของผู้ deploy ไม่เพิ่ม storageadmin ให้ signer
 
-**จุดบันทึก T03:** commit/workingtreestatus …; baseRepoDigests …; buildเวลา …; IMAGE_TAG/digest/PINNED_IMAGE …; registrydescribeที่ตรวจ …; ปัญหา/retest …  
-**เกณฑ์ไปต่อ:** imageมีอยู่จริงในregistryและdigestถูกต้อง เก็บv1digestไว้ใช้backoutภายหลัง
+**จุดบันทึก T03:** commit/workingtreestatus …; baseRepoDigests …; build เวลา …; IMAGE_TAG/digest/PINNED_IMAGE …; registrydescribe ที่ตรวจ …; ปัญหา/retest …  
+**เกณฑ์ไปต่อ:** image มีอยู่จริงใน registry และ digest ถูกต้อง เก็บ v1digest ไว้ใช้ backout ภายหลัง
 
 ### Task 4 — เปิด Portal/worker และ Eventarc แล้วตั้ง CORS เฉพาะ origin
 
-**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR ใช้foundationstate/variablesชุดเดิมและauthversion/imageจากT02–03
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR ใช้ foundationstate/variables ชุดเดิมและ authversion/image จาก T02–03
 
 ```bash
 export TF_VAR_image="$PINNED_IMAGE"
@@ -433,7 +435,7 @@ terraform -chdir=infra/workloads show -no-color workloads.tfplan
 
 ```
 
-ตรวจplan: Portal/workerคนละSA/roleแต่imageเดียว@digest, maxinstances2, Portalconcurrency8/30s worker1/60s, numericSecretmountเฉพาะPortal, /livezprobes, Eventarctypefinalized+incomingbucketในasia-southeast1/path/events/storage; workerinvokerเฉพาะportal/triggerSA ไม่มีallUsers มีpublicinvokerเฉพาะPortalเพื่อเข้าlogin ไม่ให้portalอ่านไฟล์ตรงหรือworkerอ่านauthSecret
+ตรวจ plan: Portal/worker คนละ SA/role แต่ image เดียว@digest, maxinstances2, Portalconcurrency8/30s worker1/60s, numericSecretmount เฉพาะ Portal, /livezprobes, Eventarctypefinalized+incomingbucket ใน asia-southeast1/path/events/storage; workerinvoker เฉพาะ portal/triggerSA ไม่มี allUsers มี publicinvoker เฉพาะ Portal เพื่อเข้า login ไม่ให้ portal อ่านไฟล์ตรงหรือ worker อ่าน authSecret
 
 ```bash
 terraform -chdir=infra/workloads apply workloads.tfplan
@@ -446,11 +448,11 @@ gcloud eventarc triggers describe lab006-incoming-finalized --location="$REGION"
 
 ```
 
-Console → Cloud Run → แต่ละservice → Revisions/Logs ตรวจreadyrevision, digest, runtimeSA, Secretmountและcontainerstartup ไม่ถือว่าapplyexit0แทนHTTPready Eventarc → Triggers → lab006-incoming-finalized ตรวจsource/region/destination/identityและสถานะพร้อม หากserviceagent/IAMpropagationยังไม่พร้อมให้ดูoperation/errorเดิม ไม่สร้างtriggerชื่อใหม่ซ้ำ
+Console → Cloud Run → แต่ละ service → Revisions/Logs ตรวจ readyrevision, digest, runtimeSA, Secretmount และ containerstartup ไม่ถือว่า applyexit0 แทน HTTPready Eventarc → Triggers → lab006-incoming-finalized ตรวจ source/region/destination/identity และสถานะพร้อม หาก serviceagent/IAMpropagation ยังไม่พร้อมให้ดู operation/error เดิม ไม่สร้าง trigger ชื่อใหม่ซ้ำ
 
-workerมีHTTPSURLที่เข้าถึงnetworkได้แต่ต้องIAMauthentication ไม่ใช่privateVPCendpoint ต้องไม่มีpublicinvoker ที่Portalstartupอ่านauthmountmode0444ภายในtrustedcontainerสำหรับnonroot ไม่อ้างfilemodeแทนper-processCloudIAM
+worker มี HTTPSURL ที่เข้าถึง network ได้แต่ต้อง IAMauthentication ไม่ใช่ privateVPCendpoint ต้องไม่มี publicinvoker ที่ Portalstartup อ่าน authmountmode0444 ภายใน trustedcontainer สำหรับ nonroot ไม่อ้าง filemode แทน per-processCloudIAM
 
-เมื่อได้PortalURLจริงจึงกลับfoundationตั้งCORS:
+เมื่อได้ PortalURL จริงจึงกลับ foundation ตั้ง CORS:
 
 ```bash
 export TF_VAR_portal_origin="$PORTAL_URL"
@@ -463,30 +465,30 @@ curl --silent --show-error --max-time 15 --output /dev/null --write-out '%{http_
 
 ```
 
-**ReviewCORSplan:** เปลี่ยนเฉพาะincomingCORSให้ตรงPortalURL ไม่มีwildcard ไม่มีผลกับresultsbucket/Secret/IAM ถ้ามีdiffอื่นต้องเข้าใจก่อนapply **Expected:** Portal/livez200และ/healthzready; anonymousworkerต้องถูกplatformปฏิเสธ(โดยทั่วไป403) หากได้200ให้หยุดตรวจIAM/inheritedgrantsก่อนทดสอบไฟล์ CORSไม่ได้ทำให้bucketpublicและไม่ใช่authentication
+**ReviewCORSplan:** เปลี่ยนเฉพาะ incomingCORS ให้ตรง PortalURL ไม่มี wildcard ไม่มีผลกับ resultsbucket/Secret/IAM ถ้ามี diff อื่นต้องเข้าใจก่อน apply **Expected:** Portal/livez200 และ/healthzready; anonymous worker ต้องถูก platform ปฏิเสธ(โดยทั่วไป 403) หากได้ 200 ให้หยุดตรวจ IAM/inheritedgrants ก่อนทดสอบไฟล์ CORS ไม่ได้ทำให้ bucketpublic และไม่ใช่ authentication
 
 | อาการ | จุดเริ่มตรวจ |
 |---|---|
-| Portalrevisionไม่ready | AUTH_FILE/mount/numericversion/SecretAccessor, startupJSONและerrorที่ปลอดภัย ไม่พิมพ์Secret |
-| livez200แต่healthz503 | namedFirestore/condition/runtimeSA/metadataread ไม่เพิ่มEditorเพื่อข้าม |
-| uploadถูกBrowserCORSblock | exactPortalorigin/POSTpolicyendpointและCORSpropagation ไม่ตั้งwildcard/ปิดBrowsersecurity |
-| Workeranonymous200 | serviceIAM/inheritedrun.invoker ต้องแก้ก่อนทำLabต่อ |
-| Triggerไม่ส่งงาน | filterbucket/location, Storageagentpublisher, triggerSAeventReceiver/workerinvokerและoperation ไม่ใช้manualHTTPแทนแล้วอ้างEventarcผ่าน |
+| Portalrevision ไม่ ready | AUTH_FILE/mount/numericversion/SecretAccessor, startupJSON และ error ที่ปลอดภัย ไม่พิมพ์ Secret |
+| livez200 แต่ healthz503 | namedFirestore/condition/runtimeSA/metadataread ไม่เพิ่ม Editor เพื่อข้าม |
+| upload ถูก BrowserCORSblock | exactPortalorigin/POSTpolicyendpoint และ CORSpropagation ไม่ตั้ง wildcard/ปิด Browsersecurity |
+| Workeranonymous200 | serviceIAM/inheritedrun.invoker ต้องแก้ก่อนทำ Lab ต่อ |
+| Trigger ไม่ส่งงาน | filterbucket/location, Storageagentpublisher, triggerSAeventReceiver/workerinvoker และ operation ไม่ใช้ manualHTTP แทนแล้วอ้าง Eventarc ผ่าน |
 
-**จุดบันทึก T04:** image/Secretversion/revisionIDs …; Portal/workerSA …; workerIAM/anonymousstatus …; triggerregion/filter/destination/status …; CORSdiff/origin …; livez-healthzผล …; error/แก้/retest …  
-**เกณฑ์ไปต่อ:** Portalพร้อม, workerไม่anonymous, triggerตรงแบบและCORSเฉพาะorigin ตอนนี้ยังไม่ถือว่าbusinessflowหรือGCSsignedpermissionผ่าน ต้องพิสูจน์ด้วยไฟล์จริงในTasksถัดไป
+**จุดบันทึก T04:** image/Secretversion/revisionIDs …; Portal/workerSA …; workerIAM/anonymousstatus …; triggerregion/filter/destination/status …; CORSdiff/origin …; livez-healthz ผล …; error/แก้/retest …  
+**เกณฑ์ไปต่อ:** Portal พร้อม, worker ไม่ anonymous, trigger ตรงแบบและ CORS เฉพาะ origin ตอนนี้ยังไม่ถือว่า businessflow หรือ GCSsignedpermission ผ่าน ต้องพิสูจน์ด้วยไฟล์จริงใน Tasks ถัดไป
 
 ### Task 5 — อัปโหลด CSV และพิสูจน์รายงานจากไฟล์จริง
 
-**ทำที่ไหน:** Browser ที่ PORTAL_URL ของคุณ และ Cloud Shell สำหรับเทียบผล ไม่ใช้ภาพหรือผล CI เป็น Actual ของGCP
+**ทำที่ไหน:** Browser ที่ PORTAL_URL ของคุณ และ Cloud Shell สำหรับเทียบผล ไม่ใช้ภาพหรือผล CI เป็น Actual ของ GCP
 
-1. ใน Cloud Shell Editor เปิดโฟลเดอร์ fixtures แล้วดาวน์โหลด valid-sales.csv แบบไฟล์เดิม ไม่คัดลอกผ่านโปรแกรมตารางที่อาจเปลี่ยนencoding/ราคา/lineendings ไฟล์นี้มี3รายการ/6หน่วย/ยอดรวม72,400สตางค์
-2. เปิด private file secrets/demo-logins.json ใน Cloud Shell Editor อ่านรหัสalice แล้วปิดไฟล์ ห้ามพิมพ์ทั้งไฟล์ลงterminal/ถ่ายภาพรหัส
-3. BrowserเปิดPortal loginalice เลือกvalid-sales.csv กด “ส่งไฟล์ / ทำคำขอเดิมต่อ” หนึ่งครั้ง จดjobUUIDที่รายการงาน
-4. ตรวจสถานะawaiting_upload/processing/succeededตามที่เห็นจริง งานเล็กอาจจบเร็วจนไม่เห็นสถานะกลาง ไม่แต่งtimelineให้ครบทุกสถานะ หากpollครบ30รอบให้กดรายละเอียด/โหลดรายการใหม่ ไม่ถือว่าครบpollแล้วworkerต้องfailed
-5. เมื่อsucceeded กดดาวน์โหลดJSONของงานนี้ ข้อมูลรายงานต้องมีrows3/units6/total_satang72400, BOOK-01จำนวน5ยอด62500และUSB-01จำนวน1ยอด9900 พร้อมinput_sha256กับprocessor_versionv1
-6. ไม่เปิดหรือแชร์signedURLให้คนอื่น ผู้ที่ได้ลิงก์อาจใช้ได้จนหมดอายุ การlogoutไม่เพิกถอนลิงก์ที่ออกไปแล้ว
-7. นำไฟล์summary.jsonที่ดาวน์โหลดจริงขึ้นCloudShellผ่านเมนูUpload file ไปยังพื้นที่ส่วนตัว แล้วใช้คำสั่งตรวจด้านล่าง โดยใส่pathของไฟล์จริง อย่าใช้fixtures/valid-sales.expected.jsonแทนไฟล์ดาวน์โหลด
+1. ใน Cloud Shell Editor เปิดโฟลเดอร์ fixtures แล้วดาวน์โหลด valid-sales.csv แบบไฟล์เดิม ไม่คัดลอกผ่านโปรแกรมตารางที่อาจเปลี่ยน encoding/ราคา/lineendings ไฟล์นี้มี 3 รายการ/6 หน่วย/ยอดรวม 72,400 สตางค์
+2. เปิด private file secrets/demo-logins.json ใน Cloud Shell Editor อ่านรหัส alice แล้วปิดไฟล์ ห้ามพิมพ์ทั้งไฟล์ลง terminal/ถ่ายภาพรหัส
+3. Browser เปิด Portal login alice เลือก valid-sales.csv กด “ส่งไฟล์ / ทำคำขอเดิมต่อ” หนึ่งครั้ง จด jobUUID ที่รายการงาน
+4. ตรวจสถานะ awaiting_upload/processing/succeeded ตามที่เห็นจริง งานเล็กอาจจบเร็วจนไม่เห็นสถานะกลาง ไม่แต่ง timeline ให้ครบทุกสถานะ หาก poll ครบ 30 รอบให้กดรายละเอียด/โหลดรายการใหม่ ไม่ถือว่าครบ poll แล้ว worker ต้อง failed
+5. เมื่อ succeeded กดดาวน์โหลด JSON ของงานนี้ ข้อมูลรายงานต้องมี rows3/units6/total_satang72400, BOOK-01 จำนวน 5 ยอด 62500 และ USB-01 จำนวน 1 ยอด 9900 พร้อม input_sha256 กับ processor_versionv1
+6. ไม่เปิดหรือแชร์ signedURL ให้คนอื่น ผู้ที่ได้ลิงก์อาจใช้ได้จนหมดอายุ การ logout ไม่เพิกถอนลิงก์ที่ออกไปแล้ว
+7. นำไฟล์ summary.json ที่ดาวน์โหลดจริงขึ้น CloudShell ผ่านเมนู Upload file ไปยังพื้นที่ส่วนตัว แล้วใช้คำสั่งตรวจด้านล่าง โดยใส่ path ของไฟล์จริง อย่าใช้ fixtures/valid-sales.expected.json แทนไฟล์ดาวน์โหลด
 
 ```bash
 cd "$LAB_DIR"
@@ -495,39 +497,39 @@ sha256sum fixtures/valid-sales.csv
 
 ```
 
-**Expected:** eventreport_matches_fixture, rows3/units6/total_satang72400และSHAตรงbytesต้นฉบับ เครื่องมือนี้ตรวจทุกfieldกับcanonicaldomainresult อ่านแบบboundedและปฏิเสธduplicateJSONkeys/NaN/ผลผิด ไม่ติดต่อGCPหรือพิมพ์credentials ถ้าไม่ตรงให้เก็บไฟล์/UUID/sourcecommit/เวลาและตรวจinputgeneration/workerimageก่อน ไม่แก้รายงานให้ตัวเลขผ่าน
+**Expected:** eventreport_matches_fixture, rows3/units6/total_satang72400 และ SHA ตรง bytes ต้นฉบับ เครื่องมือนี้ตรวจทุก field กับ canonicaldomainresult อ่านแบบ bounded และปฏิเสธ duplicateJSONkeys/NaN/ผลผิด ไม่ติดต่อ GCP หรือพิมพ์ credentials ถ้าไม่ตรงให้เก็บไฟล์/UUID/sourcecommit/เวลาและตรวจ inputgeneration/workerimage ก่อน ไม่แก้รายงานให้ตัวเลขผ่าน
 
-Cloud Shell → Console → Firestore → lab006-files → jobs → UUIDนี้ ตรวจstate/input_generation/input_sha256/output_generation/output_sha256 สัมพันธ์กับไฟล์ที่สร้างจริง และStorage → incoming/results ตรวจชื่อobjectตามjob/generation/processorversion ไม่ใช้จำนวนeventIDsแทนจำนวนlogicalresults
+Cloud Shell → Console → Firestore → lab006-files → jobs → UUID นี้ ตรวจ state/input_generation/input_sha256/output_generation/output_sha256 สัมพันธ์กับไฟล์ที่สร้างจริง และ Storage → incoming/results ตรวจชื่อ object ตาม job/generation/processorversion ไม่ใช้จำนวน eventIDs แทนจำนวน logicalresults
 
-**เมื่อresponseหาย:** UIเก็บkey/ชื่อไฟล์/SHAก่อนcreate และเก็บjobIDเมื่อได้รับคำตอบ หากค้างให้เลือกไฟล์เดิมแล้วกดทำคำขอเดิมต่อ ไม่ล้างsessionStorageหรือสร้างkeyใหม่เพื่อหลบerror ตรวจjob/list/Storageก่อนสรุปว่าการอัปโหลดไม่สำเร็จ หากStorageตอบduplicateobjectในช่วงรอeventให้ตรวจงานเดิมต่อ ไม่ลบincomingแล้วอัปโหลดทับ
+**เมื่อ response หาย:** UI เก็บ key/ชื่อไฟล์/SHA ก่อน create และเก็บ jobID เมื่อได้รับคำตอบ หากค้างให้เลือกไฟล์เดิมแล้วกดทำคำขอเดิมต่อ ไม่ล้าง sessionStorage หรือสร้าง key ใหม่เพื่อหลบ error ตรวจ job/list/Storage ก่อนสรุปว่าการอัปโหลดไม่สำเร็จ หาก Storage ตอบ duplicateobject ในช่วงรอ event ให้ตรวจงานเดิมต่อ ไม่ลบ incoming แล้วอัปโหลดทับ
 
 **ถ้าไม่สำเร็จ**
 
 | อาการ | เริ่มตรวจ |
 |---|---|
-| awaiting_uploadค้าง | BrowserStorageHTTP/CORS, policyexpiry/key/MIME/size และobjectมีจริงหรือไม่ |
-| objectมีแต่jobยังรอ | Eventarctrigger/filter/transport/workerIAMและlogs ไม่สร้างjobใหม่ |
-| processingค้าง | lease/attempt/history, workerdependencyerror, generationที่อ่าน และexpiry |
-| rejected | safe_reason/fixturebytes ไม่ใช่แก้IAMเพื่อให้CSVผิดผ่าน |
-| failed_integrity | outputเดิมผิดbytes/metadata ให้หยุดตรวจ ไม่overwriteหรือoperatorretryกลบ |
-| succeededแต่downloadไม่ได้ | owner/expiry/downloadsignergetresults/signBlob ไม่เปิดbucketpublic |
+| awaiting_upload ค้าง | BrowserStorageHTTP/CORS, policyexpiry/key/MIME/size และ object มีจริงหรือไม่ |
+| object มีแต่ job ยังรอ | Eventarctrigger/filter/transport/workerIAM และ logs ไม่สร้าง job ใหม่ |
+| processing ค้าง | lease/attempt/history, workerdependencyerror, generation ที่อ่าน และ expiry |
+| rejected | safe_reason/fixturebytes ไม่ใช่แก้ IAM เพื่อให้ CSV ผิดผ่าน |
+| failed_integrity | output เดิมผิด bytes/metadata ให้หยุดตรวจ ไม่ overwrite หรือ operatorretry กลบ |
+| succeeded แต่ download ไม่ได้ | owner/expiry/downloadsignergetresults/signBlob ไม่เปิด bucketpublic |
 
 **จุดบันทึก T05**
 
 | จุดตรวจ | Expected | Actual / หลักฐานของคุณ |
 |---|---|---|
-| Sourcefixture/SHA | ไฟล์เดิมจากcommitที่บันทึก | … |
-| jobUUID/owner | alice/งานเดียวตามlogicalrequest | … |
-| StorageHTTP/statusที่เห็น | ส่งสำเร็จแล้วประมวลผล ไม่เดาสถานะที่ไม่เห็น | … |
-| รายงานที่ดาวน์โหลด | 3rows/6units/72400satang/SHAตรง | … |
-| input/outputgenerations/workerrevision | เชื่อมกับjobและreportได้ | … |
-| responseขาดหายถ้ามี | keyเดิม/วิธีresolve/ผลแน่นอน | … |
+| Sourcefixture/SHA | ไฟล์เดิมจาก commit ที่บันทึก | … |
+| jobUUID/owner | alice/งานเดียวตาม logicalrequest | … |
+| StorageHTTP/status ที่เห็น | ส่งสำเร็จแล้วประมวลผล ไม่เดาสถานะที่ไม่เห็น | … |
+| รายงานที่ดาวน์โหลด | 3rows/6units/72400satang/SHA ตรง | … |
+| input/outputgenerations/workerrevision | เชื่อมกับ job และ report ได้ | … |
+| response ขาดหายถ้ามี | key เดิม/วิธี resolve/ผลแน่นอน | … |
 
-**เกณฑ์ไปต่อ:** แยกได้ว่าระบบรับไฟล์ ประมวลผล และคืนรายงานถูกต้องจากหลักฐานจริง ไม่ใช่เพียงstatusชื่อsucceededหรือหน้าเว็บเปิดได้
+**เกณฑ์ไปต่อ:** แยกได้ว่าระบบรับไฟล์ ประมวลผล และคืนรายงานถูกต้องจากหลักฐานจริง ไม่ใช่เพียง status ชื่อ succeeded หรือหน้าเว็บเปิดได้
 
 ### Task 6 — ทดสอบไฟล์ผิดเงื่อนไขและสิทธิ์ข้ามบัญชี
 
-**ก่อนเริ่ม:** T05ปกติ, budget/จำนวนงานยังอยู่ในเพดาน ใช้ข้อมูลสังเคราะห์ ไม่มีwriterอื่นกดทดสอบพร้อมกัน แต่ละfixtureที่ผิดคือlogicaljobใหม่ที่ตั้งใจสร้าง ไม่ใช้การเปลี่ยนไฟล์ในpendingrequestเดิมเพื่อเลี่ยงfingerprintguard
+**ก่อนเริ่ม:** T05 ปกติ, budget/จำนวนงานยังอยู่ในเพดาน ใช้ข้อมูลสังเคราะห์ ไม่มี writer อื่นกดทดสอบพร้อมกัน แต่ละ fixture ที่ผิดคือ logical job ใหม่ที่ตั้งใจสร้าง ไม่ใช้การเปลี่ยนไฟล์ใน pending request เดิมเพื่อเลี่ยง fingerprint guard
 
 #### Validation ที่ worker ต้องตรวจ
 
@@ -544,21 +546,21 @@ mkdir -p .build
 
 | Fixture | Expected / สิ่งที่ต้องพิสูจน์ |
 |---|---|
-| duplicate-sale-id.csv | rejected/duplicate_sale_id ไม่มีpublishedoutputของjobนี้ |
-| invalid-header.csv | rejected/invalid_header ไม่มีpublishedoutput |
-| invalid-quantity.csv | rejected/integer_out_of_range ไม่มีpublishedoutput |
+| duplicate-sale-id.csv | rejected/duplicate_sale_id ไม่มี published output ของ job นี้ |
+| invalid-header.csv | rejected/invalid_header ไม่มี published output |
+| invalid-quantity.csv | rejected/integer_out_of_range ไม่มี published output |
 | invalid-utf8.csv จากตัวสร้าง | rejected/invalid_utf8 ไม่มี published output ไม่ใช่ header error |
-| ไฟล์เกินbaseline1MiB | UIปฏิเสธก่อนcreate/upload; นี่พิสูจน์เฉพาะBrowserguard ไม่ใช่GCSpolicyenforcement |
+| ไฟล์เกิน baseline1MiB | UI ปฏิเสธก่อน create/upload; นี่พิสูจน์เฉพาะ Browser guard ไม่ใช่ GCS policy enforcement |
 
-ตรวจFirestorejobstate/safe_reasonและStorageprefixของUUIDแต่ละตัวด้วยสิทธิ์ผู้ดูแล การที่jobไม่มีปุ่มdownloadยังไม่พิสูจน์ว่าไม่มีoutputobject ต้องตรวจทั้งmetadataกับStorage ส่วนinvalidCSVอาจถูกเก็บในincomingจนlifecyclecleanup ไม่อ้างว่าrejectedหมายถึงลบไฟล์ต้นฉบับทันที
+ตรวจ Firestore job state/safe_reason และ Storage prefix ของ UUID แต่ละตัวด้วยสิทธิ์ผู้ดูแล การที่ job ไม่มีปุ่ม download ยังไม่พิสูจน์ว่าไม่มี output object ต้องตรวจทั้ง metadata กับ Storage ส่วน invalid CSV อาจถูกเก็บใน incoming จน lifecycle cleanup ไม่อ้างว่า rejected หมายถึงลบไฟล์ต้นฉบับทันที
 
-Validationfailureต้องackเป็นterminal ไม่วนattemptขึ้นเรื่อย ๆ เก็บhistoryสองจุดเวลาที่ห่างกันอย่างเหมาะสมและดูworkerlogs หากattemptเพิ่มไม่จบให้หยุดfault/retryและแก้การแยกterminal/transient ไม่เพิ่มretrybudgetเพื่อให้ดูสำเร็จ
+Validation failure ต้อง ack เป็น terminal ไม่วน attempt ขึ้นเรื่อย ๆ เก็บ history สองจุดเวลาที่ห่างกันอย่างเหมาะสมและดู worker logs หาก attempt เพิ่มไม่จบให้หยุด fault/retry และแก้การแยก terminal/transient ไม่เพิ่ม retry budget เพื่อให้ดูสำเร็จ
 
-การตรวจoversizedที่StorageจริงและMIMEปลอมต้องทำผ่านsignedrequestที่เปลี่ยนข้อมูลโดยตั้งใจและยังไม่เผยpolicy/tokenในlog ใช้ bounded tool ใน Task 7 ไม่ใช้ผลUIguardแทนการพิสูจน์R3ทั้งหมด
+การตรวจ oversized ที่ Storage จริงและ MIME ปลอมต้องทำผ่าน signed request ที่เปลี่ยนข้อมูลโดยตั้งใจและยังไม่เผย policy/token ใน log ใช้ bounded tool ใน Task 7 ไม่ใช้ผล UI guard แทนการพิสูจน์ R3 ทั้งหมด
 
 #### Owner/role และ CSRF แยกจาก Cloud IAM
 
-เปิดBrowserprofileหรือprivatewindowอีกชุด loginbob ใส่alicejobUUIDจากT05ในตัวอย่างด้านล่าง เปิดDevTools → ConsoleบนPortaloriginของคุณ คำสั่งนี้พิมพ์เฉพาะHTTPstatus ไม่พิมพ์cookie/CSRF/responseที่มีsignedURL:
+เปิด Browser profile หรือ private window อีกชุด login bob ใส่ alice job UUID จาก T05 ในตัวอย่างด้านล่าง เปิด DevTools → Console บน Portal origin ของคุณ คำสั่งนี้พิมพ์เฉพาะ HTTP status ไม่พิมพ์ cookie/CSRF/response ที่มี signedURL:
 
 ```javascript
 const aliceJob = 'ใส่-jobUUID-ของ-alice';
@@ -573,9 +575,9 @@ console.log({otherOwnerStatus:statusReply.status, otherOwnerLink:linkReply.statu
 
 ```
 
-**Expected:** bobได้404/404/403 แม้รู้UUID ไม่เห็นไฟล์หรือออกlinkแทนaliceได้ รายการbobไม่รวมalice อย่าcopyทั้งlinkReplybodyหรือHARเป็นหลักฐาน
+**Expected:** bob ได้ 404/404/403 แม้รู้ UUID ไม่เห็นไฟล์หรือออก link แทน alice ได้ รายการ bob ไม่รวม alice อย่า copy ทั้ง linkReply body หรือ HAR เป็นหลักฐาน
 
-ในหน้าที่loginaliceอยู่ ตรวจmutationที่ไม่มีCSRFโดยไม่ส่งtoken:
+ในหน้าที่ login alice อยู่ ตรวจ mutation ที่ไม่มี CSRF โดยไม่ส่ง token:
 
 ```javascript
 const csrfDenied = await fetch('/api/jobs/' + 'ใส่-jobUUID-ของ-alice' + '/download-link', {
@@ -585,19 +587,19 @@ console.log({missingCsrf:csrfDenied.status});
 
 ```
 
-**Expected:**403 ไม่ปิดCSRFเพื่อให้คำสั่งผ่าน จากนั้นในprofileที่ยังไม่login เปิด/api/jobsต้อง401 ส่วนloginoperatorต้องเห็นรายการ/รายละเอียดsafehistoryได้ แต่ไม่ได้สิทธิ์downloadของaliceโดยอัตโนมัติ หากเรียกdownload-linkของaliceในsessionoperatorพร้อมCSRFที่ถูกต้องต้อง404เหมือนnon-owner
+**Expected:**403 ไม่ปิด CSRF เพื่อให้คำสั่งผ่าน จากนั้นใน profile ที่ยังไม่ login เปิด/api/jobs ต้อง 401 ส่วน login operator ต้องเห็นรายการ/รายละเอียด safe history ได้ แต่ไม่ได้สิทธิ์ download ของ alice โดยอัตโนมัติ หากเรียก download-link ของ alice ใน session operator พร้อม CSRF ที่ถูกต้องต้อง 404 เหมือน non-owner
 
-ลองรหัสผิดเพียงครั้งเดียวต้องloginไม่สำเร็จ ไม่ยิงbruteforceหรือโหลดloginendpointเพื่อวัดperformance และไม่ใช้ApproleแทนCloudRunIAM: anonymousworkerต้องถูกplatformปฏิเสธตามT04แยกอีกหลักฐาน
+ลองรหัสผิดเพียงครั้งเดียวต้อง login ไม่สำเร็จ ไม่ยิง bruteforce หรือโหลด login endpoint เพื่อวัด performance และไม่ใช้ App role แทน Cloud Run IAM: anonymous worker ต้องถูก platform ปฏิเสธตาม T04 แยกอีกหลักฐาน
 
-**จุดบันทึก T06:** UUID/fixture/rejectedreason/outputprefixแต่ละกรณี …; historyก่อน/หลัง …; bobstatus/link/operatorlist …; anonymous401 …; missingCSRF403 …; operatorอ่านmetadataได้แต่ไม่download …; ข้อจำกัด เช่นยังไม่ทดสอบStorage-levelsize/MIME …  
-**เกณฑ์ไปต่อ:** ผลnegativeเชื่อมกับidentity/เวลา/UUIDได้ ไม่มีข้อมูลหรือcapabilityรั่ว และระบุส่วนที่ยังไม่ได้พิสูจน์ตามจริง ไม่ติ๊กR2/R3ครบจากtestใดtestหนึ่ง
+**จุดบันทึก T06:** UUID/fixture/rejected reason/output prefix แต่ละกรณี …; history ก่อน/หลัง …; bob status/link/operator list …; anonymous401 …; missingCSRF403 …; operator อ่าน metadata ได้แต่ไม่ download …; ข้อจำกัด เช่นยังไม่ทดสอบ Storage-level size/MIME …  
+**เกณฑ์ไปต่อ:** ผล negative เชื่อมกับ identity/เวลา/UUID ได้ ไม่มีข้อมูลหรือ capability รั่ว และระบุส่วนที่ยังไม่ได้พิสูจน์ตามจริง ไม่ติ๊ก R2/R3 ครบจาก test ใด test หนึ่ง
 
 
 ### Task 7 — ทดสอบ signed POST ที่ Storage โดยไม่พึ่ง UI guard
 
-**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR หลังT05–06ปกติ เครื่องมือนี้สร้างงานและส่งHTTPจริง มีค่าoperations/metadataตามบัญชีคุณ ใช้เฉพาะsandbox/PortalของLab ไม่ส่งไปบริการทีมอื่น
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR หลัง T05–06 ปกติ เครื่องมือนี้สร้างงานและส่ง HTTP จริง มีค่า operations/metadata ตามบัญชีคุณ ใช้เฉพาะ sandbox/Portal ของ Lab ไม่ส่งไปบริการทีมอื่น
 
-ก่อนเริ่มตรวจactivejobsของaliceยังไม่ถึง5และdailyquotaยังไม่ถึง20 งานnegativeที่Storageไม่รับอาจยังอยู่awaiting_uploadและนับactiveอยู่ ไม่ลบmetadataด้วยมือเพื่อหลบquota เก็บUUIDไว้ตรวจ/cleanupท้ายLab
+ก่อนเริ่มตรวจ activejobs ของ alice ยังไม่ถึง 5 และ dailyquota ยังไม่ถึง 20 งาน negative ที่ Storage ไม่รับอาจยังอยู่ awaiting_upload และนับ active อยู่ ไม่ลบ metadata ด้วยมือเพื่อหลบ quota เก็บ UUID ไว้ตรวจ/cleanup ท้าย Lab
 
 ```bash
 cd "$LAB_DIR"
@@ -607,28 +609,28 @@ cd "$LAB_DIR"
 
 ```
 
-รันทีละบรรทัดและอ่านผลก่อนต่อ ใช้journalคนละไฟล์ตามcase ไม่รันสองprocessกับjournalเดียวกัน เครื่องมือเก็บkeyก่อนcreate/เก็บjobIDก่อนขอpolicy อ่านรหัสจากprivatefile ไม่พิมพ์password/cookie/CSRF/policy/signature และไม่ตามredirect
+รันทีละบรรทัดและอ่านผลก่อนต่อ ใช้ journal คนละไฟล์ตาม case ไม่รันสอง process กับ journal เดียวกัน เครื่องมือเก็บ key ก่อน create/เก็บ jobID ก่อนขอ policy อ่านรหัสจาก privatefile ไม่พิมพ์ password/cookie/CSRF/policy/signature และไม่ตาม redirect
 
 | Case | สิ่งที่ส่ง | สิ่งที่ต้องตรวจ |
 |---|---|---|
-| positive | CSVเล็กตามcontract/MIMEตรง | Storage201 และjobนี้ประมวลผลได้ เป็นpositivecontrolของsigner/policyทางเข้า |
-| oversize | bytesมากกว่าsignedmax1byte แต่MIMEเดิม | Storageปฏิเสธเพราะเงื่อนไขขนาด พร้อมerrorcode/เหตุผลที่ตรง และไม่มีincomingobjectของUUIDนี้ |
-| mime | ขนาดเล็กแต่Content-Typeเปลี่ยนเป็นapplication/octet-stream | Storageปฏิเสธเงื่อนไขMIME/ลายเซ็นpolicy พร้อมไม่มีobjectของUUIDนี้ |
+| positive | CSV เล็กตาม contract/MIME ตรง | Storage201 และ job นี้ประมวลผลได้ เป็น positivecontrol ของ signer/policy ทางเข้า |
+| oversize | bytes มากกว่า signedmax1byte แต่ MIME เดิม | Storage ปฏิเสธเพราะเงื่อนไขขนาด พร้อม errorcode/เหตุผลที่ตรง และไม่มี incomingobject ของ UUID นี้ |
+| mime | ขนาดเล็กแต่ Content-Type เปลี่ยนเป็น application/octet-stream | Storage ปฏิเสธเงื่อนไข MIME/ลายเซ็น policy พร้อมไม่มี object ของ UUID นี้ |
 
-ผลอาจเป็น400หรือ403ตามสาเหตุ เครื่องมือรายงานstatus/errorcodeที่อ่านได้เท่านั้น **exit0หมายถึงเก็บobservationได้ ไม่ใช่PASS** หากpositivecontrolล้มให้หยุดแก้signBlob/Storagepermissions/expiryก่อนตีความnegative403 อย่าใช้AccessDeniedทั่วไปเพียงอย่างเดียวพิสูจน์size/MIME หากnegativeกลับ201ให้ถือว่าacceptanceไม่ผ่าน เก็บUUIDและตรวจงานที่อาจถูกสร้าง ไม่ลบผลแล้วทดลองซ้ำจนดูผ่าน
+ผลอาจเป็น 400 หรือ 403 ตามสาเหตุ เครื่องมือรายงาน status/errorcode ที่อ่านได้เท่านั้น **exit0 หมายถึงเก็บ observation ได้ ไม่ใช่ PASS** หาก positivecontrol ล้มให้หยุดแก้ signBlob/Storagepermissions/expiry ก่อนตีความ negative403 อย่าใช้ AccessDenied ทั่วไปเพียงอย่างเดียวพิสูจน์ size/MIME หาก negative กลับ 201 ให้ถือว่า acceptance ไม่ผ่าน เก็บ UUID และตรวจงานที่อาจถูกสร้าง ไม่ลบผลแล้วทดลองซ้ำจนดูผ่าน
 
-ใช้Console → Storage → incomingbucket → ค้นprefix incoming/UUID/source.csvของแต่ละjob ตรวจว่างานpositiveมีobject ส่วนnegativeไม่มี ตรวจFirestorestatusกับevent/logเวลาเดียวกันประกอบ การที่workerrejectภายหลังไม่ใช่หลักฐานว่าStoragepolicyปฏิเสธตั้งแต่ทางเข้า
+ใช้ Console → Storage → incomingbucket → ค้น prefix incoming/UUID/source.csv ของแต่ละ job ตรวจว่างาน positive มี object ส่วน negative ไม่มี ตรวจ Firestorestatus กับ event/log เวลาเดียวกันประกอบ การที่ workerreject ภายหลังไม่ใช่หลักฐานว่า Storagepolicy ปฏิเสธตั้งแต่ทางเข้า
 
-ถ้าtimeout/responseหาย เครื่องมือออกboundary_unresolvedและเก็บjournalเดิม ตรวจPortaljobกับStorageก่อนรันคำสั่งเดิม ห้ามใช้journalใหม่เพื่อเลี่ยงผลไม่แน่นอน หากมีterminalresultแล้วรันซ้ำจะได้stored_result_not_retestโดยไม่ยิงnetwork **ไม่ใช่การretest** ทดลองใหม่ด้วยjournalใหม่ได้เมื่อresolveและบันทึกรอบเดิมแล้วเท่านั้น
+ถ้า timeout/response หาย เครื่องมือออก boundary_unresolved และเก็บ journal เดิม ตรวจ Portaljob กับ Storage ก่อนรันคำสั่งเดิม ห้ามใช้ journal ใหม่เพื่อเลี่ยงผลไม่แน่นอน หากมี terminalresult แล้วรันซ้ำจะได้ stored_result_not_retest โดยไม่ยิง network **ไม่ใช่การ retest** ทดลองใหม่ด้วย journal ใหม่ได้เมื่อ resolve และบันทึกรอบเดิมแล้วเท่านั้น
 
-**จุดบันทึก T07:** positiveUUID/status/processingผล …; oversizeUUID/status/errorcode/objectabsence …; mimeUUID/status/errorcode/objectabsence …; policyversion/workerrevision/เวลา …; ข้อจำกัดหรือสาเหตุที่ยังสรุปไม่ได้ …; journalsที่ต้องเก็บprivate/งานค้าง …  
-**เกณฑ์ไปต่อ:** positivecontrolสำเร็จและnegativeมีหลักฐานตรงเงื่อนไขจริง แยกStorage-levelrejectionจากBrowserguardและworkerCSVvalidation ไม่แชร์policyหรือsignedURLลงหลักฐาน
+**จุดบันทึก T07:** positiveUUID/status/processing ผล …; oversizeUUID/status/errorcode/objectabsence …; mimeUUID/status/errorcode/objectabsence …; policyversion/workerrevision/เวลา …; ข้อจำกัดหรือสาเหตุที่ยังสรุปไม่ได้ …; journals ที่ต้องเก็บ private/งานค้าง …  
+**เกณฑ์ไปต่อ:** positivecontrol สำเร็จและ negative มีหลักฐานตรงเงื่อนไขจริง แยก Storage-levelrejection จาก Browser guard และ workerCSVvalidation ไม่แชร์ policy หรือ signedURL ลงหลักฐาน
 
 ### Task 8 — กู้ช่องว่าง “เขียนรายงานแล้วแต่ยังไม่บันทึก success”
 
-**ขอบเขต:** faultสังเคราะห์ในworkerเฉพาะsandboxนี้ ไม่ใช่การทำให้GCS/Firestoreล่มทั้งบริการ ต้องไม่มีผู้ใช้อื่นuploadระหว่างทดลอง และต้องมีbaselineT05–07ที่ตรวจแล้ว
+**ขอบเขต:** fault สังเคราะห์ใน worker เฉพาะ sandbox นี้ ไม่ใช่การทำให้ GCS/Firestore ล่มทั้งบริการ ต้องไม่มีผู้ใช้อื่น upload ระหว่างทดลอง และต้องมี baselineT05–07 ที่ตรวจแล้ว
 
-**ทำที่ไหน:** Cloud Shell ใช้variables/state/image/authversionเดิมจากT04 เปลี่ยนเฉพาะworkerfaultconfig:
+**ทำที่ไหน:** Cloud Shell ใช้ variables/state/image/authversion เดิมจาก T04 เปลี่ยนเฉพาะ workerfaultconfig:
 
 ```bash
 cd "$LAB_DIR"
@@ -641,11 +643,11 @@ gcloud run services describe lab006-worker --region="$REGION" --format='yaml(sta
 
 ```
 
-Reviewplanต้องเปลี่ยนเฉพาะworkerrevision/env ไม่เปลี่ยนimage/Secret/Portal/Firestore/IAM ถ้ามีdiffอื่นหยุดตรวจ รอreadyrevision/trafficชัดเจนก่อนส่งไฟล์ใหม่หนึ่งงานจากalice ใช้valid-sales.csvผ่านBrowserตามT05 ถ้าUIมีpendingrequestเดิมให้resolveก่อน ไม่เปลี่ยนไฟล์หรือkeyเพื่อเริ่มfault
+Reviewplan ต้องเปลี่ยนเฉพาะ workerrevision/env ไม่เปลี่ยน image/Secret/Portal/Firestore/IAM ถ้ามี diff อื่นหยุดตรวจ รอ readyrevision/traffic ชัดเจนก่อนส่งไฟล์ใหม่หนึ่งงานจาก alice ใช้ valid-sales.csv ผ่าน Browser ตาม T05 ถ้า UI มี pending request เดิมให้ resolve ก่อน ไม่เปลี่ยนไฟล์หรือ key เพื่อเริ่ม fault
 
-**Expected:** workerclaim → เขียนoutputcreate-only → บันทึกdurablefaultmarker → ตอบ503 → Eventarcส่งใหม่ → verify/reuseoutputเดิม → fencedsuccess ไม่รับประกันว่าBrowserจะเห็นช่องว่างก่อนretryจบ เพราะอาจเกิดเร็ว ต้องใช้logs/history/Storagegenerationเป็นหลักฐาน
+**Expected:** workerclaim → เขียน outputcreate-only → บันทึก durablefaultmarker → ตอบ 503 → Eventarc ส่งใหม่ → verify/reuseoutput เดิม → fencedsuccess ไม่รับประกันว่า Browser จะเห็นช่องว่างก่อน retry จบ เพราะอาจเกิดเร็ว ต้องใช้ logs/history/Storagegeneration เป็นหลักฐาน
 
-จดjobUUIDแล้วตรวจlogsแบบไม่พิมพ์payload:
+จด jobUUID แล้วตรวจ logs แบบไม่พิมพ์ payload:
 
 ```bash
 export JOB_ID='ใส่-jobUUID-ของการทดลองนี้'
@@ -654,11 +656,11 @@ gcloud storage ls --long "gs://$RESULTS_BUCKET/results/$JOB_ID/**"
 
 ```
 
-Console → Firestore → lab006-files/jobs/UUID ดูoutput_fault_consumed=true, input_generationเดิม, history/attemptsและoutput_generation จากนั้นStorageดูgenerationของsummaryobjectและเทียบreportตามT05 ควรมีlogicaloutputเดียว ไม่ใช้eventIDsที่ต่างกันตีความว่าเป็นคนละbusinessjob
+Console → Firestore → lab006-files/jobs/UUID ดู output_fault_consumed=true, input_generation เดิม, history/attempts และ output_generation จากนั้น Storage ดู generation ของ summaryobject และเทียบ report ตาม T05 ควรมี logicaloutput เดียว ไม่ใช้ eventIDs ที่ต่างกันตีความว่าเป็นคนละ businessjob
 
-หากไม่พบintentional_after_outputในlogsแต่มีsucceeded ไม่อ้างว่าfaultเกิดแล้ว ตรวจreadyrevision/env/งานที่ใช้ให้ตรง หากพบ503แต่ไม่recoverให้ตรวจEventarc/metadata/Storagepermissionsและleaseก่อน ไม่ลบoutputเพื่อให้retryเขียนใหม่ หากมีfailed_integrityให้หยุดตรวจbytes/metadata ห้ามoverwrite
+หากไม่พบ intentional_after_output ใน logs แต่มี succeeded ไม่อ้างว่า fault เกิดแล้ว ตรวจ readyrevision/env/งานที่ใช้ให้ตรง หากพบ 503 แต่ไม่ recover ให้ตรวจ Eventarc/metadata/Storagepermissions และ lease ก่อน ไม่ลบ output เพื่อให้ retry เขียนใหม่ หากมี failed_integrity ให้หยุดตรวจ bytes/metadata ห้าม overwrite
 
-จำกัดช่วงสังเกตรอบแรก10นาที ถ้ายังไม่จบให้บันทึกอาการ/ช่วงเวลาที่เห็น แล้วปิดfaultก่อนหาสาเหตุต่อ ไม่ทิ้งfaultrevisionค้างไว้:
+จำกัดช่วงสังเกตรอบแรก 10 นาที ถ้ายังไม่จบให้บันทึกอาการ/ช่วงเวลาที่เห็น แล้วปิด fault ก่อนหาสาเหตุต่อ ไม่ทิ้ง faultrevision ค้างไว้:
 
 ```bash
 export TF_VAR_worker_fail_after_output_once=false
@@ -668,10 +670,10 @@ terraform -chdir=infra/workloads apply worker-output-gap-backout.tfplan
 
 ```
 
-หลังคืนbaselineส่งvalidfixtureเป็นงานใหม่ที่ตั้งใจสร้าง ตรวจsucceeded/report/flagsfalse ถ้างานfaultเดิมยังไม่แน่นอนต้องเก็บUUID/resolveต่อ อย่าสรุปว่าbackoutหมายถึงงานค้างสำเร็จแล้ว
+หลังคืน baseline ส่ง validfixture เป็นงานใหม่ที่ตั้งใจสร้าง ตรวจ succeeded/report/flagsfalse ถ้างาน fault เดิมยังไม่แน่นอนต้องเก็บ UUID/resolve ต่อ อย่าสรุปว่า backout หมายถึงงานค้างสำเร็จแล้ว
 
-**จุดบันทึก T08:** before/fault/backoutrevision …; UUID/inputgeneration …; first503/retry/successเวลา …; faultmarker …; outputgeneration/จำนวนlogicaloutputs …; reportverification …; backout/retest …; ข้อจำกัดที่สังเกตไม่ทัน …  
-**เกณฑ์ไปต่อ:** ผลเดียวเชื่อมกับgenerationเดิมและผลตรวจจริง หรือบันทึกfailureที่ต้องแก้ก่อนต่อ ไม่อ้างexactly-oncedelivery/zeroerrorจากrecoveryนี้
+**จุดบันทึก T08:** before/fault/backoutrevision …; UUID/inputgeneration …; first503/retry/success เวลา …; faultmarker …; outputgeneration/จำนวน logicaloutputs …; reportverification …; backout/retest …; ข้อจำกัดที่สังเกตไม่ทัน …  
+**เกณฑ์ไปต่อ:** ผลเดียวเชื่อมกับ generation เดิมและผลตรวจจริง หรือบันทึก failure ที่ต้องแก้ก่อนต่อ ไม่อ้าง exactly-oncedelivery/zeroerror จาก recovery นี้
 
 ### Task 8B — ส่ง event ซ้ำและตรวจว่าผลไม่เปลี่ยน
 
@@ -716,7 +718,7 @@ export INPUT_GENERATION='ใส่-input_generation-จากงานเดี�
 
 ### Task 9 — งานล้มเหลวครบ budget และ operator retry ไฟล์เดิม
 
-ทำเมื่อT08คืนปกติ ไม่มีunresolvedงานที่ปะปน ใช้faultก่อนอ่านไฟล์เพื่อจำลองdependencyfailureซ้ำ ไม่ถอนIAMของprojectหรือเปิดworkerpublic
+ทำเมื่อ T08 คืนปกติ ไม่มี unresolved งานที่ปะปน ใช้ fault ก่อนอ่านไฟล์เพื่อจำลอง dependencyfailure ซ้ำ ไม่ถอน IAM ของ project หรือเปิด workerpublic
 
 ```bash
 export TF_VAR_worker_fail_after_output_once=false
@@ -727,11 +729,11 @@ terraform -chdir=infra/workloads apply worker-pre-read-fault.tfplan
 
 ```
 
-รอworkerrevisionพร้อม แล้วaliceส่งvalidfixtureใหม่หนึ่งjob จดUUID ดูoperatorprofile → รายการ/รายละเอียด และlogsตามT08 ควรเห็นintentional_before_read/503 แล้วattemptcountเพิ่มไม่เกิน5ต่อepoch การส่งครั้งถัดไปเมื่อbudgetครบทำให้failed/retry_budgetและackแทนวนไม่จบ ยังไม่มีoutputจากการอ่านไฟล์รอบนี้
+รอ workerrevision พร้อม แล้ว alice ส่ง validfixture ใหม่หนึ่ง job จด UUID ดู operatorprofile → รายการ/รายละเอียด และ logs ตาม T08 ควรเห็น intentional_before_read/503 แล้ว attemptcount เพิ่มไม่เกิน 5 ต่อ epoch การส่งครั้งถัดไปเมื่อ budget ครบทำให้ failed/retry_budget และ ack แทนวนไม่จบ ยังไม่มี output จากการอ่านไฟล์รอบนี้
 
-Eventarcretryอาจหน่วงและเวลาไม่คงที่ สังเกตเป็นช่วงไม่เกิน10นาทีก่อนตัดสินใจ ไม่สร้างjobเพิ่มเพื่อเร่งให้ครบbudget ถ้าไม่ถึงfailedในwindowนี้ให้บันทึกว่าscenarioยังไม่ครบ ปิดfaultและตรวจdelivery/backoffต่อ ห้ามแก้Firestorecount/stateด้วยมือให้ดูผ่าน
+Eventarcretry อาจหน่วงและเวลาไม่คงที่ สังเกตเป็นช่วงไม่เกิน 10 นาทีก่อนตัดสินใจ ไม่สร้าง job เพิ่มเพื่อเร่งให้ครบ budget ถ้าไม่ถึง failed ใน window นี้ให้บันทึกว่า scenario ยังไม่ครบ ปิด fault และตรวจ delivery/backoff ต่อ ห้ามแก้ Firestorecount/state ด้วยมือให้ดูผ่าน
 
-**ก่อนกดoperatorretryต้องปิดfaultและรอreadyrevisionใหม่ก่อน:**
+**ก่อนกด operatorretry ต้องปิด fault และรอ readyrevision ใหม่ก่อน:**
 
 ```bash
 export TF_VAR_worker_fail_before_read=false
@@ -742,22 +744,22 @@ gcloud run services describe lab006-worker --region="$REGION" --format='yaml(sta
 
 ```
 
-ในoperatorprofileเปิดjobที่failed/retry_budget กด “Retry คำขอเดิม” หนึ่งครั้ง Portalต้องprepareepoch1ก่อนdispatch Workerอ่านinputgeneration/finalizedtimeจากjob ไม่รับpathใหม่จากBrowser สถานะHTTP202/dispatchacknowledgedไม่ใช่businesssuccess ต้องอ่านjobต่อจนได้ผลแน่นอน
+ใน operatorprofile เปิด job ที่ failed/retry_budget กด “Retry คำขอเดิม” หนึ่งครั้ง Portal ต้อง prepareepoch1 ก่อน dispatch Worker อ่าน inputgeneration/finalizedtime จาก job ไม่รับ path ใหม่จาก Browser สถานะ HTTP202/dispatchacknowledged ไม่ใช่ businesssuccess ต้องอ่าน job ต่อจนได้ผลแน่นอน
 
-หากresponseหายหรือdispatchunconfirmed ให้กดคำขอเดิมต่อ ไม่ล้างsessionStorageหรือเปิดepochใหม่เพราะไม่แน่ใจ keyเดิมต้องคืนepochเดิม ไม่กินmanualbudgetซ้ำ หากงานล้มครบbudgetอีกจริงจึงพิจารณาปุ่ม “เปิดรอบ retry ใหม่” พร้อมยืนยัน ไม่เกิน2manualepochs ห้ามใช้rejected/expired/failed_integrityเพื่อหลบvalidation/integrityfailure
+หาก response หายหรือ dispatchunconfirmed ให้กดคำขอเดิมต่อ ไม่ล้าง sessionStorage หรือเปิด epoch ใหม่เพราะไม่แน่ใจ key เดิมต้องคืน epoch เดิม ไม่กิน manualbudget ซ้ำ หากงานล้มครบ budget อีกจริงจึงพิจารณาปุ่ม “เปิดรอบ retry ใหม่” พร้อมยืนยัน ไม่เกิน 2manualepochs ห้ามใช้ rejected/expired/failed_integrity เพื่อหลบ validation/integrityfailure
 
-**Expectedหลังแก้:** owner/inputgeneration/processorversion/limitsเดิม, epochเพิ่มหนึ่งครั้ง, summary/reportถูกต้องและoutputlogicalเดียว customerเรียกoperatorretryไม่ได้ และoperatorยังไม่ได้สิทธิ์downloadไฟล์ของaliceแทนเจ้าของ
+**Expected หลังแก้:** owner/inputgeneration/processorversion/limits เดิม, epoch เพิ่มหนึ่งครั้ง, summary/report ถูกต้องและ outputlogical เดียว customer เรียก operatorretry ไม่ได้ และ operator ยังไม่ได้สิทธิ์ download ไฟล์ของ alice แทนเจ้าของ
 
-**จุดบันทึก T09:** UUID/faultrevision …; window/attempttimeline …; failedreason/budget …; faultfalse-readyrevision …; retryrequest/epochแรกและreplay …; dispatchผลและการreconcile …; finalgeneration/report …; negativecustomer403 …; ข้อจำกัด/งานที่ยังไม่จบ …  
-**เกณฑ์ไปต่อ:** faultflagsfalseทั้งคู่, ไม่เหลือunknownoutcome และอธิบายได้ว่ากู้ด้วยข้อมูลเดิมโดยไม่เพิ่มรอบซ้ำ การทดลองนี้เป็นdependencyfaultสังเคราะห์ ไม่ใช่หลักฐานว่าFirestore/GCS outageจริง
+**จุดบันทึก T09:** UUID/faultrevision …; window/attempttimeline …; failedreason/budget …; faultfalse-readyrevision …; retryrequest/epoch แรกและ replay …; dispatch ผลและการ reconcile …; finalgeneration/report …; negativecustomer403 …; ข้อจำกัด/งานที่ยังไม่จบ …  
+**เกณฑ์ไปต่อ:** faultflagsfalse ทั้งคู่, ไม่เหลือ unknownoutcome และอธิบายได้ว่ากู้ด้วยข้อมูลเดิมโดยไม่เพิ่มรอบซ้ำ การทดลองนี้เป็น dependencyfault สังเคราะห์ ไม่ใช่หลักฐานว่า Firestore/GCS outage จริง
 
 ### Task 10 — Change Request: เพิ่มขนาดไฟล์จาก 1 เป็น 5 MiB โดยไม่เปลี่ยนสัญญางานเก่า
 
-**โจทย์ทีม:** ไฟล์ยอดขายเริ่มใหญ่ขึ้น ต้องรับได้ถึง5MiB/50,000rows โดยไม่เปิดbucketpublic ไม่เพิ่มconcurrencyแบบเดาสุ่ม และงานที่สร้างไว้ก่อนเปลี่ยนยังใช้limits/versionเดิม
+**โจทย์ทีม:** ไฟล์ยอดขายเริ่มใหญ่ขึ้น ต้องรับได้ถึง 5MiB/50,000rows โดยไม่เปิด bucketpublic ไม่เพิ่ม concurrency แบบเดาสุ่ม และงานที่สร้างไว้ก่อนเปลี่ยนยังใช้ limits/version เดิม
 
-**ก่อนเริ่ม:** faultflagsfalseทั้งคู่, ไม่มีunknownoutcome, จดimage/authversion/revisionและค่าbaseline ตรวจactive/dailyjobquotaก่อนจัดชุดทดลอง งานทั้งLabอาจใกล้20newjobs/UTCday ให้จดจำนวนและเว้นงานเสริม ไม่แก้counterหรือเปลี่ยนownerเพื่อหลบguard หากเต็มให้รอรอบUTCdayใหม่และบันทึกไว้ ไม่เรียกผ่านว่าchangeล้มเพราะcapacityของGCP
+**ก่อนเริ่ม:** faultflagsfalse ทั้งคู่, ไม่มี unknownoutcome, จด image/authversion/revision และค่า baseline ตรวจ active/dailyjobquota ก่อนจัดชุดทดลอง งานทั้ง Lab อาจใกล้ 20newjobs/UTCday ให้จดจำนวนและเว้นงานเสริม ไม่แก้ counter หรือเปลี่ยน owner เพื่อหลบ guard หากเต็มให้รอรอบ UTCday ใหม่และบันทึกไว้ ไม่เรียกผ่านว่า change ล้มเพราะ capacity ของ GCP
 
-Cloud Shell สร้างfixturesใหม่โดยไม่ทับของเดิม:
+Cloud Shell สร้าง fixtures ใหม่โดยไม่ทับของเดิม:
 
 ```bash
 cd "$LAB_DIR"
@@ -766,22 +768,22 @@ mkdir -p .build
 
 ```
 
-**Expected:** manifestมีbytes/SHAของ6ไฟล์ ทุกไฟล์deterministic ไม่ใช่ข้อมูลธุรกิจจริง ถ้าdirectoryมีอยู่แล้วให้ตรวจmanifestเดิมหรือเลือกdirectoryใหม่ ไม่ลบเพื่อบังคับให้ผ่าน ดาวน์โหลดไฟล์จากCloudShellEditorไปใช้Browserแบบbytesเดิม
+**Expected:** manifest มี bytes/SHA ของ 6 ไฟล์ ทุกไฟล์ deterministic ไม่ใช่ข้อมูลธุรกิจจริง ถ้า directory มีอยู่แล้วให้ตรวจ manifest เดิมหรือเลือก directory ใหม่ ไม่ลบเพื่อบังคับให้ผ่าน ดาวน์โหลดไฟล์จาก CloudShellEditor ไปใช้ Browser แบบ bytes เดิม
 
-| Fixture | Baseline1MiB/10krows | หลังChange5MiB/50krows |
+| Fixture | Baseline1MiB/10krows | หลัง Change5MiB/50krows |
 |---|---|---|
 | exact-1mib.csv | succeeded10000rows/10000units/1,000,000,000,000satang | ต้องยังผ่าน |
-| byte-change.csv | UI/Storageขนาดปฏิเสธ; validCSV10000rowsแต่bytes>1MiB | ต้องผ่านโดยไม่มีการลดvalidation |
-| row-change.csv | rejected/too_many_rows แม้bytes<1MiB | ต้องผ่าน10001rows |
-| exact-5mib.csv | เกินขนาดbaseline | ต้องผ่าน50000rowsที่5MiBพอดี |
-| too-many-rows.csv | ไม่ใช้เป็นbaselineหลัก | rejected/too_many_rows แม้bytesอยู่ใน5MiB |
-| too-large.csv | เกินขนาด | UI/Storageต้องปฏิเสธ5MiB+1byte ไม่ถือว่าUIguardแทนpolicytest |
+| byte-change.csv | UI/Storage ขนาดปฏิเสธ; validCSV10000rows แต่ bytes>1MiB | ต้องผ่านโดยไม่มีการลด validation |
+| row-change.csv | rejected/too_many_rows แม้ bytes<1MiB | ต้องผ่าน 10001rows |
+| exact-5mib.csv | เกินขนาด baseline | ต้องผ่าน 50000rows ที่ 5MiB พอดี |
+| too-many-rows.csv | ไม่ใช้เป็น baseline หลัก | rejected/too_many_rows แม้ bytes อยู่ใน 5MiB |
+| too-large.csv | เกินขนาด | UI/Storage ต้องปฏิเสธ 5MiB+1byte ไม่ถือว่า UI guard แทน policytest |
 
-เลือกbaselineที่ต้องเก็บก่อนเปลี่ยน ไม่จำเป็นต้องสร้างงานซ้ำทุกช่อง หากตัวเลขรายงานใหญ่ให้คงหน่วยสตางค์/จำนวนเต็ม ไม่แปลงfloatหรือใส่percentageimprovementจากsampleเดียว
+เลือก baseline ที่ต้องเก็บก่อนเปลี่ยน ไม่จำเป็นต้องสร้างงานซ้ำทุกช่อง หากตัวเลขรายงานใหญ่ให้คงหน่วยสตางค์/จำนวนเต็ม ไม่แปลง float หรือใส่ percentageimprovement จาก sample เดียว
 
 #### สร้างงานค้างหนึ่งรายการเพื่อพิสูจน์ immutable job contract
 
-ในBrowserที่loginaliceอยู่ เปิดDevTools → Console ใช้keyเดิมถ้าคำตอบหาย คำสั่งนี้สร้างmetadatajobแต่ยังไม่อัปโหลด ไม่พิมพ์CSRFหรือลิงก์:
+ใน Browser ที่ login alice อยู่ เปิด DevTools → Console ใช้ key เดิมถ้าคำตอบหาย คำสั่งนี้สร้าง metadatajob แต่ยังไม่อัปโหลด ไม่พิมพ์ CSRF หรือลิงก์:
 
 ```javascript
 const contractSession = await fetch('/api/session', {cache:'no-store'}).then(r => r.json());
@@ -797,11 +799,11 @@ console.log({status:contractResponse.status, job_id:contractResult.job_id, repla
 
 ```
 
-จดUUIDและรายละเอียดmax_bytes1048576/max_rows10000/processor_versionv1ไว้ หลังเปลี่ยนตรวจUUIDเดิมอีกครั้งต้องยังคงค่าเดิม หากuploaddeadlineของงานค้างหมดแล้วไม่แก้deadlineในDBหรือขอpolicyใหม่ให้ผ่าน ใช้metadataพิสูจน์contractเดิมและระบุว่าไม่ได้ทดสอบuploadของงานนั้น
+จด UUID และรายละเอียด max_bytes1048576/max_rows10000/processor_versionv1 ไว้ หลังเปลี่ยนตรวจ UUID เดิมอีกครั้งต้องยังคงค่าเดิม หาก uploaddeadline ของงานค้างหมดแล้วไม่แก้ deadline ใน DB หรือขอ policy ใหม่ให้ผ่าน ใช้ metadata พิสูจน์ contract เดิมและระบุว่าไม่ได้ทดสอบ upload ของงานนั้น
 
 #### วิเคราะห์และเปลี่ยนเฉพาะ admission contract สำหรับงานใหม่
 
-ก่อนapplyจดทางเลือก เช่นแบ่งไฟล์ฝั่งผู้ส่ง, เพิ่มlimitsแบบbounded หรือทำstream/batchprocessorแยก เป้าหมายรอบนี้เลือกเพิ่มlimitsโดยยังworkermax2/concurrency1/memory512MiB/60sเดิม ต้องวัดจริงว่าพอหรือไม่ ไม่อ้างว่าตารางไฟล์แปลว่าmemory/RTOรับประกันแล้ว
+ก่อน apply จดทางเลือก เช่นแบ่งไฟล์ฝั่งผู้ส่ง, เพิ่ม limits แบบ bounded หรือทำ stream/batchprocessor แยก เป้าหมายรอบนี้เลือกเพิ่ม limits โดยยัง workermax2/concurrency1/memory512MiB/60s เดิม ต้องวัดจริงว่าพอหรือไม่ ไม่อ้างว่าตารางไฟล์แปลว่า memory/RTO รับประกันแล้ว
 
 ```bash
 export TF_VAR_worker_fail_before_read=false
@@ -814,13 +816,13 @@ gcloud run services describe lab006-portal --region="$REGION" --format='yaml(sta
 
 ```
 
-**Review:** เปลี่ยนPortalrevision/envUPLOAD_LIMIT_MODEเท่านั้น ไม่เปลี่ยนworker/image/Secret/IAM/Firestoreschemaหรือlimitsของdocumentsเดิม รอreadyrevisionและlogout/loginหรือrefreshPortalเพื่ออ่านsessionlimitsใหม่ UIต้องแสดง5MiB งานใหม่ต้องมีmax_bytes5242880/max_rows50000 ตรวจimmutablejobจากก่อนหน้าแยก อย่าใช้ตัวเลขUIอย่างเดียวพิสูจน์metadata
+**Review:** เปลี่ยน Portalrevision/envUPLOAD_LIMIT_MODE เท่านั้น ไม่เปลี่ยน worker/image/Secret/IAM/Firestoreschema หรือ limits ของ documents เดิม รอ readyrevision และ logout/login หรือ refreshPortal เพื่ออ่าน sessionlimits ใหม่ UI ต้องแสดง 5MiB งานใหม่ต้องมี max_bytes5242880/max_rows50000 ตรวจ immutablejob จากก่อนหน้าแยก อย่าใช้ตัวเลข UI อย่างเดียวพิสูจน์ metadata
 
-ส่งfixturesที่เลือกทีละไฟล์ ดู/ดาวน์โหลดรายงานและใช้verify-report.pyกับsourcefileนั้นตามT05 สำหรับexact5MiBให้ใช้ .build/change-fixtures/exact-5mib.csvเป็นsource ไม่ใช้valid-sales.csvแทน จดเวลาupload/finalized/firstprocessing/successและworkerCPU/memory/requestlatencyจากCloudRunMonitoringในช่วงเดียวกัน ถ้าไม่มีสิทธิ์metricให้ระบุข้อจำกัด ไม่ใช้wallclockBrowserแทนprocessorCPU
+ส่ง fixtures ที่เลือกทีละไฟล์ ดู/ดาวน์โหลดรายงานและใช้ verify-report.py กับ sourcefile นั้นตาม T05 สำหรับ exact5MiB ให้ใช้ .build/change-fixtures/exact-5mib.csv เป็น source ไม่ใช้ valid-sales.csv แทน จดเวลา upload/finalized/firstprocessing/success และ workerCPU/memory/requestlatency จาก CloudRunMonitoring ในช่วงเดียวกัน ถ้าไม่มีสิทธิ์ metric ให้ระบุข้อจำกัด ไม่ใช้ wallclockBrowser แทน processorCPU
 
-ทดสอบStoragepolicyขนาดใหม่ด้วยboundaryrunnerจากT07แต่ใช้journalชื่อใหม่ของlarge เช่นsecrets/large-oversize.jsonและcaseoversize เพื่อให้เครื่องมืออ่านmaxจากpolicyใหม่แล้วส่งเกิน1byte ตรวจpositivecontrolและobjectabsenceเช่นเดิม ผลstoredของรอบbaselineไม่ใช่retestหลังchange
+ทดสอบ Storagepolicy ขนาดใหม่ด้วย boundaryrunner จาก T07 แต่ใช้ journal ชื่อใหม่ของ large เช่น secrets/large-oversize.json และ caseoversize เพื่อให้เครื่องมืออ่าน max จาก policy ใหม่แล้วส่งเกิน 1byte ตรวจ positivecontrol และ objectabsence เช่นเดิม ผล stored ของรอบ baseline ไม่ใช่ retest หลัง change
 
-**ถ้าขนาดใหญ่timeout/OOM/ผลผิด:** เก็บUUID/generation/metrics/attempthistory ปิดการรับงานใหม่ที่เกินbaselineโดยbackoutด้านล่างก่อน ไม่เพิ่มmemory/concurrencyจนผ่านโดยไม่ทบทวนplan งานlargeที่สร้างไปแล้วมีcontractเดิมจึงยังต้องreconcile/resolve ไม่หายไปเพราะลดค่าPortal
+**ถ้าขนาดใหญ่ timeout/OOM/ผลผิด:** เก็บ UUID/generation/metrics/attempthistory ปิดการรับงานใหม่ที่เกิน baseline โดย backout ด้านล่างก่อน ไม่เพิ่ม memory/concurrency จนผ่านโดยไม่ทบทวน plan งาน large ที่สร้างไปแล้วมี contract เดิมจึงยังต้อง reconcile/resolve ไม่หายไปเพราะลดค่า Portal
 
 #### Backout และยืนยันขอบเขตงานเดิม
 
@@ -832,26 +834,26 @@ terraform -chdir=infra/workloads apply large-upload-backout.tfplan
 
 ```
 
-รอPortalready/UIกลับ1MiB ตรวจงานใหม่baselineอีกหนึ่งงาน และอ่านjoblargeที่สร้างก่อนbackoutว่าค่า5MiBยังอยู่ ไม่แก้documentเหล่านั้นตามค่าglobalหรือเรียกว่าคืนlimitsของทุกงานแล้ว
+รอ Portalready/UI กลับ 1MiB ตรวจงานใหม่ baseline อีกหนึ่งงาน และอ่าน joblarge ที่สร้างก่อน backout ว่าค่า 5MiB ยังอยู่ ไม่แก้ document เหล่านั้นตามค่า global หรือเรียกว่าคืน limits ของทุกงานแล้ว
 
-**จุดบันทึก T10:** เหตุผล/ทางเลือก/trade-off …; baselinejobquota/limits/metrics …; oldjobUUIDและcontractก่อน–หลัง …; reviewedchange/revision …; fixturebytes/SHA/outcomes/report …; largepolicynegative/objectabsence …; workerresource/timingและข้อจำกัด …; backout/newbaseline/งานlargeค้าง …  
-**เกณฑ์ไปต่อ:** พิสูจน์contractใหม่และเก่าแยกได้ ข้อมูลรายงานถูกต้อง และคืนbaselineหรือระบุfinalconfigurationที่ตัดสินใจ ไม่อ้างproductionthroughputจากไฟล์ไม่กี่ชุด
+**จุดบันทึก T10:** เหตุผล/ทางเลือก/trade-off …; baselinejobquota/limits/metrics …; oldjobUUID และ contract ก่อน–หลัง …; reviewedchange/revision …; fixturebytes/SHA/outcomes/report …; largepolicynegative/objectabsence …; workerresource/timing และข้อจำกัด …; backout/newbaseline/งาน large ค้าง …  
+**เกณฑ์ไปต่อ:** พิสูจน์ contract ใหม่และเก่าแยกได้ ข้อมูลรายงานถูกต้อง และคืน baseline หรือระบุ finalconfiguration ที่ตัดสินใจ ไม่อ้าง productionthroughput จากไฟล์ไม่กี่ชุด
 
 ### Task 11 — แยกอายุ capability, อายุงาน และเวลาเก็บข้อมูล
 
-**ก่อนเริ่ม:** faultfalseทั้งคู่ งานตัวอย่างT05สำเร็จและยังไม่เกินexpires_at ใช้Browserส่วนตัว ไม่มีการแชร์signedURL/policy/CookieหรือHAR
+**ก่อนเริ่ม:** faultfalse ทั้งคู่ งานตัวอย่าง T05 สำเร็จและยังไม่เกิน expires_at ใช้ Browser ส่วนตัว ไม่มีการแชร์ signedURL/policy/Cookie หรือ HAR
 
-| ชั้น | ค่าbaseline | ความหมาย |
+| ชั้น | ค่า baseline | ความหมาย |
 |---|---|---|
-| Upload policy | ไม่เกิน300sและupload_deadline | สิทธิ์ส่งobjectเฉพาะkey ข้อมูลยังไม่เกิดถ้ายังไม่upload |
-| Download link | ไม่เกิน60sและเวลางานที่เหลือ | beareraccessเฉพาะoutputgeneration การlogoutไม่เพิกถอนlinkเดิม |
-| App job expiry | created_at+24h | Appไม่ออกcapabilityใหม่หลังหมดอายุ แม้document/objectยังอยู่ |
-| Firestore TTL | delete_after=created_at+48h | ลบmetadataภายหลัง ไม่ใช่access-control และไม่ลบStorageให้เอง |
-| Storage lifecycle/softdelete | lifecycle2วัน/softdelete7วัน | physicalretention/ค่าใช้จ่ายต่างจากAppexpiry ไม่ลบตรงวินาที |
+| Upload policy | ไม่เกิน 300s และ upload_deadline | สิทธิ์ส่ง object เฉพาะ key ข้อมูลยังไม่เกิดถ้ายังไม่ upload |
+| Download link | ไม่เกิน 60s และเวลางานที่เหลือ | beareraccess เฉพาะ outputgeneration การ logout ไม่เพิกถอน link เดิม |
+| App job expiry | created_at+24h | App ไม่ออก capability ใหม่หลังหมดอายุ แม้ document/object ยังอยู่ |
+| Firestore TTL | delete_after=created_at+48h | ลบ metadata ภายหลัง ไม่ใช่ access-control และไม่ลบ Storage ให้เอง |
+| Storage lifecycle/softdelete | lifecycle2 วัน/softdelete7 วัน | physicalretention/ค่าใช้จ่ายต่างจาก Appexpiry ไม่ลบตรงวินาที |
 
 #### Download link หมดอายุโดยไม่ขอ link ใหม่มาปะปน
 
-ในBrowserที่loginaliceอยู่ เปิดDevToolsConsole ใช้jobUUIDที่succeeded ยังไม่expired ตัวแปรcapabilityเป็นข้อมูลลับชั่วคราวในBrowserนี้ ไม่พิมพ์URLออกconsoleหรือถ่ายภาพ:
+ใน Browser ที่ login alice อยู่ เปิด DevToolsConsole ใช้ jobUUID ที่ succeeded ยังไม่ expired ตัวแปร capability เป็นข้อมูลลับชั่วคราวใน Browser นี้ ไม่พิมพ์ URL ออก console หรือถ่ายภาพ:
 
 ```javascript
 const expiryJob = 'ใส่-jobUUID-ที่-succeeded';
@@ -864,20 +866,20 @@ console.log({status:expiryReply.status, expires_at:expiryCapability ? expiryCapa
 
 ```
 
-ถ้าstatusไม่200ให้หยุดตรวจowner/state/expiry/signingก่อน เมื่อ200ให้เปิดURLเดิมโดยไม่แสดงค่าในconsole:
+ถ้า status ไม่ 200 ให้หยุดตรวจ owner/state/expiry/signing ก่อน เมื่อ 200 ให้เปิด URL เดิมโดยไม่แสดงค่าใน console:
 
 ```javascript
 window.open(expiryCapability.url, '_blank', 'noopener,noreferrer');
 
 ```
 
-**Expectedก่อนหมดอายุ:** downloadสำเร็จ ใช้Networktabตรวจstatusของrequestจริง หลังเวลาที่expires_atระบุผ่านไปแล้วเผื่อclockเล็กน้อย ให้เปิดURLตัวเดิมอีกครั้งด้วยคำสั่งเดิม **ไม่กดปุ่มdownloadใหม่** ต้องถูกGCSปฏิเสธ เก็บเฉพาะstatus/errorcode/เวลาที่ไม่มีqueryในภาพ ถ้าBrowserใช้ไฟล์เดิมหรือcacheไม่ใช่networkrequestใหม่ ให้บันทึกว่ายังพิสูจน์ไม่ได้ ไม่เดาว่าaccessยังใช้ได้จากไฟล์ที่ดาวน์โหลดไว้ก่อน
+**Expected ก่อนหมดอายุ:** download สำเร็จ ใช้ Networktab ตรวจ status ของ request จริง หลังเวลาที่ expires_at ระบุผ่านไปแล้วเผื่อ clock เล็กน้อย ให้เปิด URL ตัวเดิมอีกครั้งด้วยคำสั่งเดิม **ไม่กดปุ่ม download ใหม่** ต้องถูก GCS ปฏิเสธ เก็บเฉพาะ status/errorcode/เวลาที่ไม่มี query ในภาพ ถ้า Browser ใช้ไฟล์เดิมหรือ cache ไม่ใช่ networkrequest ใหม่ ให้บันทึกว่ายังพิสูจน์ไม่ได้ ไม่เดาว่า access ยังใช้ได้จากไฟล์ที่ดาวน์โหลดไว้ก่อน
 
-ลิงก์อาจยังใช้ได้หลังlogoutแต่ก่อนหมดอายุ นี่คือbearersemanticsไม่ใช่ownercheckพัง คนที่ไม่มีURLยังต้องผ่านownerAPIcheckตามT06 การลบไฟล์ที่ดาวน์โหลดในเครื่องก็ไม่ใช่การเพิกถอนcapability
+ลิงก์อาจยังใช้ได้หลัง logout แต่ก่อนหมดอายุ นี่คือ bearersemantics ไม่ใช่ ownercheck พัง คนที่ไม่มี URL ยังต้องผ่าน ownerAPIcheck ตาม T06 การลบไฟล์ที่ดาวน์โหลดในเครื่องก็ไม่ใช่การเพิกถอน capability
 
 #### Upload policy อายุสั้น กับงานที่ยังไม่ได้รับไฟล์
 
-ใช้aliceสร้างjobใหม่ที่ตั้งใจทดสอบ ไม่ใช้keyของงานเก่า เก็บUUID/เวลาโดยไม่แสดงpolicy:
+ใช้ alice สร้าง job ใหม่ที่ตั้งใจทดสอบ ไม่ใช้ key ของงานเก่า เก็บ UUID/เวลาโดยไม่แสดง policy:
 
 ```javascript
 const uploadExpirySession = await fetch('/api/session', {cache:'no-store'}).then(r => r.json());
@@ -897,7 +899,7 @@ console.log({createStatus:uploadExpiryCreate.status, job_id:uploadExpiryJob.job_
 
 ```
 
-ต้องcreate200/201และpolicy200ก่อนต่อ **อย่าuploadก่อนหมดอายุ** เพื่อไม่ให้overwrite-denialมาปน เมื่อผ่านexpires_atแล้ว ส่งpolicyเดิมกับCSVเล็กตามนี้:
+ต้อง create200/201 และ policy200 ก่อนต่อ **อย่า upload ก่อนหมดอายุ** เพื่อไม่ให้ overwrite-denial มาปน เมื่อผ่าน expires_at แล้ว ส่ง policy เดิมกับ CSV เล็กตามนี้:
 
 ```javascript
 const expiredForm = new FormData();
@@ -912,54 +914,54 @@ try {
 
 ```
 
-**Expected:** GCSปฏิเสธด้วยเหตุexpiryและไม่มีincomingobjectของUUIDนี้ ต้องดูNetworkstatus/errorcodeกับStorageabsence หากCORSบังerrorbodyหรือมีเหตุอื่นให้บันทึกยังสรุปไม่ได้ ไม่ถือTypeErrorเป็นPASS การขอpolicyใหม่หลังdeadlineต้องถูกAppปฏิเสธด้วย409 ไม่แก้deadlineในFirestoreเพื่อให้ต่อได้
+**Expected:** GCS ปฏิเสธด้วยเหตุ expiry และไม่มี incomingobject ของ UUID นี้ ต้องดู Networkstatus/errorcode กับ Storageabsence หาก CORS บัง errorbody หรือมีเหตุอื่นให้บันทึกยังสรุปไม่ได้ ไม่ถือ TypeError เป็น PASS การขอ policy ใหม่หลัง deadline ต้องถูก App ปฏิเสธด้วย 409 ไม่แก้ deadline ใน Firestore เพื่อให้ต่อได้
 
-เมื่อจบปิดDevTools/privatewindowsที่มีcapability ไม่ใส่ตัวแปรหรือfullURLในevidence อย่าเรียกทุกresultที่ยังอยู่awaiting_uploadว่าaccessยังใช้ได้ ต้องดูdeadlineกับrequestจริงด้วย
+เมื่อจบปิด DevTools/privatewindows ที่มี capability ไม่ใส่ตัวแปรหรือ fullURL ใน evidence อย่าเรียกทุก result ที่ยังอยู่ awaiting_upload ว่า access ยังใช้ได้ ต้องดู deadline กับ request จริงด้วย
 
 #### Job expiry และ retention ไม่ใช้การแก้เวลาแทนการรอจริง
 
-หากจะพิสูจน์App24hบนGCP ให้เลือกjobสังเคราะห์หนึ่งรายการและจดexpires_atจากmetadataจริงก่อน ตัดสินใจเรื่องงบ/retentionแล้วจึงเลือกว่าจะเก็บenvironmentถึงเวลานั้นหรือไม่ ไม่เปิดpoll/browser/workerfaultค้างรอทั้งคืน งานนี้ไม่ได้อนุญาตagentให้เปิดระบบรอแทนคุณ
+หากจะพิสูจน์ App24h บน GCP ให้เลือก job สังเคราะห์หนึ่งรายการและจด expires_at จาก metadata จริงก่อน ตัดสินใจเรื่องงบ/retention แล้วจึงเลือกว่าจะเก็บ environment ถึงเวลานั้นหรือไม่ ไม่เปิด poll/browser/workerfault ค้างรอทั้งคืน งานนี้ไม่ได้อนุญาต agent ให้เปิดระบบรอแทนคุณ
 
-หลังexpires_atให้loginใหม่และอ่านjobเดิม: statusแสดงexpired; ownerขอdownload/uploadcapabilityใหม่ต้อง409 แม้document/objectยังเห็นในConsoleได้ ตรวจเวลาUTCและอายุsessionแยกจากjobexpiry ไม่แก้expires_at/ระบบclockแล้วอ้างว่าเป็นelapsed24hจริง
+หลัง expires_at ให้ login ใหม่และอ่าน job เดิม: status แสดง expired; owner ขอ download/uploadcapability ใหม่ต้อง 409 แม้ document/object ยังเห็นใน Console ได้ ตรวจเวลา UTC และอายุ session แยกจาก jobexpiry ไม่แก้ expires_at/ระบบ clock แล้วอ้างว่าเป็น elapsed24h จริง
 
-ถ้าไม่รอให้บันทึก“Cloud job-expiry: Not run; ตรวจlogicในemulatorแล้วเท่านั้น” ไม่ติ๊กR6ครบจากCI ส่วนTTL/lifecycleต้องตรวจoperation/metricsและinventoryภายหลังตาม [Firestore TTL](https://firebase.google.com/docs/firestore/ttl) ไม่มีคำรับประกันว่าจะลบตรงเวลา48h
+ถ้าไม่รอให้บันทึก“Cloud job-expiry: Not run; ตรวจ logic ใน emulator แล้วเท่านั้น” ไม่ติ๊ก R6 ครบจาก CI ส่วน TTL/lifecycle ต้องตรวจ operation/metrics และ inventory ภายหลังตาม [Firestore TTL](https://firebase.google.com/docs/firestore/ttl) ไม่มีคำรับประกันว่าจะลบตรงเวลา 48h
 
-**จุดบันทึก T11:** UUID/expiryแต่ละชั้น …; freshdownloadก่อน/หลังURLเดิมหมดอายุ …; uploadpolicyก่อนสร้างobject/expiredrequest/absence …; App24hผลจริงหรือNotrun …; TTL/lifecycle/softdeleteสถานะและข้อจำกัด …  
-**เกณฑ์ไปต่อ:** อธิบายได้ว่าหมดสิทธิ์กับข้อมูลถูกลบเป็นคนละเหตุการณ์ และไม่มีcapabilityรั่วในหลักฐาน
+**จุดบันทึก T11:** UUID/expiry แต่ละชั้น …; freshdownload ก่อน/หลัง URL เดิมหมดอายุ …; uploadpolicy ก่อนสร้าง object/expiredrequest/absence …; App24h ผลจริงหรือ Notrun …; TTL/lifecycle/softdelete สถานะและข้อจำกัด …  
+**เกณฑ์ไปต่อ:** อธิบายได้ว่าหมดสิทธิ์กับข้อมูลถูกลบเป็นคนละเหตุการณ์ และไม่มี capability รั่วในหลักฐาน
 
 ### Task 12 — สรุปหลักฐานและส่งมอบ Case Study
 
-ทำก่อนCleanupเมื่อทุกงานได้ผลแน่นอนแล้ว หากยังมีdispatchunconfirmed/pendingunknownให้resolveหรือบันทึกเป็นข้อจำกัดชัดเจน ไม่เขียนPASSเพราะทรัพยากรชื่อครบ
+ทำก่อน Cleanup เมื่อทุกงานได้ผลแน่นอนแล้ว หากยังมี dispatchunconfirmed/pendingunknown ให้ resolve หรือบันทึกเป็นข้อจำกัดชัดเจน ไม่เขียน PASS เพราะทรัพยากรชื่อครบ
 
 | Requirement | หลักฐานจากการทำของคุณ / ข้อจำกัด |
 |---|---|
 | R1 journey/report | T05: UUID/sourceSHA/input-outputgenerations/reportverified … |
 | R2 owner/identity | T04/T06: anonworkerIAMdeny, bob404/operator403, Secret/bucket/SApolicies … |
-| R3 validation/bounds | T06/T07: rejectedreason, Storagepositivecontrol/negativecode/objectabsence … |
+| R3 validation/bounds | T06/T07: rejected reason, Storagepositivecontrol/negativecode/objectabsence … |
 | R4 duplicate/convergence | T08/T08B: event IDs เดิม–ใหม่, owner/input/output generation/hash ก่อน–หลัง, ผลเดียว และขอบเขตของ sequential replay เทียบกับ emulator race tests … |
 | R5 fault/recovery | T08–09: revision/marker/budget/epoch/samekeyreplay/reconcile … |
-| R6 accessage/retention | T11: URL/policyexpiry, App24hผลจริงหรือNotrun, retainedinventory … |
+| R6 accessage/retention | T11: URL/policyexpiry, App24h ผลจริงหรือ Notrun, retainedinventory … |
 | R7 change | T10: ทางเลือก/limitsimmutable/fixtures/metrics/backout … |
 | R8 operations/handover | runbook, versions, unresolveditems, Cleanup/rebuild/costreview … |
 
-สรุปด้วยคำของคุณ: ปัญหาทีม …; เหตุผลเลือกdirectupload/Eventarc/Firestore …; ส่วนที่ทำเอง/ใช้samplecode/ตัดสินใจเพิ่ม …; incidentหนึ่งเรื่องแบบอาการ→หลักฐาน→สาเหตุ→แก้→retest …; changetrade-offและผลจริง …; สิ่งที่จะปรับก่อนproduction เช่นSSO/abusecontrols/streaming/alerting …; ค่าใช้จ่าย/เวลาระบบเปิด …; สิ่งที่ยังไม่ได้พิสูจน์ …
+สรุปด้วยคำของคุณ: ปัญหาทีม …; เหตุผลเลือก directupload/Eventarc/Firestore …; ส่วนที่ทำเอง/ใช้ samplecode/ตัดสินใจเพิ่ม …; incident หนึ่งเรื่องแบบอาการ→หลักฐาน→สาเหตุ→แก้→retest …; changetrade-off และผลจริง …; สิ่งที่จะปรับก่อน production เช่น SSO/abusecontrols/streaming/alerting …; ค่าใช้จ่าย/เวลาระบบเปิด …; สิ่งที่ยังไม่ได้พิสูจน์ …
 
-Diagramต้องตรงfinalconfiguration ไม่วาดworkerเป็นprivateVPCเพราะมีIAMอย่างเดียว และไม่อ้างexactly-once/zero-downtime/productioncapacityหรือmalwarescanningจากCSVvalidation ตรวจทุกภาพ/logว่าไม่มีpassword/sessionkey/passwordhash/cookie/CSRF/policy/fullsignedURL/state/planbinary/HAR เก็บprivatejournalsต่างหาก ผลที่ไม่มีหลักฐานให้ระบุNotrun/ยังสรุปไม่ได้
+Diagram ต้องตรง finalconfiguration ไม่วาด worker เป็น privateVPC เพราะมี IAM อย่างเดียว และไม่อ้าง exactly-once/zero-downtime/productioncapacity หรือ malwarescanning จาก CSVvalidation ตรวจทุกภาพ/log ว่าไม่มี password/sessionkey/passwordhash/cookie/CSRF/policy/fullsignedURL/state/planbinary/HAR เก็บ privatejournals ต่างหาก ผลที่ไม่มีหลักฐานให้ระบุ Notrun/ยังสรุปไม่ได้
 
 ### Task 13 — Cleanup พร้อม inventory และวิธีสร้างกลับ
 
-**คำเตือน:** ขั้นนี้ลบข้อมูลและทรัพยากรของLabจริง ทำเฉพาะsandboxและstateที่ยืนยันแล้ว เก็บรายงาน/evidence/ข้อมูลที่ต้องการก่อน ไม่มีundoที่รับประกันจะคืนทุกอย่าง
+**คำเตือน:** ขั้นนี้ลบข้อมูลและทรัพยากรของ Lab จริง ทำเฉพาะ sandbox และ state ที่ยืนยันแล้ว เก็บรายงาน/evidence/ข้อมูลที่ต้องการก่อน ไม่มี undo ที่รับประกันจะคืนทุกอย่าง
 
 | เจ้าของ | เป้าหมาย |
 |---|---|
-| workloadstate | Eventarctrigger/transportที่ระบบสร้าง, CloudRunPortal/worker/revisions/IAMinvokers |
+| workloadstate | Eventarctrigger/transport ที่ระบบสร้าง, CloudRunPortal/worker/revisions/IAMinvokers |
 | foundationstate | privatebuckets/objects, namedFirestore/TTL/IAM, 5SAs/customroles, authSecretcontainer/versions, ArtifactRegistry/images, bindings |
-| นอกstate | localprivatebundle/journals, downloadedreports, softdeletedobjects/buckets, logs/budgetsและCloudShellworkspace |
+| นอก state | localprivatebundle/journals, downloadedreports, softdeletedobjects/buckets, logs/budgets และ CloudShellworkspace |
 | ไม่ใช่เป้าลบ | project/Billing/(default)database/ข้อมูลทีมอื่น/remoteTerraformbackend/sharedrepositories |
 
-1. หยุดwriters/tools/pollingและoperatorretry ตรวจทุกUUIDที่มีผลไม่แน่นอน เก็บfinalreport/metadata/historyที่sanitized
-2. หยุดออกcapabilityใหม่และรอสิทธิ์เก่าที่ออกไปหมดอายุตามที่บันทึก ไม่คิดว่าปิดPortalแล้วsignedpolicyเดิมหายทันที หากมีผู้ใช้อื่นต้องประสานให้หยุดก่อน ไม่ทำcleanupขณะยังupload
-3. ตั้งfaultfalseทั้งคู่/limitmodebaselineและvariablesเดิมให้ตรงstate Reviewปลดworkloadsdeletiongateก่อนdestroy:
+1. หยุด writers/tools/polling และ operatorretry ตรวจทุก UUID ที่มีผลไม่แน่นอน เก็บ finalreport/metadata/history ที่ sanitized
+2. หยุดออก capability ใหม่และรอสิทธิ์เก่าที่ออกไปหมดอายุตามที่บันทึก ไม่คิดว่าปิด Portal แล้ว signedpolicy เดิมหายทันที หากมีผู้ใช้อื่นต้องประสานให้หยุดก่อน ไม่ทำ cleanup ขณะยัง upload
+3. ตั้ง faultfalse ทั้งคู่/limitmodebaseline และ variables เดิมให้ตรง state Review ปลด workloadsdeletiongate ก่อน destroy:
 
 ```bash
 cd "$LAB_DIR"
@@ -977,9 +979,9 @@ terraform -chdir=infra/workloads state list
 
 ```
 
-Planต้องลบเฉพาะLabservices/trigger/IAM ไม่มีระบบอื่น หลังdestroyตรวจEventarc/CloudRunConsoleและtransportPubSubที่triggerเคยใช้ ถ้าพบค้างให้ตรวจowner/resource referenceก่อนลบ ไม่ลบtopic/subscriptionทั้งprojectแบบเหมารวม
+Plan ต้องลบเฉพาะ Labservices/trigger/IAM ไม่มีระบบอื่น หลัง destroy ตรวจ Eventarc/CloudRunConsole และ transportPubSub ที่ trigger เคยใช้ ถ้าพบค้างให้ตรวจ owner/resource reference ก่อนลบ ไม่ลบ topic/subscription ทั้ง project แบบเหมารวม
 
-4. ตรวจชื่อbucketจากfoundationstateให้ตรงตัวแปรก่อนเลือกข้อมูลลบ:
+4. ตรวจชื่อ bucket จาก foundationstate ให้ตรงตัวแปรก่อนเลือกข้อมูลลบ:
 
 ```bash
 export EXPECTED_INCOMING="$(terraform -chdir=infra/foundation output -raw incoming_bucket)"
@@ -995,7 +997,7 @@ gcloud storage ls --all-versions --long "gs://$RESULTS_BUCKET/results/**"
 
 ```
 
-ถ้าtestเปรียบเทียบตัวใดไม่ผ่านให้หยุด ไม่ทำคำสั่งลบ หากรายการตรงLabและตัดสินใจไม่เก็บข้อมูลแล้วจึงลบเฉพาะprefixเหล่านี้:
+ถ้า test เปรียบเทียบตัวใดไม่ผ่านให้หยุด ไม่ทำคำสั่งลบ หากรายการตรง Lab และตัดสินใจไม่เก็บข้อมูลแล้วจึงลบเฉพาะ prefix เหล่านี้:
 
 ```bash
 gcloud storage rm --all-versions "gs://$INCOMING_BUCKET/incoming/**"
@@ -1005,9 +1007,9 @@ gcloud storage ls --all-versions --long "gs://$RESULTS_BUCKET/**"
 
 ```
 
-ไม่มีmatchingobjectให้บันทึกempty ไม่retrydeleteไม่จำกัด หากมีไฟล์นอกprefixให้ตรวจทีละไฟล์/ที่มา ไม่เปลี่ยนforce_destroy=trueเพื่อข้ามข้อมูลไม่รู้จัก softdeletedobjectsอาจยังอยู่7วันตามpolicyและคิดค่าเก็บ ตรวจConsoleProtection/Soft-deletedobjectsพร้อมexpiry ไม่ใช้live-listว่างแทนzero-cost
+ไม่มี matchingobject ให้บันทึก empty ไม่ retrydelete ไม่จำกัด หากมีไฟล์นอก prefix ให้ตรวจทีละไฟล์/ที่มา ไม่เปลี่ยน force_destroy=true เพื่อข้ามข้อมูลไม่รู้จัก softdeletedobjects อาจยังอยู่ 7 วันตาม policy และคิดค่าเก็บ ตรวจ ConsoleProtection/Soft-deletedobjects พร้อม expiry ไม่ใช้ live-list ว่างแทน zero-cost
 
-5. ReviewArtifactRegistryของLabและบันทึกimages/digestsที่ต้องเก็บก่อนลบrepositoryด้วยfoundation ห้ามลบsharedrepoหรือเผยprivatebundleในimage:
+5. ReviewArtifactRegistry ของ Lab และบันทึก images/digests ที่ต้องเก็บก่อนลบ repository ด้วย foundation ห้ามลบ sharedrepo หรือเผย privatebundle ใน image:
 
 ```bash
 gcloud artifacts docker images list "$IMAGE_REPOSITORY" --include-tags --limit=50
@@ -1022,9 +1024,9 @@ terraform -chdir=infra/foundation state list
 
 ```
 
-**Reviewก่อนยืนยัน:** databaseเป้าลบต้องเป็นlab006-filesเท่านั้น ไม่ใช่(default)หรือdatabaseทีมอื่น การลบนี้ลบmetadata/history ไม่ใช่exportbackup ส่วนSecret/image/bucket/SA/customrolesตามinventoryจะหายหรือถูกsoftdeleteตามบริการ หากresourceinuseให้หาว่าworkloads/triggerยังค้าง ไม่ใช้state-rm/force-unlockเพื่อหลบdependency
+**Review ก่อนยืนยัน:** database เป้าลบต้องเป็น lab006-files เท่านั้น ไม่ใช่(default)หรือ database ทีมอื่น การลบนี้ลบ metadata/history ไม่ใช่ exportbackup ส่วน Secret/image/bucket/SA/customroles ตาม inventory จะหายหรือถูก softdelete ตามบริการ หาก resourceinuse ให้หาว่า workloads/trigger ยังค้าง ไม่ใช้ state-rm/force-unlock เพื่อหลบ dependency
 
-6. ตรวจstateเทียบของจริง:
+6. ตรวจ state เทียบของจริง:
 
 ```bash
 gcloud run services list --region="$REGION" --filter='metadata.name~^lab006-'
@@ -1036,16 +1038,16 @@ gcloud artifacts repositories list --location="$REGION" --filter='name:lab006-fi
 
 ```
 
-ตรวจStorage/retainedobjects, PubSubtransport, deletedcustomroles/SAs, logsretentionและBillingReportsช่วงproject/labelsของLabด้วย Billingอาจตามหลัง inventoryว่างจึงยังไม่ใช่ค่าใช้จ่ายศูนย์ APIsที่foundationเปิดตั้งdisable_on_destroy=falseจึงยังenabled ไม่จำเป็นต้องปิดAPIที่คนอื่นใช้เพื่อทำให้หน้าดูว่าง
+ตรวจ Storage/retainedobjects, PubSubtransport, deletedcustomroles/SAs, logsretention และ BillingReports ช่วง project/labels ของ Lab ด้วย Billing อาจตามหลัง inventory ว่างจึงยังไม่ใช่ค่าใช้จ่ายศูนย์ APIs ที่ foundation เปิดตั้ง disable_on_destroy=false จึงยัง enabled ไม่จำเป็นต้องปิด API ที่คนอื่นใช้เพื่อทำให้หน้าดูว่าง
 
-7. เก็บหรือลบprivatebundle/journals/state/plan/reportตามอายุที่กำหนดหลังยืนยันcleanup ไม่recursiveลบhome/checkout ไม่commitของเหล่านี้หรือfullsignedURL และไม่ลบremotebackend/budgetที่มีownerอื่นโดยไม่ตกลงกัน
+7. เก็บหรือลบ privatebundle/journals/state/plan/report ตามอายุที่กำหนดหลังยืนยัน cleanup ไม่ recursive ลบ home/checkout ไม่ commit ของเหล่านี้หรือ fullsignedURL และไม่ลบ remotebackend/budget ที่มี owner อื่นโดยไม่ตกลงกัน
 
-**จุดบันทึก T13:** capabilitiesหมดอายุ/งานค้าง …; reviewedunlock/destroyplans …; workloads/foundationstate …; liveinventoryเทียบstate …; softdelete/transport/logs/role-retentionและexpiry …; Billingตรวจเมื่อใด/รายการค้าง …; privatefilepolicy …; ปัญหา/การแก้ …
+**จุดบันทึก T13:** capabilities หมดอายุ/งานค้าง …; reviewedunlock/destroyplans …; workloads/foundationstate …; liveinventory เทียบ state …; softdelete/transport/logs/role-retention และ expiry …; Billing ตรวจเมื่อใด/รายการค้าง …; privatefilepolicy …; ปัญหา/การแก้ …
 
 #### Rebuild ไม่ใช่ restore ข้อมูลธุรกิจ
 
-ใช้SOURCE_COMMITและimage@digestที่บันทึกหรือbuildใหม่พร้อมจดdigestที่เปลี่ยน เริ่มcheckoutpersistentใหม่เมื่อยืนยันstateเก่าemptyและทรัพยากรเดิมไม่ค้าง เลือกbucketชื่อใหม่หากชื่อเดิมยังมีข้อจำกัดจากsoftdelete สร้างSecretbundleใหม่สำหรับenvironmentใหม่ ไม่reuseorder/retryjournalsของdatabaseที่ถูกลบ
+ใช้ SOURCE_COMMIT และ image@digest ที่บันทึกหรือ build ใหม่พร้อมจด digest ที่เปลี่ยน เริ่ม checkoutpersistent ใหม่เมื่อยืนยัน state เก่า empty และทรัพยากรเดิมไม่ค้าง เลือก bucket ชื่อใหม่หากชื่อเดิมยังมีข้อจำกัดจาก softdelete สร้าง Secretbundle ใหม่สำหรับ environment ใหม่ ไม่ reuseorder/retryjournals ของ database ที่ถูกลบ
 
-Customrolesอาจยังอยู่ในสถานะdeletedระหว่างretention จึงอย่าสมมติว่าใช้roleIDเดิมได้ทันที หากcreateแจ้งalreadyexistsให้ตรวจIAMRolesที่deletedเฉพาะ3rolesของLabนี้ก่อน ทางเลือกคือรอรอบretentionหรือrecover/importresourceเดิมที่ยืนยันownerแล้วพร้อมreviewplan ไม่สร้างcustomroleกว้าง/เปลี่ยนชื่อสุ่มทุกครั้งเพื่อให้applyผ่าน
+Customroles อาจยังอยู่ในสถานะ deleted ระหว่าง retention จึงอย่าสมมติว่าใช้ roleID เดิมได้ทันที หาก create แจ้ง alreadyexists ให้ตรวจ IAMRoles ที่ deleted เฉพาะ 3roles ของ Lab นี้ก่อน ทางเลือกคือรอรอบ retention หรือ recover/importresource เดิมที่ยืนยัน owner แล้วพร้อม reviewplan ไม่สร้าง customrole กว้าง/เปลี่ยนชื่อสุ่มทุกครั้งเพื่อให้ apply ผ่าน
 
-ทำTask0→1→2→3→4ใหม่แล้วทดสอบjourney/report/accessใหม่ ถ้าต้องrecoverSA/role/bucketให้บันทึกสิ่งที่กู้และผลIAMจริง ไม่อ้างidenticalrebuildจากemail/ชื่ออย่างเดียว การสร้างschema/บริการใหม่ไม่ได้คืนไฟล์ยอดขายหรือreportที่ลบแล้ว หากต้องrestoreข้อมูลต้องมีexport/backupและrunbookแยก
+ทำ Task0→1→2→3→4 ใหม่แล้วทดสอบ journey/report/access ใหม่ ถ้าต้อง recoverSA/role/bucket ให้บันทึกสิ่งที่กู้และผล IAM จริง ไม่อ้าง identicalrebuild จาก email/ชื่ออย่างเดียว การสร้าง schema/บริการใหม่ไม่ได้คืนไฟล์ยอดขายหรือ report ที่ลบแล้ว หากต้อง restore ข้อมูลต้องมี export/backup และ runbook แยก

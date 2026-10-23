@@ -39,7 +39,7 @@ class GuideTests(unittest.TestCase):
         for number in range(14):
             self.assertIn(f"### Task {number} — ", text)
         self.assertIn("cloud_verification: not-run", text)
-        self.assertIn("guide_status: authoring", text)
+        self.assertIn("guide_status: guide-ready", text)
 
 
 
