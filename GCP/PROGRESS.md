@@ -261,3 +261,6 @@ Lab07 / Domain CI repair: run135 CI39997198051 job120566760448 พบdeepJSONtes
 
 
 Lab07 / PG harness repair: run136 CI39998517007 job120568813797สร้างschema/rolesสำเร็จแต่ทั้ง12testsยังไม่ถึงbusinessassertions เพราะtestadminhelperส่งNoneให้pg8000.executeซึ่งdriverต้องการsequence แก้เป็นtupleparametersเดิม (emptytupleเมื่อไม่มีparams) ไม่เปลี่ยนSQLlogic/ลดassertions ยังรอCIยืนยันผลจริง Domainfailureของrun136เป็นsourceเก่าก่อนexplicitdepthrepair0da997a8 ไม่restartliveworkflow ไม่มีGCPwrites
+
+
+CI network bound: run136ยังliveที่lab006-firestore/InstallThaiFontsตามjobsAPI หลังเกิดaptwaitingซ้ำ เพิ่มnetwork30s/retry2และwholecommand180sให้aptupdate/installที่ยังไม่มีboundสำหรับรอบหน้า ไม่ตัดbrowser/diagrams/assertionsและไม่cancel/restartliveworkflow Lab007repairedSQL/domainยังรอคิวตามhandle39998969114 ไม่มีGCPwrites

@@ -26,8 +26,8 @@ jobs:
         run: python3 -m unittest discover -s GCP/LAB-001-multi-zone-web/tests -v
       - name: Render baseline diagram at reading width
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y librsvg2-bin
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
           mkdir -p diagram-previews
           rsvg-convert --width 960 GCP/LAB-001-multi-zone-web/assets/solution.svg -o diagram-previews/lab001-solution.png
           rsvg-convert --width 960 GCP/LAB-001-multi-zone-web/assets/solution-after-change.svg -o diagram-previews/lab001-after-change.png
@@ -64,8 +64,8 @@ jobs:
           persist-credentials: false
       - name: Install distro PostgreSQL driver
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y python3-psycopg2 librsvg2-bin
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y python3-psycopg2 librsvg2-bin
       - name: Check App installer shell syntax
         run: bash -n GCP/LAB-002-private-inventory/scripts/install-app.sh
       - name: Exercise Inventory against PostgreSQL 15
@@ -92,8 +92,8 @@ jobs:
         run: python3 -m unittest discover -s GCP/LAB-003-public-docs-cdn/tests -v
       - name: Render docs delivery and release views
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y librsvg2-bin
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
           mkdir -p lab003-previews
           rsvg-convert --width 960 GCP/LAB-003-public-docs-cdn/assets/solution.svg -o lab003-previews/solution.png
           rsvg-convert --width 960 GCP/LAB-003-public-docs-cdn/assets/release-flow.svg -o lab003-previews/release-flow.png
@@ -152,8 +152,8 @@ jobs:
         run: .ci-lab004/bin/python GCP/LAB-004-serverless-booking/scripts/render-diagrams.py
       - name: Render Booking diagrams at reading width
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y librsvg2-bin
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
           mkdir -p lab004-previews
           rsvg-convert --width 960 GCP/LAB-004-serverless-booking/assets/solution.svg -o lab004-previews/solution.png
           rsvg-convert --width 960 GCP/LAB-004-serverless-booking/assets/credential-rotation.svg -o lab004-previews/credential-rotation.png
@@ -242,8 +242,8 @@ jobs:
         run: python3 GCP/LAB-005-three-tier-orders/scripts/render-diagrams.py
       - name: Render diagrams at document width
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y librsvg2-bin
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
           mkdir -p lab005-diagram-previews
           rsvg-convert --width 960 GCP/LAB-005-three-tier-orders/assets/solution.svg -o lab005-diagram-previews/solution.png
           rsvg-convert --width 960 GCP/LAB-005-three-tier-orders/assets/operations.svg -o lab005-diagram-previews/operations.png
@@ -313,8 +313,8 @@ jobs:
           .ci-lab006/bin/pip install -r GCP/LAB-006-private-file-processing/requirements.txt -r GCP/LAB-006-private-file-processing/tests/requirements.txt
       - name: Install Thai browser preview fonts
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y fonts-noto-core
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y fonts-noto-core
       - name: Verify GCS adapter SDK contracts without cloud calls
         run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_gcs_objects.py -v
       - name: Verify real SDK signed policy conditions and generation binding without signing calls
@@ -405,8 +405,8 @@ jobs:
         run: python3 GCP/LAB-006-private-file-processing/scripts/render-diagrams.py
       - name: Render at document width for visual review
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y librsvg2-bin
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
           mkdir -p lab006-diagram-previews
           rsvg-convert --width 960 GCP/LAB-006-private-file-processing/assets/solution.svg -o lab006-diagram-previews/solution.png
           rsvg-convert --width 960 GCP/LAB-006-private-file-processing/assets/recovery.svg -o lab006-diagram-previews/recovery.png
