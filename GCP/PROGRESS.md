@@ -222,3 +222,6 @@ Lab06 / Storage boundary runner + Task7: CI39958914286ทุกlab006jobผ่�
 
 
 Lab06 / Recovery guide Tasks8–9: เพิ่มfault-before-readflagdefaultfalseเพื่อทดลองexhaust5attempts/failedbudgetและmanualepochrecoveryของgenerationเดิม พร้อมemulatorintegrationtest; workerlogsเพิ่มsafeprocessor-reason เพิ่มGuideoutput-metadatagap/503retry/outputgenerationverificationและoperatorretry/backout10minboundedwindows แยกsyntheticfaultจากจริง ชุดใหม่รอCI ยังเหลือexpiry/change/cleanup/Diagram/fullreview ไม่มีGCPwrites
+
+
+Lab06 / Change guide Task10: เพิ่มdeterministicfixturegenerator(exact1/5MiB, byte-only/row-onlychange, over50krows/over5MiB)+3tests และพาทำbaseline→large→backout พร้อมold-jobcontractproof/metricsbudget/quotacount/evidence รอCIใหม่ ยังเหลือexpiry/evidence/cleanup/Diagram/fullreviewก่อนGuide-ready ไม่มีGCPwrites

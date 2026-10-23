@@ -802,3 +802,89 @@ gcloud run services describe lab006-worker --region="$REGION" --format='yaml(sta
 
 **จุดบันทึก T09:** UUID/faultrevision …; window/attempttimeline …; failedreason/budget …; faultfalse-readyrevision …; retryrequest/epochแรกและreplay …; dispatchผลและการreconcile …; finalgeneration/report …; negativecustomer403 …; ข้อจำกัด/งานที่ยังไม่จบ …  
 **เกณฑ์ไปต่อ:** faultflagsfalseทั้งคู่, ไม่เหลือunknownoutcome และอธิบายได้ว่ากู้ด้วยข้อมูลเดิมโดยไม่เพิ่มรอบซ้ำ การทดลองนี้เป็นdependencyfaultสังเคราะห์ ไม่ใช่หลักฐานว่าFirestore/GCS outageจริง
+
+### Task 10 — Change Request: เพิ่มขนาดไฟล์จาก 1 เป็น 5 MiB โดยไม่เปลี่ยนสัญญางานเก่า
+
+**โจทย์ทีม:** ไฟล์ยอดขายเริ่มใหญ่ขึ้น ต้องรับได้ถึง5MiB/50,000rows โดยไม่เปิดbucketpublic ไม่เพิ่มconcurrencyแบบเดาสุ่ม และงานที่สร้างไว้ก่อนเปลี่ยนยังใช้limits/versionเดิม
+
+**ก่อนเริ่ม:** faultflagsfalseทั้งคู่, ไม่มีunknownoutcome, จดimage/authversion/revisionและค่าbaseline ตรวจactive/dailyjobquotaก่อนจัดชุดทดลอง งานทั้งLabอาจใกล้20newjobs/UTCday ให้จดจำนวนและเว้นงานเสริม ไม่แก้counterหรือเปลี่ยนownerเพื่อหลบguard หากเต็มให้รอรอบUTCdayใหม่และบันทึกไว้ ไม่เรียกผ่านว่าchangeล้มเพราะcapacityของGCP
+
+Cloud Shell สร้างfixturesใหม่โดยไม่ทับของเดิม:
+
+```bash
+cd "$LAB_DIR"
+mkdir -p .build
+.venv/bin/python scripts/create-change-fixtures.py --out .build/change-fixtures
+
+```
+
+**Expected:** manifestมีbytes/SHAของ6ไฟล์ ทุกไฟล์deterministic ไม่ใช่ข้อมูลธุรกิจจริง ถ้าdirectoryมีอยู่แล้วให้ตรวจmanifestเดิมหรือเลือกdirectoryใหม่ ไม่ลบเพื่อบังคับให้ผ่าน ดาวน์โหลดไฟล์จากCloudShellEditorไปใช้Browserแบบbytesเดิม
+
+| Fixture | Baseline1MiB/10krows | หลังChange5MiB/50krows |
+|---|---|---|
+| exact-1mib.csv | succeeded10000rows/10000units/1,000,000,000,000satang | ต้องยังผ่าน |
+| byte-change.csv | UI/Storageขนาดปฏิเสธ; validCSV10000rowsแต่bytes>1MiB | ต้องผ่านโดยไม่มีการลดvalidation |
+| row-change.csv | rejected/too_many_rows แม้bytes<1MiB | ต้องผ่าน10001rows |
+| exact-5mib.csv | เกินขนาดbaseline | ต้องผ่าน50000rowsที่5MiBพอดี |
+| too-many-rows.csv | ไม่ใช้เป็นbaselineหลัก | rejected/too_many_rows แม้bytesอยู่ใน5MiB |
+| too-large.csv | เกินขนาด | UI/Storageต้องปฏิเสธ5MiB+1byte ไม่ถือว่าUIguardแทนpolicytest |
+
+เลือกbaselineที่ต้องเก็บก่อนเปลี่ยน ไม่จำเป็นต้องสร้างงานซ้ำทุกช่อง หากตัวเลขรายงานใหญ่ให้คงหน่วยสตางค์/จำนวนเต็ม ไม่แปลงfloatหรือใส่percentageimprovementจากsampleเดียว
+
+#### สร้างงานค้างหนึ่งรายการเพื่อพิสูจน์ immutable job contract
+
+ในBrowserที่loginaliceอยู่ เปิดDevTools → Console ใช้keyเดิมถ้าคำตอบหาย คำสั่งนี้สร้างmetadatajobแต่ยังไม่อัปโหลด ไม่พิมพ์CSRFหรือลิงก์:
+
+```javascript
+const contractSession = await fetch('/api/session', {cache:'no-store'}).then(r => r.json());
+const contractKey = sessionStorage.getItem('lab006.contractKey') || 'contract-' + crypto.randomUUID();
+sessionStorage.setItem('lab006.contractKey', contractKey);
+const contractResponse = await fetch('/api/jobs', {
+  method:'POST',
+  headers:{'Content-Type':'application/json','X-CSRF-Token':contractSession.csrf,'Idempotency-Key':contractKey},
+  body:JSON.stringify({display_name:'prechange-contract.csv'})
+});
+const contractResult = await contractResponse.json();
+console.log({status:contractResponse.status, job_id:contractResult.job_id, replayed:contractResult.replayed});
+
+```
+
+จดUUIDและรายละเอียดmax_bytes1048576/max_rows10000/processor_versionv1ไว้ หลังเปลี่ยนตรวจUUIDเดิมอีกครั้งต้องยังคงค่าเดิม หากuploaddeadlineของงานค้างหมดแล้วไม่แก้deadlineในDBหรือขอpolicyใหม่ให้ผ่าน ใช้metadataพิสูจน์contractเดิมและระบุว่าไม่ได้ทดสอบuploadของงานนั้น
+
+#### วิเคราะห์และเปลี่ยนเฉพาะ admission contract สำหรับงานใหม่
+
+ก่อนapplyจดทางเลือก เช่นแบ่งไฟล์ฝั่งผู้ส่ง, เพิ่มlimitsแบบbounded หรือทำstream/batchprocessorแยก เป้าหมายรอบนี้เลือกเพิ่มlimitsโดยยังworkermax2/concurrency1/memory512MiB/60sเดิม ต้องวัดจริงว่าพอหรือไม่ ไม่อ้างว่าตารางไฟล์แปลว่าmemory/RTOรับประกันแล้ว
+
+```bash
+export TF_VAR_worker_fail_before_read=false
+export TF_VAR_worker_fail_after_output_once=false
+export TF_VAR_upload_limit_mode='large'
+terraform -chdir=infra/workloads plan -out=large-upload.tfplan
+terraform -chdir=infra/workloads show -no-color large-upload.tfplan
+terraform -chdir=infra/workloads apply large-upload.tfplan
+gcloud run services describe lab006-portal --region="$REGION" --format='yaml(status.conditions,status.latestReadyRevisionName,status.traffic)'
+
+```
+
+**Review:** เปลี่ยนPortalrevision/envUPLOAD_LIMIT_MODEเท่านั้น ไม่เปลี่ยนworker/image/Secret/IAM/Firestoreschemaหรือlimitsของdocumentsเดิม รอreadyrevisionและlogout/loginหรือrefreshPortalเพื่ออ่านsessionlimitsใหม่ UIต้องแสดง5MiB งานใหม่ต้องมีmax_bytes5242880/max_rows50000 ตรวจimmutablejobจากก่อนหน้าแยก อย่าใช้ตัวเลขUIอย่างเดียวพิสูจน์metadata
+
+ส่งfixturesที่เลือกทีละไฟล์ ดู/ดาวน์โหลดรายงานและใช้verify-report.pyกับsourcefileนั้นตามT05 สำหรับexact5MiBให้ใช้ .build/change-fixtures/exact-5mib.csvเป็นsource ไม่ใช้valid-sales.csvแทน จดเวลาupload/finalized/firstprocessing/successและworkerCPU/memory/requestlatencyจากCloudRunMonitoringในช่วงเดียวกัน ถ้าไม่มีสิทธิ์metricให้ระบุข้อจำกัด ไม่ใช้wallclockBrowserแทนprocessorCPU
+
+ทดสอบStoragepolicyขนาดใหม่ด้วยboundaryrunnerจากT07แต่ใช้journalชื่อใหม่ของlarge เช่นsecrets/large-oversize.jsonและcaseoversize เพื่อให้เครื่องมืออ่านmaxจากpolicyใหม่แล้วส่งเกิน1byte ตรวจpositivecontrolและobjectabsenceเช่นเดิม ผลstoredของรอบbaselineไม่ใช่retestหลังchange
+
+**ถ้าขนาดใหญ่timeout/OOM/ผลผิด:** เก็บUUID/generation/metrics/attempthistory ปิดการรับงานใหม่ที่เกินbaselineโดยbackoutด้านล่างก่อน ไม่เพิ่มmemory/concurrencyจนผ่านโดยไม่ทบทวนplan งานlargeที่สร้างไปแล้วมีcontractเดิมจึงยังต้องreconcile/resolve ไม่หายไปเพราะลดค่าPortal
+
+#### Backout และยืนยันขอบเขตงานเดิม
+
+```bash
+export TF_VAR_upload_limit_mode='baseline'
+terraform -chdir=infra/workloads plan -out=large-upload-backout.tfplan
+terraform -chdir=infra/workloads show -no-color large-upload-backout.tfplan
+terraform -chdir=infra/workloads apply large-upload-backout.tfplan
+
+```
+
+รอPortalready/UIกลับ1MiB ตรวจงานใหม่baselineอีกหนึ่งงาน และอ่านjoblargeที่สร้างก่อนbackoutว่าค่า5MiBยังอยู่ ไม่แก้documentเหล่านั้นตามค่าglobalหรือเรียกว่าคืนlimitsของทุกงานแล้ว
+
+**จุดบันทึก T10:** เหตุผล/ทางเลือก/trade-off …; baselinejobquota/limits/metrics …; oldjobUUIDและcontractก่อน–หลัง …; reviewedchange/revision …; fixturebytes/SHA/outcomes/report …; largepolicynegative/objectabsence …; workerresource/timingและข้อจำกัด …; backout/newbaseline/งานlargeค้าง …  
+**เกณฑ์ไปต่อ:** พิสูจน์contractใหม่และเก่าแยกได้ ข้อมูลรายงานถูกต้อง และคืนbaselineหรือระบุfinalconfigurationที่ตัดสินใจ ไม่อ้างproductionthroughputจากไฟล์ไม่กี่ชุด
