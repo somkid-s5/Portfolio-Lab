@@ -9,7 +9,7 @@
 | 03 | [เว็บไซต์เอกสารสาธารณะผ่าน CDN และ HTTPS](LAB-003-public-docs-cdn/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 06 | ระบบรับและประมวลผลไฟล์อย่างปลอดภัย | Planned | Not run | — |
+| 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Brief | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 07 | ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue | Planned | Not run | — |
 | 08 | ระบบรายงานตามเวลาและงาน Batch รายวัน | Planned | Not run | — |
 | 09 | ระบบส่ง Webhook ให้ระบบคู่ค้า | Planned | Not run | — |
@@ -138,3 +138,6 @@ Lab 05 / Operational guide review: เพิ่มคำสั่ง probe จ�
 
 
 Lab 05: Guide-ready — review ถึง source cd125100a884b17e641e28a625230f80dec3ed95 แล้ว: CI39929963331 ผ่าน52tests (49App/tooling +3guide checks), separate bootstrap และ browser→Nginx→API→PostgreSQLจริง; เอกสารที่เติมภายหลังตรวจด้วย CI39930610563 joblab005-guide ผ่าน49Bashblocks/relative links/Tasksections และ joblab005-infra validateทั้ง3rootsผ่าน (App/codeไม่เปลี่ยนจากชุดที่ผ่าน) SVG/PNG2ภาพตรวจ960pxและpublishedพร้อมiconprovenance คู่มือTasks0–14/7A/7B/9BครบR1–R8 มีactual/evidence/backout/cleanup/rebuildและขอบเขตผลตรวจชัดเจน ยังไม่มีGCP provisioning/HAfailover/IAMnetwork/apt-systemdจริง ทุกLabCloud Not run ขั้นถัดไป Lab06Brief; publicationCIของcommitสถานะใหม่ยังต้องติดตามต่อ ไม่ถือว่าGoal20Labเสร็จ
+
+
+Lab06 / Brief: กำหนดprivate CSV upload/report solution R1–R8, candidateRun portal/worker+Storage+Eventarc+Firestore, owner/bearer capabilityขอบเขต, inputgenerationbinding/duplicateevents/lease-fencing/output-metadata-gaprecovery,1→5MiBchangeและcost/access/cleanup assumptions ตรวจเอกสารofficialแล้ว ยังต้องDesignก่อนMaterials/Tasks ไม่ใช่Guide-ready ไม่มีGCPwrites

@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** เริ่มดำเนิน Goal แล้ว — Lab 01–05 Guide-ready; ขั้นถัดไป Brief Lab 06; Lab 06–20 ยัง Planned
+**สถานะ:** เริ่มดำเนิน Goal แล้ว — Lab 01–05 Guide-ready; กำลัง Brief/Design Lab 06; Lab 07–20 ยัง Planned
 
 ## ผลลัพธ์ปลายทาง
 
@@ -92,4 +92,4 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## สถานะดำเนินงาน
 
-ผู้ใช้เริ่ม Goal แล้ว Lab 01–05 Guide-ready และกำลังเตรียม Brief Lab 06 ตามขั้น Brief → Design → Materials → Guide → Review; ติดตามผลจริงที่ GCP/PROGRESS.md ไม่ถือว่าเอกสาร Brief เป็น Lab ที่เสร็จแล้ว
+ผู้ใช้เริ่ม Goal แล้ว Lab 01–05 Guide-ready และกำลังจัดทำ Brief/Design Lab 06 ตามขั้น Brief → Design → Materials → Guide → Review; ติดตามผลจริงที่ GCP/PROGRESS.md ไม่ถือว่าเอกสาร Brief เป็น Lab ที่เสร็จแล้ว
