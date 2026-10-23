@@ -201,3 +201,6 @@ Lab06 / Container materials draft: เพิ่มnonrootsharedimage/validatedro
 
 
 Lab06 / Browser verified checkpoint: CI39936909967 lab006-firestoreสำเร็จ ตรวจlogsยืนยัน7GCS/5signed/8workerHTTP/9portalHTTP/5runtime/17FirestoretestsและrealChromejourneypass; เก็บPNG+provenanceบนGitHub เป็นCIloopback+emulator/Storagedouble ไม่ใช่GCP ตรวจภาพพบterminalbannerยังwaitingและdetailถูกviewportตัด จึงแก้banner/เพิ่มcaptureheightรอรอบใหม่ Container111run39937220454ยังpendingไม่มีjobsตอนตรวจ ไม่rerunหรือclaimผ่าน ไม่มีGCPwrites
+
+
+Lab06 / Foundation IaC draft: เพิ่มprivatebuckets/lifecycle2d-softdelete7d/namedFirestoreTTL+destructiongates/5SAs/database-scopedIAM/customget-create-signroles/authcontainer/AR/Eventarcprerequisites พร้อมTerraformcloudCIไม่ใช้credentials ชุดใหม่รอvalidateยังไม่ใช่GCPplan/apply ต้องต่อworkloads/trigger/CORSphase+Guide/Diagram ไม่มีGCPwrites

@@ -352,3 +352,12 @@ Portalตอบ202พร้อมdispatchacknowledgedหรือunconfirmed; �
 [CI39936909967](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39936909967) / job120358985515 ผ่านBrowserlost-create-response→reload→samekey→onejob/oneoutput รวมถึง17FirestoreintegrationtestsและชุดSDK/HTTP/runtimeที่อยู่ในjobเดียวกัน ภาพนี้ใช้HTTPSloopback/Firestoreemulatorจริง ส่วนStorage/signingเป็นtestdouble ไม่ใช่GoogleCloudConsoleหรือGCS/IAMverification [รายละเอียดที่มาภาพ](assets/ui-ci-provenance.json)
 
 ตรวจภาพแล้วอ่านข้อความไทยและแถวsucceededได้ แต่viewportเดิมตัดรายละเอียดล่างและbannerยังบอกรอworker จึงแก้terminalbannerและขยายcaptureheightในsourceถัดไป ต้องรอภาพรอบใหม่ก่อนอ้างว่าpreviewตรงUIล่าสุด ContainerbuildยังรอCIแยก ไม่ถือว่าBrowserPASSแทนimagebuild
+
+
+### Terraform foundation checkpoint
+
+เพิ่มinfra/foundation: namedFirestorelab006-files พร้อมdeletionprotection/PREVENT, TTLdelete_afterของjobs/idempotency/owner_quotas, privateincoming/resultsbucketsที่ไม่force_destroy, lifecycle2วัน/softdelete7วัน, identities5ชุด, database-scopedIAMcondition, customrolesเฉพาะobjectget/createและsignBlob, authSecretcontainerไม่มีpayload, ArtifactRegistry และEventarc/Storagepublisherprerequisites
+
+CORSincomingเริ่มว่างและจะตั้งเฉพาะportal_originจริงหลังรู้CloudRunURL ไม่ใช้wildcard ไม่มีCloudRun/Eventarctriggerในrootนี้และยังไม่มีGCPapply หน่วยCIตรวจTerraform1.9.8/provider6.50.0ด้วยfmt/init-backendfalse/validateเท่านั้น ไม่ใช้การvalidateแทนIAMหรือserviceavailabilityจริง
+
+TTLและlifecycleไม่ลบทันที softdeleteยังเก็บและคิดค่าใช้จ่ายตามนโยบาย ต้องบันทึก7วันในcleanup ส่วนidempotencyมีขอบเขตเก็บ48ชั่วโมง หลังrecordถูกTTLลบไม่อ้างdedupeถาวร [Database IAM conditions](https://firebase.google.com/docs/firestore/manage-databases), [provider schemaที่ตรึง](https://github.com/hashicorp/terraform-provider-google/blob/v6.50.0/website/docs/r/firestore_database.html.markdown)

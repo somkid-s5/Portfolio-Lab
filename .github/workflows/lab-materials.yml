@@ -368,3 +368,21 @@ jobs:
       - name: Verify image imports and excludes private bundles and test fixtures
         run: |
           docker run --rm --entrypoint python lab006-files:ci -c "import os,pathlib,portal_runtime,worker_http; assert os.getuid()==10001; assert pathlib.Path('/srv/app/static/index.html').is_file(); assert not pathlib.Path('/srv/app/secrets').exists(); assert not pathlib.Path('/srv/fixtures').exists()"
+
+  lab006-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate file-processing foundation without credentials or provisioning
+        working-directory: GCP/LAB-006-private-file-processing/infra/foundation
+        run: |
+          terraform fmt -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
