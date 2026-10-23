@@ -225,3 +225,6 @@ Lab06 / Recovery guide Tasks8–9: เพิ่มfault-before-readflagdefaultfa
 
 
 Lab06 / Change guide Task10: เพิ่มdeterministicfixturegenerator(exact1/5MiB, byte-only/row-onlychange, over50krows/over5MiB)+3tests และพาทำbaseline→large→backout พร้อมold-jobcontractproof/metricsbudget/quotacount/evidence รอCIใหม่ ยังเหลือexpiry/evidence/cleanup/Diagram/fullreviewก่อนGuide-ready ไม่มีGCPwrites
+
+
+Lab06 / Full guide draft Tasks11–13: เพิ่มcapability60s/300s/App24h/TTL48h/lifecycle-softdeleteแยกหลักฐานและNotrunเมื่อไม่รอจริง, R1–R8casestudy/evidence matrix, revieweddestructiongates/transport-objects-database-imageinventory/retainedcosts/privatefiles/rebuildlimits ไม่มีClock/DBtimefabrication ขยายguideCIตรวจTasks0–13/Bash23blocks/ConsoleJSsyntax ชุดใหม่รอCI ยังเหลือDiagram/consolidation/fullreviewก่อนGuide-ready ไม่มีGCPwrites

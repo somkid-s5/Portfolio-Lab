@@ -12,7 +12,7 @@ class GuideTests(unittest.TestCase):
     def test_bash_examples_parse_without_execution(self):
         text = (LAB/"README.md").read_text()
         blocks = re.findall(r"^```bash\n(.*?)^```\s*$", text, re.M | re.S)
-        self.assertGreaterEqual(len(blocks), 8)
+        self.assertGreaterEqual(len(blocks), 23)
         for number, block in enumerate(blocks, 1):
             with self.subTest(block=number):
                 result = subprocess.run(["bash", "--noprofile", "--norc", "-n"],
@@ -36,10 +36,23 @@ class GuideTests(unittest.TestCase):
 
     def test_authored_tasks_keep_cloud_evidence_unclaimed(self):
         text = (LAB/"README.md").read_text()
-        for number in range(5):
+        for number in range(14):
             self.assertIn(f"### Task {number} — ", text)
         self.assertIn("cloud_verification: not-run", text)
         self.assertIn("guide_status: authoring", text)
+
+
+
+    def test_browser_console_examples_parse_without_execution(self):
+        text = (LAB/"README.md").read_text()
+        blocks = re.findall(r"^```javascript\n(.*?)^```\s*$", text, re.M | re.S)
+        self.assertGreaterEqual(len(blocks), 5)
+        for number, block in enumerate(blocks, 1):
+            with self.subTest(block=number):
+                result = subprocess.run(["node", "--check", "--input-type=module"],
+                                        input=block, text=True, capture_output=True,
+                                        timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":

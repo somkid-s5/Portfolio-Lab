@@ -373,7 +373,7 @@ CI39937892197ชุดfoundation/containerก่อนหน้านี้ส�
 
 ## เริ่มทำ Lab — สร้างระบบจาก sandbox ว่าง
 
-ส่วนนี้เป็นคู่มือที่ผู้เรียนใช้สร้างทรัพยากรมีค่าใช้จ่าย ไม่ใช่คำสั่งที่ผู้จัดทำรันแทนคุณ ช่อง Actual ยังไม่มีผล GCP บันทึกไว้ล่วงหน้า คู่มือยังอยู่ระหว่างเขียน ต้องมี Tasks ทดสอบ/ดูแล/change/cleanup ครบก่อน Guide-ready
+ส่วนนี้เป็นคู่มือที่ผู้เรียนใช้สร้างทรัพยากรมีค่าใช้จ่าย ไม่ใช่คำสั่งที่ผู้จัดทำรันแทนคุณ ช่อง Actual ยังไม่มีผล GCP บันทึกไว้ล่วงหน้า คู่มือมีร่าง Tasks 0–13 แล้ว ยังต้องตรวจ Diagram และทบทวนทั้งชุดก่อน Guide-ready
 
 ### Task 0 — เตรียม project สิทธิ์ และพื้นที่ทำงาน
 
@@ -888,3 +888,216 @@ terraform -chdir=infra/workloads apply large-upload-backout.tfplan
 
 **จุดบันทึก T10:** เหตุผล/ทางเลือก/trade-off …; baselinejobquota/limits/metrics …; oldjobUUIDและcontractก่อน–หลัง …; reviewedchange/revision …; fixturebytes/SHA/outcomes/report …; largepolicynegative/objectabsence …; workerresource/timingและข้อจำกัด …; backout/newbaseline/งานlargeค้าง …  
 **เกณฑ์ไปต่อ:** พิสูจน์contractใหม่และเก่าแยกได้ ข้อมูลรายงานถูกต้อง และคืนbaselineหรือระบุfinalconfigurationที่ตัดสินใจ ไม่อ้างproductionthroughputจากไฟล์ไม่กี่ชุด
+
+### Task 11 — แยกอายุ capability, อายุงาน และเวลาเก็บข้อมูล
+
+**ก่อนเริ่ม:** faultfalseทั้งคู่ งานตัวอย่างT05สำเร็จและยังไม่เกินexpires_at ใช้Browserส่วนตัว ไม่มีการแชร์signedURL/policy/CookieหรือHAR
+
+| ชั้น | ค่าbaseline | ความหมาย |
+|---|---|---|
+| Upload policy | ไม่เกิน300sและupload_deadline | สิทธิ์ส่งobjectเฉพาะkey ข้อมูลยังไม่เกิดถ้ายังไม่upload |
+| Download link | ไม่เกิน60sและเวลางานที่เหลือ | beareraccessเฉพาะoutputgeneration การlogoutไม่เพิกถอนlinkเดิม |
+| App job expiry | created_at+24h | Appไม่ออกcapabilityใหม่หลังหมดอายุ แม้document/objectยังอยู่ |
+| Firestore TTL | delete_after=created_at+48h | ลบmetadataภายหลัง ไม่ใช่access-control และไม่ลบStorageให้เอง |
+| Storage lifecycle/softdelete | lifecycle2วัน/softdelete7วัน | physicalretention/ค่าใช้จ่ายต่างจากAppexpiry ไม่ลบตรงวินาที |
+
+#### Download link หมดอายุโดยไม่ขอ link ใหม่มาปะปน
+
+ในBrowserที่loginaliceอยู่ เปิดDevToolsConsole ใช้jobUUIDที่succeeded ยังไม่expired ตัวแปรcapabilityเป็นข้อมูลลับชั่วคราวในBrowserนี้ ไม่พิมพ์URLออกconsoleหรือถ่ายภาพ:
+
+```javascript
+const expiryJob = 'ใส่-jobUUID-ที่-succeeded';
+const expirySession = await fetch('/api/session', {cache:'no-store'}).then(r => r.json());
+const expiryReply = await fetch('/api/jobs/' + expiryJob + '/download-link', {
+  method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':expirySession.csrf}, body:'{}'
+});
+const expiryCapability = expiryReply.ok ? await expiryReply.json() : null;
+console.log({status:expiryReply.status, expires_at:expiryCapability ? expiryCapability.expires_at : null});
+
+```
+
+ถ้าstatusไม่200ให้หยุดตรวจowner/state/expiry/signingก่อน เมื่อ200ให้เปิดURLเดิมโดยไม่แสดงค่าในconsole:
+
+```javascript
+window.open(expiryCapability.url, '_blank', 'noopener,noreferrer');
+
+```
+
+**Expectedก่อนหมดอายุ:** downloadสำเร็จ ใช้Networktabตรวจstatusของrequestจริง หลังเวลาที่expires_atระบุผ่านไปแล้วเผื่อclockเล็กน้อย ให้เปิดURLตัวเดิมอีกครั้งด้วยคำสั่งเดิม **ไม่กดปุ่มdownloadใหม่** ต้องถูกGCSปฏิเสธ เก็บเฉพาะstatus/errorcode/เวลาที่ไม่มีqueryในภาพ ถ้าBrowserใช้ไฟล์เดิมหรือcacheไม่ใช่networkrequestใหม่ ให้บันทึกว่ายังพิสูจน์ไม่ได้ ไม่เดาว่าaccessยังใช้ได้จากไฟล์ที่ดาวน์โหลดไว้ก่อน
+
+ลิงก์อาจยังใช้ได้หลังlogoutแต่ก่อนหมดอายุ นี่คือbearersemanticsไม่ใช่ownercheckพัง คนที่ไม่มีURLยังต้องผ่านownerAPIcheckตามT06 การลบไฟล์ที่ดาวน์โหลดในเครื่องก็ไม่ใช่การเพิกถอนcapability
+
+#### Upload policy อายุสั้น กับงานที่ยังไม่ได้รับไฟล์
+
+ใช้aliceสร้างjobใหม่ที่ตั้งใจทดสอบ ไม่ใช้keyของงานเก่า เก็บUUID/เวลาโดยไม่แสดงpolicy:
+
+```javascript
+const uploadExpirySession = await fetch('/api/session', {cache:'no-store'}).then(r => r.json());
+const uploadExpiryKey = sessionStorage.getItem('lab006.uploadExpiryKey') || 'expiry-' + crypto.randomUUID();
+sessionStorage.setItem('lab006.uploadExpiryKey', uploadExpiryKey);
+const uploadExpiryCreate = await fetch('/api/jobs', {
+  method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':uploadExpirySession.csrf,'Idempotency-Key':uploadExpiryKey},
+  body:JSON.stringify({display_name:'upload-expiry-check.csv'})
+});
+const uploadExpiryJob = await uploadExpiryCreate.json();
+const uploadExpiryPolicyReply = await fetch('/api/jobs/' + uploadExpiryJob.job_id + '/upload-policy', {
+  method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':uploadExpirySession.csrf}, body:'{}'
+});
+const uploadExpiryPolicy = uploadExpiryPolicyReply.ok ? await uploadExpiryPolicyReply.json() : null;
+console.log({createStatus:uploadExpiryCreate.status, job_id:uploadExpiryJob.job_id,
+  policyStatus:uploadExpiryPolicyReply.status, expires_at:uploadExpiryPolicy ? uploadExpiryPolicy.expires_at : null});
+
+```
+
+ต้องcreate200/201และpolicy200ก่อนต่อ **อย่าuploadก่อนหมดอายุ** เพื่อไม่ให้overwrite-denialมาปน เมื่อผ่านexpires_atแล้ว ส่งpolicyเดิมกับCSVเล็กตามนี้:
+
+```javascript
+const expiredForm = new FormData();
+for (const [field, value] of Object.entries(uploadExpiryPolicy.fields)) expiredForm.append(field, value);
+expiredForm.append('file', new Blob(['sale_id,sku,quantity,unit_price_satang\nS1,BOOK-01,1,100\n'], {type:'text/csv'}), 'source.csv');
+try {
+  const expiredUpload = await fetch(uploadExpiryPolicy.url, {
+    method:'POST', body:expiredForm, credentials:'omit', redirect:'error', referrerPolicy:'no-referrer'
+  });
+  console.log({expiredUploadStatus:expiredUpload.status});
+} catch (_) { console.log({result:'ดู Network และ Storage เพิ่มเติม; fetch error อย่างเดียวไม่พิสูจน์ expiry'}); }
+
+```
+
+**Expected:** GCSปฏิเสธด้วยเหตุexpiryและไม่มีincomingobjectของUUIDนี้ ต้องดูNetworkstatus/errorcodeกับStorageabsence หากCORSบังerrorbodyหรือมีเหตุอื่นให้บันทึกยังสรุปไม่ได้ ไม่ถือTypeErrorเป็นPASS การขอpolicyใหม่หลังdeadlineต้องถูกAppปฏิเสธด้วย409 ไม่แก้deadlineในFirestoreเพื่อให้ต่อได้
+
+เมื่อจบปิดDevTools/privatewindowsที่มีcapability ไม่ใส่ตัวแปรหรือfullURLในevidence อย่าเรียกทุกresultที่ยังอยู่awaiting_uploadว่าaccessยังใช้ได้ ต้องดูdeadlineกับrequestจริงด้วย
+
+#### Job expiry และ retention ไม่ใช้การแก้เวลาแทนการรอจริง
+
+หากจะพิสูจน์App24hบนGCP ให้เลือกjobสังเคราะห์หนึ่งรายการและจดexpires_atจากmetadataจริงก่อน ตัดสินใจเรื่องงบ/retentionแล้วจึงเลือกว่าจะเก็บenvironmentถึงเวลานั้นหรือไม่ ไม่เปิดpoll/browser/workerfaultค้างรอทั้งคืน งานนี้ไม่ได้อนุญาตagentให้เปิดระบบรอแทนคุณ
+
+หลังexpires_atให้loginใหม่และอ่านjobเดิม: statusแสดงexpired; ownerขอdownload/uploadcapabilityใหม่ต้อง409 แม้document/objectยังเห็นในConsoleได้ ตรวจเวลาUTCและอายุsessionแยกจากjobexpiry ไม่แก้expires_at/ระบบclockแล้วอ้างว่าเป็นelapsed24hจริง
+
+ถ้าไม่รอให้บันทึก“Cloud job-expiry: Not run; ตรวจlogicในemulatorแล้วเท่านั้น” ไม่ติ๊กR6ครบจากCI ส่วนTTL/lifecycleต้องตรวจoperation/metricsและinventoryภายหลังตาม [Firestore TTL](https://firebase.google.com/docs/firestore/ttl) ไม่มีคำรับประกันว่าจะลบตรงเวลา48h
+
+**จุดบันทึก T11:** UUID/expiryแต่ละชั้น …; freshdownloadก่อน/หลังURLเดิมหมดอายุ …; uploadpolicyก่อนสร้างobject/expiredrequest/absence …; App24hผลจริงหรือNotrun …; TTL/lifecycle/softdeleteสถานะและข้อจำกัด …  
+**เกณฑ์ไปต่อ:** อธิบายได้ว่าหมดสิทธิ์กับข้อมูลถูกลบเป็นคนละเหตุการณ์ และไม่มีcapabilityรั่วในหลักฐาน
+
+### Task 12 — สรุปหลักฐานและส่งมอบ Case Study
+
+ทำก่อนCleanupเมื่อทุกงานได้ผลแน่นอนแล้ว หากยังมีdispatchunconfirmed/pendingunknownให้resolveหรือบันทึกเป็นข้อจำกัดชัดเจน ไม่เขียนPASSเพราะทรัพยากรชื่อครบ
+
+| Requirement | หลักฐานจากการทำของคุณ / ข้อจำกัด |
+|---|---|
+| R1 journey/report | T05: UUID/sourceSHA/input-outputgenerations/reportverified … |
+| R2 owner/identity | T04/T06: anonworkerIAMdeny, bob404/operator403, Secret/bucket/SApolicies … |
+| R3 validation/bounds | T06/T07: rejectedreason, Storagepositivecontrol/negativecode/objectabsence … |
+| R4 duplicate/convergence | T08: eventIDs/attempts/generationbinding/outputเดียว … |
+| R5 fault/recovery | T08–09: revision/marker/budget/epoch/samekeyreplay/reconcile … |
+| R6 accessage/retention | T11: URL/policyexpiry, App24hผลจริงหรือNotrun, retainedinventory … |
+| R7 change | T10: ทางเลือก/limitsimmutable/fixtures/metrics/backout … |
+| R8 operations/handover | runbook, versions, unresolveditems, Cleanup/rebuild/costreview … |
+
+สรุปด้วยคำของคุณ: ปัญหาทีม …; เหตุผลเลือกdirectupload/Eventarc/Firestore …; ส่วนที่ทำเอง/ใช้samplecode/ตัดสินใจเพิ่ม …; incidentหนึ่งเรื่องแบบอาการ→หลักฐาน→สาเหตุ→แก้→retest …; changetrade-offและผลจริง …; สิ่งที่จะปรับก่อนproduction เช่นSSO/abusecontrols/streaming/alerting …; ค่าใช้จ่าย/เวลาระบบเปิด …; สิ่งที่ยังไม่ได้พิสูจน์ …
+
+Diagramต้องตรงfinalconfiguration ไม่วาดworkerเป็นprivateVPCเพราะมีIAMอย่างเดียว และไม่อ้างexactly-once/zero-downtime/productioncapacityหรือmalwarescanningจากCSVvalidation ตรวจทุกภาพ/logว่าไม่มีpassword/sessionkey/passwordhash/cookie/CSRF/policy/fullsignedURL/state/planbinary/HAR เก็บprivatejournalsต่างหาก ผลที่ไม่มีหลักฐานให้ระบุNotrun/ยังสรุปไม่ได้
+
+### Task 13 — Cleanup พร้อม inventory และวิธีสร้างกลับ
+
+**คำเตือน:** ขั้นนี้ลบข้อมูลและทรัพยากรของLabจริง ทำเฉพาะsandboxและstateที่ยืนยันแล้ว เก็บรายงาน/evidence/ข้อมูลที่ต้องการก่อน ไม่มีundoที่รับประกันจะคืนทุกอย่าง
+
+| เจ้าของ | เป้าหมาย |
+|---|---|
+| workloadstate | Eventarctrigger/transportที่ระบบสร้าง, CloudRunPortal/worker/revisions/IAMinvokers |
+| foundationstate | privatebuckets/objects, namedFirestore/TTL/IAM, 5SAs/customroles, authSecretcontainer/versions, ArtifactRegistry/images, bindings |
+| นอกstate | localprivatebundle/journals, downloadedreports, softdeletedobjects/buckets, logs/budgetsและCloudShellworkspace |
+| ไม่ใช่เป้าลบ | project/Billing/(default)database/ข้อมูลทีมอื่น/remoteTerraformbackend/sharedrepositories |
+
+1. หยุดwriters/tools/pollingและoperatorretry ตรวจทุกUUIDที่มีผลไม่แน่นอน เก็บfinalreport/metadata/historyที่sanitized
+2. หยุดออกcapabilityใหม่และรอสิทธิ์เก่าที่ออกไปหมดอายุตามที่บันทึก ไม่คิดว่าปิดPortalแล้วsignedpolicyเดิมหายทันที หากมีผู้ใช้อื่นต้องประสานให้หยุดก่อน ไม่ทำcleanupขณะยังupload
+3. ตั้งfaultfalseทั้งคู่/limitmodebaselineและvariablesเดิมให้ตรงstate Reviewปลดworkloadsdeletiongateก่อนdestroy:
+
+```bash
+cd "$LAB_DIR"
+gcloud config get-value project
+export TF_VAR_worker_fail_before_read=false
+export TF_VAR_worker_fail_after_output_once=false
+export TF_VAR_upload_limit_mode='baseline'
+terraform -chdir=infra/workloads plan -var=allow_destroy=true -out=workloads-unlock.tfplan
+terraform -chdir=infra/workloads show -no-color workloads-unlock.tfplan
+terraform -chdir=infra/workloads apply workloads-unlock.tfplan
+terraform -chdir=infra/workloads plan -destroy -var=allow_destroy=true -out=workloads-cleanup.tfplan
+terraform -chdir=infra/workloads show -no-color workloads-cleanup.tfplan
+terraform -chdir=infra/workloads apply workloads-cleanup.tfplan
+terraform -chdir=infra/workloads state list
+
+```
+
+Planต้องลบเฉพาะLabservices/trigger/IAM ไม่มีระบบอื่น หลังdestroyตรวจEventarc/CloudRunConsoleและtransportPubSubที่triggerเคยใช้ ถ้าพบค้างให้ตรวจowner/resource referenceก่อนลบ ไม่ลบtopic/subscriptionทั้งprojectแบบเหมารวม
+
+4. ตรวจชื่อbucketจากfoundationstateให้ตรงตัวแปรก่อนเลือกข้อมูลลบ:
+
+```bash
+export EXPECTED_INCOMING="$(terraform -chdir=infra/foundation output -raw incoming_bucket)"
+export EXPECTED_RESULTS="$(terraform -chdir=infra/foundation output -raw results_bucket)"
+test -n "$INCOMING_BUCKET"
+test -n "$RESULTS_BUCKET"
+test "$INCOMING_BUCKET" = "$EXPECTED_INCOMING"
+test "$RESULTS_BUCKET" = "$EXPECTED_RESULTS"
+gcloud storage buckets describe "gs://$INCOMING_BUCKET"
+gcloud storage buckets describe "gs://$RESULTS_BUCKET"
+gcloud storage ls --all-versions --long "gs://$INCOMING_BUCKET/incoming/**"
+gcloud storage ls --all-versions --long "gs://$RESULTS_BUCKET/results/**"
+
+```
+
+ถ้าtestเปรียบเทียบตัวใดไม่ผ่านให้หยุด ไม่ทำคำสั่งลบ หากรายการตรงLabและตัดสินใจไม่เก็บข้อมูลแล้วจึงลบเฉพาะprefixเหล่านี้:
+
+```bash
+gcloud storage rm --all-versions "gs://$INCOMING_BUCKET/incoming/**"
+gcloud storage rm --all-versions "gs://$RESULTS_BUCKET/results/**"
+gcloud storage ls --all-versions --long "gs://$INCOMING_BUCKET/**"
+gcloud storage ls --all-versions --long "gs://$RESULTS_BUCKET/**"
+
+```
+
+ไม่มีmatchingobjectให้บันทึกempty ไม่retrydeleteไม่จำกัด หากมีไฟล์นอกprefixให้ตรวจทีละไฟล์/ที่มา ไม่เปลี่ยนforce_destroy=trueเพื่อข้ามข้อมูลไม่รู้จัก softdeletedobjectsอาจยังอยู่7วันตามpolicyและคิดค่าเก็บ ตรวจConsoleProtection/Soft-deletedobjectsพร้อมexpiry ไม่ใช้live-listว่างแทนzero-cost
+
+5. ReviewArtifactRegistryของLabและบันทึกimages/digestsที่ต้องเก็บก่อนลบrepositoryด้วยfoundation ห้ามลบsharedrepoหรือเผยprivatebundleในimage:
+
+```bash
+gcloud artifacts docker images list "$IMAGE_REPOSITORY" --include-tags --limit=50
+gcloud firestore databases describe --database=lab006-files --format='yaml(name,locationId,type,deleteProtectionState)'
+terraform -chdir=infra/foundation plan -var=allow_destroy=true -out=foundation-unlock.tfplan
+terraform -chdir=infra/foundation show -no-color foundation-unlock.tfplan
+terraform -chdir=infra/foundation apply foundation-unlock.tfplan
+terraform -chdir=infra/foundation plan -destroy -var=allow_destroy=true -out=foundation-cleanup.tfplan
+terraform -chdir=infra/foundation show -no-color foundation-cleanup.tfplan
+terraform -chdir=infra/foundation apply foundation-cleanup.tfplan
+terraform -chdir=infra/foundation state list
+
+```
+
+**Reviewก่อนยืนยัน:** databaseเป้าลบต้องเป็นlab006-filesเท่านั้น ไม่ใช่(default)หรือdatabaseทีมอื่น การลบนี้ลบmetadata/history ไม่ใช่exportbackup ส่วนSecret/image/bucket/SA/customrolesตามinventoryจะหายหรือถูกsoftdeleteตามบริการ หากresourceinuseให้หาว่าworkloads/triggerยังค้าง ไม่ใช้state-rm/force-unlockเพื่อหลบdependency
+
+6. ตรวจstateเทียบของจริง:
+
+```bash
+gcloud run services list --region="$REGION" --filter='metadata.name~^lab006-'
+gcloud eventarc triggers list --location="$REGION" --filter='name:lab006-'
+gcloud firestore databases list --format='table(name,locationId,type)'
+gcloud secrets list --filter='name:lab006-'
+gcloud iam service-accounts list --filter='email:lab006-'
+gcloud artifacts repositories list --location="$REGION" --filter='name:lab006-files'
+
+```
+
+ตรวจStorage/retainedobjects, PubSubtransport, deletedcustomroles/SAs, logsretentionและBillingReportsช่วงproject/labelsของLabด้วย Billingอาจตามหลัง inventoryว่างจึงยังไม่ใช่ค่าใช้จ่ายศูนย์ APIsที่foundationเปิดตั้งdisable_on_destroy=falseจึงยังenabled ไม่จำเป็นต้องปิดAPIที่คนอื่นใช้เพื่อทำให้หน้าดูว่าง
+
+7. เก็บหรือลบprivatebundle/journals/state/plan/reportตามอายุที่กำหนดหลังยืนยันcleanup ไม่recursiveลบhome/checkout ไม่commitของเหล่านี้หรือfullsignedURL และไม่ลบremotebackend/budgetที่มีownerอื่นโดยไม่ตกลงกัน
+
+**จุดบันทึก T13:** capabilitiesหมดอายุ/งานค้าง …; reviewedunlock/destroyplans …; workloads/foundationstate …; liveinventoryเทียบstate …; softdelete/transport/logs/role-retentionและexpiry …; Billingตรวจเมื่อใด/รายการค้าง …; privatefilepolicy …; ปัญหา/การแก้ …
+
+#### Rebuild ไม่ใช่ restore ข้อมูลธุรกิจ
+
+ใช้SOURCE_COMMITและimage@digestที่บันทึกหรือbuildใหม่พร้อมจดdigestที่เปลี่ยน เริ่มcheckoutpersistentใหม่เมื่อยืนยันstateเก่าemptyและทรัพยากรเดิมไม่ค้าง เลือกbucketชื่อใหม่หากชื่อเดิมยังมีข้อจำกัดจากsoftdelete สร้างSecretbundleใหม่สำหรับenvironmentใหม่ ไม่reuseorder/retryjournalsของdatabaseที่ถูกลบ
+
+Customrolesอาจยังอยู่ในสถานะdeletedระหว่างretention จึงอย่าสมมติว่าใช้roleIDเดิมได้ทันที หากcreateแจ้งalreadyexistsให้ตรวจIAMRolesที่deletedเฉพาะ3rolesของLabนี้ก่อน ทางเลือกคือรอรอบretentionหรือrecover/importresourceเดิมที่ยืนยันownerแล้วพร้อมreviewplan ไม่สร้างcustomroleกว้าง/เปลี่ยนชื่อสุ่มทุกครั้งเพื่อให้applyผ่าน
+
+ทำTask0→1→2→3→4ใหม่แล้วทดสอบjourney/report/accessใหม่ ถ้าต้องrecoverSA/role/bucketให้บันทึกสิ่งที่กู้และผลIAMจริง ไม่อ้างidenticalrebuildจากemail/ชื่ออย่างเดียว การสร้างschema/บริการใหม่ไม่ได้คืนไฟล์ยอดขายหรือreportที่ลบแล้ว หากต้องrestoreข้อมูลต้องมีexport/backupและrunbookแยก
