@@ -1,7 +1,7 @@
 ---
 lab: LAB-007
 platform: GCP
-guide_status: brief
+guide_status: design
 cloud_verification: not-run
 last_verified: null
 ---
@@ -13,7 +13,7 @@ last_verified: null
 
 Solution นี้ชื่อ **Order Queue Desk** ผลสำเร็จทางธุรกิจคือจองสต็อกและเปลี่ยนคำสั่งซื้อเป็น confirmed ไม่ใช่การตัดเงิน ส่งสินค้า หรือรับประกัน exactly-once ของบริการภายนอก
 
-**สถานะ:** Brief — กำหนดโจทย์และเกณฑ์รับมอบ ยังไม่ใช่คู่มือพร้อมทำ ไม่ได้สร้างระบบหรือทดสอบ GCP จริง ขั้นถัดไปต้องปิด Design ก่อนสร้าง App, infrastructure หรือ Tasks
+**สถานะ:** Design — กำหนดโจทย์และสัญญาระบบแล้ว ขั้นถัดไปสร้าง Materials และทดสอบตามลำดับด้านล่าง ยังไม่ใช่คู่มือพร้อมทำและไม่มีผลทดสอบ GCP จริง
 
 ## ผู้ใช้และงานที่ต้องทำได้
 
@@ -132,3 +132,157 @@ Cloud SQL, backups/storage, Queue retention/operations, network, images, logs �
 - [Dead-letter configuration, service-agent permissions และ approximate attempts](https://docs.cloud.google.com/pubsub/docs/dead-letter-topics)
 - [Cloud Run เชื่อม Cloud SQL PostgreSQL ผ่าน private IP](https://docs.cloud.google.com/sql/docs/postgres/connect-run)
 - [Cloud Run Direct VPC egress](https://docs.cloud.google.com/run/docs/configuring/vpc-direct-vpc)
+
+## Design — สัญญาที่ใช้สร้างระบบ
+
+### 1. ทรัพยากรและวิธีเชื่อมต่อที่เลือก
+
+| ส่วน | ค่าที่ใช้เป็น baseline |
+|---|---|
+| Runtime | Python 3.12, Flask/Gunicorn; Cloud Run second generation ใน asia-southeast1; min instances 0 |
+| Portal | lab007-portal; max 2 instances/revision, concurrency 4, request timeout 30s, memory 512 MiB |
+| Dispatcher | lab007-dispatcher; IAM-required, max 1/revision, concurrency 1, request timeout 60s |
+| Worker | lab007-worker; IAM-required, max 1/revision → change 3, concurrency 1, request timeout 60s, memory 512 MiB |
+| Dispatcher trigger | Cloud Scheduler HTTP POST ทุกหนึ่งนาทีตาม UTC ใช้ OIDC; audience เป็น dispatcher origin และ target เป็น /internal/outbox/drain |
+| Queue | lab007-orders topic; lab007-orders-worker push subscription → worker /events/orders; explicit push identity/audience |
+| Dead-letter | lab007-orders-dead topic + lab007-orders-dead-inspect pull subscription; max delivery attempts 10 แบบ best-effort ไม่ใช่ hard counter |
+| Retry/retention | source retry backoff 10–60s, ack deadline 60s, retention 1 วัน; DLT topic/subscription retention 1 วัน; ไม่เปิด retain acknowledged messages โดยไม่จำเป็น |
+| Database | PostgreSQL 16, Enterprise, ZONAL, dedicated db-custom-2-7680; database order_queue; ไม่เปิด public IP |
+| Network | lab007-vpc, regional Direct VPC subnet 10.77.10.0/26, PSA range 10.77.240.0/24; ไม่ใช้ subnet CIDR ซ้ำกับระบบอื่น |
+| DB transport | Cloud SQL Python Connector + pg8000, private IP ผ่าน Direct VPC egress; connector จัดการ TLS/instance identity; attached SA สำหรับ Google API และ DB password แยก role |
+| Delivery assets | Artifact Registry lab007-orders, image@sha256, Secret versions แบบตัวเลข; Terraform 1.9.x/provider Google 6.50.0 เป็นจุดตั้งต้นที่ต้อง validate ใน CI |
+
+ตั้ง Direct VPC egress แบบ private-ranges-only เพื่อส่ง SQL private traffic เข้า VPC โดยไม่บังคับ Pub/Sub/Secret APIs ทั้งหมดผ่าน NAT ไม่สร้าง Cloud NAT เพียงเพื่อให้ Diagram เต็ม Cloud Run ใช้ resource นอก subnet แต่มี Direct VPC network attachment ส่วน Cloud SQL อยู่ managed producer network ที่เชื่อมด้วย PSA ไม่ใช่ VM ใน subnet ของ Portal
+
+Pub/Sub topics เป็นทรัพยากรที่ไม่ผูกกับ regional subnet ตั้ง allowed persistence region เป็น asia-southeast1 ทั้ง source และ dead-letter topic ไม่ตีความว่า resource กลายเป็น regional VM
+
+ขนาด DB ที่เลือกมีต้นทุนสูงกว่า shared-core แต่ให้พื้นที่สำหรับทดลอง connection/lock และ capacity โดยไม่ตั้งต้นด้วย DB เล็กจนแยก bottleneck ไม่ได้ นี่ไม่ใช่ HA Lab หรือ benchmark tier ต้องบันทึกเวลาที่เปิดและ cleanup หลังทดสอบ รุ่น dependencies ของ connector/driver/PubSub จะล็อกพร้อม real-package API checks ใน Materials ไม่ใช้ชื่อ latest ใน image หรือคำสั่งติดตั้งของคู่มือ
+
+### 2. Identity, Secret และ DB role
+
+| Identity | Google Cloud permissions | DB / App permissions |
+|---|---|---|
+| Portal SA | Cloud SQL Client; อ่าน auth/portal-DB Secrets ของตัวเอง | order_api: อ่าน catalog, สร้าง order/items/outbox ผ่าน transaction interface, อ่านสถานะ/operational view และขอ replay ผ่าน interface ที่จำกัด |
+| Dispatcher SA | Cloud SQL Client; อ่าน dispatcher-DB Secret; publisher เฉพาะ source topic | outbox_dispatcher: claim/finish/release outbox; ไม่แก้ stock หรือ order result |
+| Worker SA | Cloud SQL Client; อ่าน worker-DB Secret | order_worker: lock/อ่าน order, transaction จองสินค้า/ledger/processed events และ terminal result; ไม่สร้าง/แก้ catalog price หรือ DDL |
+| Push SA | run.invoker เฉพาะ worker | ไม่มี DB/Secret/publisher role |
+| Scheduler SA | run.invoker เฉพาะ dispatcher | ไม่มี DB/Secret/publisher role |
+| Pub/Sub service agent | สร้าง OIDC token สำหรับ Push SA ตาม resource scope; DLT publisher และ source-subscription subscriber ตามเอกสาร | ไม่ใช้เป็น App runtime SA |
+| Bootstrap SA / Job | Cloud SQL Client และอ่าน bootstrap/admin+initial-role Secrets เฉพาะช่วงติดตั้ง | admin สำหรับ schema/role/grants/seed ครั้งแรก ไม่ใช้ใน serving services |
+| ผู้ดูแล DLQ | subscriber เฉพาะ dead-inspect subscription; login operator ใน Portal | ไม่รับ DB admin หรือสิทธิ์แก้ business payload โดยตรง |
+
+แยก Cloud IAM ออกจาก DB login: role Cloud SQL Client ไม่ได้ให้สิทธิ์อ่านตารางเอง แต่ละ DB role เป็น LOGIN/NOSUPERUSER/NOCREATEDB/NOCREATEROLE ไม่มีสิทธิ์ DDL/delete ledger และไม่เป็นเจ้าของ schema การออกแบบ SQL interface ต้องใช้ explicit schema/search_path และ grants ไม่ให้ PUBLIC เรียก privileged functions
+
+Foundation สร้าง Secret containers เท่านั้น การตั้ง admin password และ initial credentials ต้องใช้ private bundle/API workflow ที่ไม่ใส่ payload ใน Terraform/state/image/arguments ที่พิมพ์ออก log จากนั้น bootstrap Job ใช้ private IP ไม่เปิด public DB หรืออนุญาต laptop IP เพื่อ bootstrap ติดตั้งซ้ำต้องตรวจ schema version/seed identity และไม่ reset รหัสหรือยอดคงเหลือของระบบที่มีข้อมูลอยู่แล้ว
+
+Portal เปิด login ผ่าน App auth แต่ทุก business mutation ต้องตรวจ session/role/CSRF และ owner จาก session ไม่รับ owner จาก request ลูกค้าไม่เข้าถึง DB หรือ Pub/Sub โดยตรง Bootstrap identity/Secret access ไม่คงไว้ใน runtime ของ Portal/worker
+
+### 3. ข้อมูลและ API contract
+
+สินค้าเริ่มต้น: BOOK-01/USB-01 อย่างละ 200 หน่วย และ LAST-01 หนึ่งหน่วย เก็บ seed fingerprint/version ราคาเป็น integer satang snapshot ลง order items ตอนรับงาน 1–2 SKU ที่ไม่ซ้ำต่อ order, quantity 1–3 ต่อ item, ไม่รับ client price, SKU allowlist และ canonical item order ตาม SKU
+
+IDs เป็น UUID hex32 จาก server ส่วน idempotency key ที่ client สร้างต้องมีรูปแบบ/ความยาวจำกัด เก็บ hash(owner+key), request fingerprint และ order reference ไว้ใน transaction เดียว ไม่เอา raw key ไปเป็น log field ไม่ลบ idempotency/ledger ก่อน Queue/DLQ และ replay window สิ้นสุด
+
+| Endpoint | สัญญา |
+|---|---|
+| GET /api/session; POST /api/login,/api/logout | Secure/HttpOnly/SameSite cookie, hashed demo credentials, CSRF สำหรับ mutations, bounded JSON body |
+| GET /api/catalog | login required; คืน SKU/ราคา ไม่ให้ client ตั้ง stock หรือราคาขาย |
+| POST /api/orders | owner จาก session, body มี items และ idempotency key เท่านั้น; commit order/items/outbox แล้วตอบ 202 พร้อม order ID |
+| GET /api/orders; GET /api/orders/{id} | owner-filtered pagination ≤20; foreign owner 404; คืน business state แยกจาก dispatch state |
+| GET /api/operator/orders; GET /api/operator/outbox | operator only; safe operational projection ไม่คืน credentials/raw message |
+| POST /api/operator/outbox/{event_id}/replay | operator+CSRF+request key; audit/prepare replay แบบ idempotent และ bounded ไม่รับ replacement payload |
+| POST dispatcher /internal/outbox/drain | IAM ก่อน App; bounded empty/configured body ไม่มี arbitrary topic/SQL/URL จาก caller |
+| POST worker /events/orders | IAM ก่อน App; wrapped Pub/Sub push JSON ≤64 KiB, strict base64 decoding, decoded data ≤4 KiB, exact subscription binding |
+| GET /livez; GET /healthz | process readiness แยกจาก bounded DB query; ไม่เขียนข้อมูลหรือไล่อ่าน order ทุกตัว |
+
+Canonical event มีเพียง schema_version=1, event_id, order_id, order_fingerprint โดย UUID/order data มาจาก DB ไม่แนบราคา/owner ที่แก้เองได้จาก message Worker ต้องเทียบ event ID และ fingerprint กับ canonical outbox ก่อนทำงาน ไม่เชื่อ Pub/Sub attributes แทน SQL binding และไม่ติดตาม URL ใน payload
+
+Business state มี accepted → confirmed หรือ rejected และไม่ย้อนกลับ confirmed หมายถึงจองครบทุก item; rejected มี safe reason เช่น insufficient_stock
+
+Dispatch state แยกเป็น pending/publishing/published/exhausted; published หมายถึง Pub/Sub ตอบรับ publish ไม่ใช่ worker สำเร็จ Worker อาจทำงานเสร็จก่อน dispatcher mark published ได้ ต้องไม่เขียน state ของ order ย้อนเป็น queued ภายหลัง ส่วน dead-letter เป็น transport observation ที่ต้อง reconcile ไม่ใช่ business rejection
+
+### 4. Schema และ transaction boundaries
+
+| ตาราง | Invariant สำคัญ |
+|---|---|
+| products | PK SKU, seed stock/available ≥0, unit price satang ≥0, seed version |
+| orders | PK order ID, owner, unique(owner,key_hash), request fingerprint, accepted/confirmed/rejected, safe reason/timestamps |
+| order_items | PK(order ID,SKU), quantity/price snapshot/line total; FK ไป order/product |
+| outbox | PK event ID, unique order ID, canonical event bytes/hash, dispatch state, lease token/until, attempts/epoch, safe last outcome |
+| processed_events | unique event ID และ unique order ID; canonical fingerprint, confirmed/rejected outcome; ไม่มีคำว่าเคยทำแล้วโดยไม่เทียบ binding |
+| reservations | unique(order ID,SKU), units/price snapshot; FK; มีเฉพาะ confirmed orders และไม่แก้หรือลบระหว่างทำ Lab |
+| operator_actions | unique(operator,request_key_hash), event ID/source digest/epoch, reason/result; ไม่เก็บ JWT/ack token |
+
+**Create:** normalize/fingerprint → lookup idempotency → read catalog/price → insert order/items/canonical outbox ใน SQL transaction เดียว หากคำตอบ commit หายให้ lookup คำขอเดิม ไม่เรียก publish ใน transaction นี้
+
+**Dispatch:** claim ด้วย row lock/SKIP LOCKED และ token/lease120s → commit ก่อน network → publish canonical event → finish เฉพาะ token ปัจจุบัน ถ้าคำตอบหายให้ release หรือรอ lease แล้วส่ง event ID เดิม; stale dispatcher ห้าม mark ตามผล network ของรอบเก่า
+
+หนึ่ง drain รับได้สูงสุด 20 events และมี cooperative budget 40s โดยเริ่ม operation ใหม่เฉพาะเมื่อเหลือเวลาพอสำหรับ bounded call; publish call timeout5s/retryปิด, ไม่ต่อ lease ไม่จำกัด Scheduler overlap/responseหายอาจเรียก drain ซ้ำ จึงไม่ใช้ Scheduler เป็น lock หลัก
+
+Dispatch attempt limit 10 ต่อ epoch เมื่อเกินให้ exhausted พร้อมเหตุผล operational แต่ไม่แก้ order เป็น rejected Operator เปิดเพิ่มได้ไม่เกินสอง epochด้วย request key เดิมที่ resolve ได้ หาก order จบแล้วให้แสดง already-resolved แทน publish เพื่อทำธุรกิจใหม่
+
+**Process:** parse/auth envelope → begin → lock order → verify canonical event/items → ตรวจ processed result เดิม → lock product rows ตาม SKU → ตรวจทุก SKU พอ → จองทั้งหมด+insert reservations+processed result+terminal order state → commit → ack204 หากสินค้าไม่พอ commit rejected/processed outcome โดยไม่แตะ stock
+
+SQL exception/dependency/lock timeout ต้อง rollback และคืน retryable response ส่วน schema/binding ที่ไม่ถูกต้องไม่ ack แบบ success ต้องแยก poison reason เพื่อส่งต่อ DLT ไม่อ่าน arbitrary table/path จาก event การ commitสำเร็จแต่responseหายปลอดภัยเพราะรอบใหม่ตรวจ immutable binding และ terminal ledgerก่อนทำ stock change
+
+ใช้ row constraints/unique keys/transactions เป็นหลัก ไม่ใช้ check-then-act ใน Pythonอย่างเดียว SQL tests ต้องตรวจ race กับ connections จริงและ stock snapshot ไม่ใช่ดูแค่ HTTP status
+
+### 5. Dead-letter inspect/replay
+
+ใช้ Cloud Shell bounded tool กับ operator session และ subscriber permission เฉพาะ dead-inspect ไม่ให้ Portal ดึง DLQ payload สำหรับลูกค้าทั่วไป เครื่องมือ pull ครั้งละไม่เกิน 5 รายการ ไม่ auto-ack และจำกัดขนาด envelope/nesting/base64 decode ต้อง parse รูปแบบ forwarded message จริงจากเอกสาร/fixtureที่ตรวจแล้ว
+
+ลำดับต่อหนึ่งรายการ:
+
+1. ตรวจ source subscription/digest และ lookup canonical outbox ผ่าน operator API ไม่ใช้ raw payload มาเขียนธุรกิจ
+2. บันทึก private journal ของ action key/event/source digest และ audit reference ก่อน prepare replay ไม่มี password/JWT/ack ID ในหลักฐานเผยแพร่
+3. ถ้า order accepted ให้ operator API prepare pending epoch เดิมแบบ idempotent รอ Scheduler/dispatcher ส่ง canonical event ไม่รับ payload ที่แก้เอง
+4. ถ้าคำตอบหาย ให้ resolve action key เดิมและอ่าน order/outbox/ledger ไม่เปิด epoch ใหม่ ถ้า order confirmed/rejectedอยู่แล้วและbindingตรง ให้บันทึก already-resolved
+5. Ack เฉพาะ dead-letter รายการที่ตรวจผล terminal/canonical binding แล้ว ห้าม ack batch ทั้ง subscription หรือถือ publish response เป็นผลธุรกิจ หาก ack token หมดอายุให้ pull/ตรวจรายการเดิมใหม่ ไม่สร้างงานธุรกิจเพิ่ม
+
+การ replay ไม่ลบหรือ seek source subscription ทั้งก้อน และไม่รับประกันว่า deliveryAttempt เท่ากับสิบเป๊ะ ต้องแยก application dispatch budget ออกจาก broker best-effort delivery attempts
+
+Poison fault สำหรับฝึกจะเปลี่ยนเฉพาะ schema version ของ event ที่ระบุใน outbound test path โดย canonical outbox/orderไม่เปลี่ยน เมื่อปิด faultให้ replayจากcanonical versionเดิม มี finite target/event markerและคืนbaselineชัดเจน ไม่เปิดfaultให้ลูกค้าเลือกจากAPI
+
+### 6. Connection budget และการเปลี่ยน capacity
+
+ใช้หนึ่ง process ต่อ container, pool overflow=0, pool size Portal2/worker2/dispatcher1, bootstrap1 ตั้ง connect/pool wait/statement/lock timeout แบบจำกัด และใช้ transaction สั้น ไม่มี network I/O ขณะถือ product locks
+
+Change จาก worker1→3 โดยคง concurrency1/pool2 ที่เหลือเดิม สมมติฐาน rollout สอง revision พร้อมกันให้ budget Portal4×2 +worker6×2 +dispatcher2×1 +bootstrap1 =23 connections; เผื่อ inspection/maintenanceอย่างน้อย7และheadroomเพิ่มเติม ไม่อ้างว่า Cloud Run max instances เป็น hard DB connection cap
+
+ตั้ง DB role connection limits ตาม budget: API8/worker12/dispatcher2/bootstrap1 และตรวจ DB actual max_connections/ผู้ใช้ระบบก่อนเริ่ม หาก Cloud Run transient burst/หลายrevisionเกินแผน DBอาจปฏิเสธ connection ต้องเกิด bounded error/backoffไม่สร้างผลซ้ำ ไม่รับประกัน zero errorsระหว่างrollout
+
+ฐาน DBไม่autoscaleตามQueueจึงต้องเทียบ stock correctness/Queue age/DBlocks/connectionsร่วมกัน ไม่เพิ่มpublisherหรือใช้blindloadจนquotaเต็มเพื่อทำให้กราฟสวย
+
+### 7. Test matrix และลำดับ Materials
+
+| ชั้น | สิ่งที่ต้องตรวจจริง |
+|---|---|
+| Domain/protocol | exact input/schema/fingerprint/integer bounds; duplicate JSON/base64/body limits; owner/binding; safe reasons |
+| PostgreSQL16 | create/replay/conflict, concurrent LAST-01 race, all-or-nothing multi-item, duplicate/new message IDs, commit-before-ack recovery, stale publish token, ambiguous publish/reclaim, exhausted/redrive/action idempotency และ DB grants |
+| HTTP/browser | real Portal login/catalog/order/status/unknown-create resolution; bob404/operator403/CSRF; queue transport/signing doubles ติดป้ายชัด |
+| SDK contracts | real installed Pub/Sub publisher/Cloud SQL connector APIs, timeout/retry/IP/TLS contracts; no paid cloud calls |
+| Containers/IaC | explicit roles/Secrets/image digest, non-root/exclusions, Terraform fmt/init-backendfalse/validate, bootstrap no-reset |
+| Guide/diagrams | commands parse, links/Taskcoverage, real-width render/visual review, R1–R9evidence, bounded fault/backout/cost/cleanup |
+
+ลำดับทำ: domain/event contractsและfixtures → SQLschema/roles/transactionsกับrealDBtests → outboxclaim/publisher/worker → HTTP/runtime/Secrets/bootstrap → browser+operatorDLQtools → Terraform → diagrams → Tasksพร้อมrecords/runbook/change/cleanup → self-review/Guide-ready แต่ละชั้นต้องแก้ข้อผิดพลาดที่ตรวจได้ก่อนเพิ่มชั้นถัดไป
+
+แผน Tasks จะเริ่มproject/budget/private state → foundation/privateDB → privatecredentials/bootstrap → images/services/queue/schedule → business/owner/stock tests → outbox/push/crash/DLQ faults → throughput change → evidence/cleanup/rebuild ไม่เขียนผล Cloud PASS ล่วงหน้า
+
+### 8. Deployment และ cleanup boundaries
+
+แยก Terraform foundation (APIs/VPC/PSA/SQL/Secretcontainers/SAs/AR), bootstrap (one-off DB installation job) และ workloads (services/topics/subscriptions/identitybindings/Scheduler) เพื่อให้แต่ละเฟสมีค่าที่ต้องใช้และreviewก่อนเปิดtraffic Schema/Secretpayloadอยู่นอกTerraformstate
+
+Bootstrap Jobล้มต้องวินิจฉัย/รันซ้ำแบบไม่reset ไม่แก้roleหรือseedผ่านPortal ส่วน runtime migrationsไม่ทำตอนรับrequesthealth
+
+Cleanupต้องpauseScheduler/หยุดordersและdispatcherก่อน, resolveoutbox/DLQ/unknownoutcomeและเก็บsanitizedsnapshots, ลบworkloads/Queueหลังตัดสินใจเรื่องข้อมูล, ปลดDBprotectionด้วยreviewedplan, ตรวจbackups/retention/images/Secrets/SA/IAM/PSAและnetworkที่เหลือ ไม่ลบproject/sharedAPI/backendหรือdefaultDBของงานอื่น
+
+SQLbackup retentionไม่ใช่การรับประกันrestoreที่ทดลองแล้ว และ rebuild seedไม่ใช่คืนorders/ledgerที่ลบ ต้องระบุสิ่งที่ยังเก็บและค่าใช้จ่ายที่อาจตามหลังinventory
+
+### แหล่งอ้างอิง Design
+
+- [Cloud SQL Python Connector: private IP/TLS/pg8000 และ refresh strategy](https://github.com/GoogleCloudPlatform/cloud-sql-python-connector)
+- [Pub/Sub authenticated push และ service agent](https://docs.cloud.google.com/pubsub/docs/authenticate-push-subscriptions)
+- [Cloud Scheduler HTTP target authentication](https://docs.cloud.google.com/scheduler/docs/http-target-auth)
+- [Cloud Run scheduled invocation](https://docs.cloud.google.com/run/docs/triggering/using-scheduler)
+
+**Design checkpoint:** นี่คือสัญญาที่ Materials ต้องทำให้เป็นจริง ยังไม่มีApp/schema/infraสำเร็จหรือผล GCP ขั้นถัดไปเริ่มdomain+SQLtestsตามลำดับข้างต้น หากSDK/providerมีข้อจำกัดให้ปรับDesignพร้อมเหตุผลก่อนเขียนTask

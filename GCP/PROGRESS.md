@@ -10,7 +10,7 @@
 | 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Brief | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Design | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 08 | ระบบรายงานตามเวลาและงาน Batch รายวัน | Planned | Not run | — |
 | 09 | ระบบส่ง Webhook ให้ระบบคู่ค้า | Planned | Not run | — |
 | 10 | ระบบ Catalog ที่ใช้ Cache ลดภาระ Database | Planned | Not run | — |
@@ -246,3 +246,6 @@ Lab06: Guide-ready — review ครบ R1–R8 และ Tasks0–13/8B: direct
 
 
 Lab07 / Brief: เริ่มหลังLab06Guide-ready กำหนดOrderQueueDesk R1–R9: DBorder+transactionaloutboxแก้dualwritegap, authenticatedPubSubpush, PostgreSQLreservationledger/idempotency/stockrace, transient-vs-businessrejection-vs-poison/DLQ, canonicalredrive/unknownoutcome, owner/IAM/DBseparation และ1→3workercapacityพร้อมconnectionbudget ตรวจofficialPubSubpush/exactlyonce-pullonly/deadletterapproxpermissions/RunSQLprivateIPแล้ว ยังต้องDesignก่อนMaterials/Tasks ไม่มีApp/Diagram/GCPผลสำเร็จ ไม่Guide-ready
+
+
+Lab07 / Design: ปิดresource/identity/API/schema/outbox/stocktransaction/ack-DLQ-redriveและcapacitycontracts เลือกRun3services+SchedulerOIDC/PubSubpush-DLT/PG16privateIP+PythonconnectorTLS+DBroles/Secretversions; no-network-underSQLlocks, dispatcherleasefencing120s/budget/attempts, canonicalevent/orderbinding, SQLatomicreservation+ledger, unknownpublish/commit-before-ackrecovery, boundedoperatorcanonicalreplayและconnectionbudget1→3workers พร้อมCI/test/taskorder/cleanupboundaries ยังไม่มีMaterials/schema/App/DiagramหรือGCPผลจริง ขั้นถัดไปdomain/SQLtests ไม่Guide-ready
