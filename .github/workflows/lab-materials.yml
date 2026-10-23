@@ -281,6 +281,7 @@ jobs:
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_csv_domain.py -v
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_job_state.py -v
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_storage_events.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_container.py -v
 
   lab006-firestore:
     runs-on: ubuntu-latest
@@ -354,3 +355,16 @@ jobs:
       - name: Show emulator diagnostics on failure
         if: failure()
         run: tail -n 100 "$RUNNER_TEMP/lab006-firestore.log"
+
+  lab006-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the self-contained Portal and worker image without cloud credentials
+        run: docker build -t lab006-files:ci GCP/LAB-006-private-file-processing
+      - name: Verify image imports and excludes private bundles and test fixtures
+        run: |
+          docker run --rm --entrypoint python lab006-files:ci -c "import os,pathlib,portal_runtime,worker_http; assert os.getuid()==10001; assert pathlib.Path('/srv/app/static/index.html').is_file(); assert not pathlib.Path('/srv/app/secrets').exists(); assert not pathlib.Path('/srv/fixtures').exists()"

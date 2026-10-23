@@ -336,3 +336,10 @@ Portalตอบ202พร้อมdispatchacknowledgedหรือunconfirmed; �
 เพิ่ม [Chrome journey test](tests/test_browser_journey.py) เปิดPortalจริงผ่านHTTPSloopbackบนGitHubrunner → login → POSTcreatecommitเข้าFirestoreemulator → จำลองBrowserไม่ได้รับresponse → reload/เลือกไฟล์เดิม → keyเดิมได้jobเดิม → uploadผ่านStoragetestdouble → Processor/Firestoreจริง → summary72400สตางค์หนึ่งผล เก็บPNGสำหรับตรวจภาพภายหลัง
 
 การทดสอบใช้certเฉพาะloopbackและacceptInsecureCertsในCI ไม่ใช่วิธีข้ามTLSในGCP ตัวStorage/signingเป็นtestdoubleและroute/uploadhookมีเฉพาะในtest ไม่ใส่productionApp ชุดนี้กำลังรอCI ไม่ถือว่ามีภาพหรือbrowserPASSจนตรวจผลแล้ว
+
+
+### Container packaging checkpoint
+
+เพิ่ม [Dockerfile](Dockerfile) สำหรับทั้งPortal/worker เลือกSERVICE_ROLEชัดเจน, process1worker/Portal8threads/worker1thread, bindPORTที่validateแล้วและnon-rootUID10001 ไม่ต่อshellจากinput ใช้explicitCOPYและdockerignoreไม่ส่งSecretbundle/fixtures/tests/stateเข้าbuildcontext ค่าauth/tokenอ่านตอนruntimeไม่bakeลงimage
+
+เพิ่ม3containercontracttestsและCIbuild/import/imagecontentcheckโดยไม่ใช้GCPcredentials Baseเป็นofficialPython3.12.15-slim-bookwormที่อาจได้รับrebuildpatch จึงต้องจดresolvedbase/image digestจากbuildจริงก่อนdeploy ไม่อ้างbit-reproducibleจากtagหรือtransitivepipdependenciesเพียงอย่างเดียว ชุดใหม่นี้รอCI ส่วนBrowserrun39936909967ยังpendingตอนตรวจ ต้องตรวจภาพ/ผลจริงก่อนGuide-ready

@@ -195,3 +195,6 @@ Lab06 / Portal UI draft: เพิ่มThaiUpload/status/download/operatorUI+bo
 
 
 Lab06 / Real browser test draft: runtimeCI39936078257 lab006jobsผ่านแล้ว เพิ่มChrome→HTTPSportal→Firestoreemulatorlost-create-response/reload/samekey/uploaddouble/Processor/summarytestและPNGartifact step พร้อมSelenium/fontdependencies ยังรอCI/renderreview ไม่อ้างGCS/IAMจริง เหลือIaC/Guide/Diagram/fullreview ไม่มีGCPwrites
+
+
+Lab06 / Container materials draft: เพิ่มnonrootsharedimage/validatedrole-portentrypoint/threadbudgets/explicitcopy+dockerignoreและ3testsพร้อมcloudDockerbuild/import/privatefileexclusioncheck ไม่deploy Browser110run39936909967ยังpendingตามhandle ตอนตรวจชุดก่อน108ครบsuccess รอBrowserและcontainerCIก่อนclaimผล ไม่มีGCPwrites
