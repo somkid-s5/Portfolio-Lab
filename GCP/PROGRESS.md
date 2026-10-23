@@ -228,3 +228,6 @@ Lab06 / Change guide Task10: เพิ่มdeterministicfixturegenerator(exact1
 
 
 Lab06 / Full guide draft Tasks11–13: เพิ่มcapability60s/300s/App24h/TTL48h/lifecycle-softdeleteแยกหลักฐานและNotrunเมื่อไม่รอจริง, R1–R8casestudy/evidence matrix, revieweddestructiongates/transport-objects-database-imageinventory/retainedcosts/privatefiles/rebuildlimits ไม่มีClock/DBtimefabrication ขยายguideCIตรวจTasks0–13/Bash23blocks/ConsoleJSsyntax ชุดใหม่รอCI ยังเหลือDiagram/consolidation/fullreviewก่อนGuide-ready ไม่มีGCPwrites
+
+
+Lab06 / Full-guide CI verified + diagram authoring: CI39991195096 ของ source6bd5cffee995c873502ce82f98ca0dc0076b92b8 completed success ทั้งworkflow รวม Lab006domain/firestore-browser/container/infra และLab04timeoutregressionที่แก้แล้ว ไม่มีGCPprovisioning; แก้คู่มือไม่อ้างwall-clockdeadline45sที่โค้ดยังไม่enforceและไม่อ้างupload-deadlinereconcilerที่ไม่มี เพิ่มcloud-onlydiagramgenerator/CIสำหรับtopology+recovery ใช้officialarchiveพร้อมper-iconhashหรือgenericที่ติดป้ายชัด ยังต้องrender/ตรวจภาพ/บันทึกSVG-PNG/consolidateคู่มือ/fullreviewก่อนGuide-ready

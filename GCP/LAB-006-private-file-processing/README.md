@@ -162,7 +162,7 @@ DownloadTTLสูงสุด60sและไม่เกินเวลาที
 
 jobs/{UUID} มี owner, display_name, object_name, created_at/upload_deadline/expires_at/delete_after, max_bytes/max_rows, processor_version, state, input_generation, input_sha256, attempt_epoch/count/token/lease_until, output_name/generation/sha256, safe_reason และtimestamps ส่วนidempotencyrecordsใช้hash(owner+key)พร้อมfingerprintและjobreference ไม่เก็บrawkeyในlogs
 
-ตั้งexpires_at=created+24hสำหรับAppaccess; upload_deadline=created+5min; delete_after=created+48hสำหรับTTLcleanup งานที่ไม่uploadหลังdeadlineเป็นexpiredเมื่ออ่าน/ตรวจreconcile ไม่ต้องอ้างว่ามีdaemonเปลี่ยนสถานะตรงเวลา TTLdeleteอาจล่าช้าและไม่ลบStorageobjectsโดยอัตโนมัติ
+ตั้งexpires_at=created+24hสำหรับAppaccess; upload_deadline=created+5min; delete_after=created+48hสำหรับTTLcleanup หลังuploaddeadlineจะขอpolicyใหม่ไม่ได้ แต่metadataอาจยังเป็นawaiting_uploadจนถึงAppexpiryหรือมีการประมวลผลevent ไม่ได้มีreconcilerเปลี่ยนทุกงานเป็นexpiredทันที TTLdeleteอาจล่าช้าและไม่ลบStorageobjectsโดยอัตโนมัติ
 
 | สถานะเดิม | เหตุการณ์ | ผล |
 |---|---|---|
@@ -176,7 +176,7 @@ jobs/{UUID} มี owner, display_name, object_name, created_at/upload_deadline/
 | ทุกสถานะที่bindแล้ว | generationต่างจากที่bind | ignore+reasonlogged ไม่เปลี่ยนowner/input/result |
 | retrybudgetครบ | transientครั้งถัดไป | failedพร้อมsafe_reasonและack; operatorretryได้ตามpolicy ไม่วนตลอดไป |
 
-Lease120sยาวกว่าworkerrequest60sบวกช่วงcleanup; processdeadline45s และclienttimeout/retrybudgetย่อยต้องรวมไม่เกินdeadline ไม่ต่อleaseไม่จำกัด attemptไม่เกิน5ต่อepoch, manualretryไม่เกิน2epochsเพิ่มจากครั้งแรก; rejected/expiredไม่เปิดretryเพื่อหลบvalidation ต้องสร้างjobใหม่ผ่านขั้นตอนปกติ งานfailedเก็บgenerationเดิมและนำoutputที่ถูกต้องกลับมาใช้ได้
+Lease120sเป็นช่วงถือสิทธิ์ก่อนclaimใหม่ ไม่ใช่ตัวหยุดprocess; Cloud Run request timeout60s และGunicorn timeout65s ส่วนGCSแต่ละoperationตั้งtimeout5sและretry=None โค้ดยังไม่มีwall-clock deadlineรวม45s จึงไม่รับประกันว่าoperationทั้งหมดจะจบภายใน45sหรือว่าHTTPtimeoutหยุดงานทันที ใช้token-fencedpublishและcreate-or-verifyoutputรับมือattemptที่ทับช่วงกัน และต้องทดสอบtimeout/recoveryบนCloudจริง ไม่ต่อleaseไม่จำกัด attemptไม่เกิน5ต่อepoch, manualretryไม่เกิน2epochsเพิ่มจากครั้งแรก; rejected/expiredไม่เปิดretryเพื่อหลบvalidation ต้องสร้างjobใหม่ผ่านขั้นตอนปกติ งานfailedเก็บgenerationเดิมและนำoutputที่ถูกต้องกลับมาใช้ได้
 
 Unknown/malformedevents: invalidenvelope400เพื่อให้เห็นconfigurationerror; authenticแต่ไม่อยู่bucket/key/jobnamespaceของLabให้ack204และsafeignoredreason ไม่สร้างjobจากevent หากmetadataอ่านไม่ได้เป็น503ไม่เหมาว่าunknownแล้วack งานที่หาไม่เจอจริงต้องlogignoredและให้runbookreconcile ไม่สร้างownerจากobjectmetadataที่clientปลอมได้
 

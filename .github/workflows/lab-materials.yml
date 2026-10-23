@@ -392,3 +392,30 @@ jobs:
             terraform -chdir="GCP/LAB-006-private-file-processing/infra/$root" init -backend=false -input=false
             terraform -chdir="GCP/LAB-006-private-file-processing/infra/$root" validate -no-color
           done
+
+  lab006-diagrams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Generate offline topology and recovery diagrams
+        run: python3 GCP/LAB-006-private-file-processing/scripts/render-diagrams.py
+      - name: Render at document width for visual review
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y librsvg2-bin
+          mkdir -p lab006-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-006-private-file-processing/assets/solution.svg -o lab006-diagram-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-006-private-file-processing/assets/recovery.svg -o lab006-diagram-previews/recovery.png
+          python3 -c "import base64,pathlib; [print('LAB006_DIAGRAM_'+p.stem.upper()+'='+base64.b64encode(p.read_bytes()).decode()) for p in sorted(pathlib.Path('lab006-diagram-previews').glob('*.png'))]"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab006-diagrams
+          path: |
+            lab006-diagram-previews/*.png
+            GCP/LAB-006-private-file-processing/assets/*.svg
+            GCP/LAB-006-private-file-processing/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
