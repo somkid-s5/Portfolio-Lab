@@ -750,7 +750,23 @@ gcloud compute ssh "$API_VM" --zone="$API_ZONE" --tunnel-through-iap   --command
 
 #### Task 9B — ตรวจ Web tier ด้วยหลักเดียวกัน
 
-ทำหลังAPIคืนปกติเท่านั้น ไม่หยุดWeb/APIพร้อมกัน เลือกWebVMหนึ่งเครื่องและจดID/zoneกับsurvivor เปิดprobewindowใหม่ชื่อweb-fault-read.jsonlจากCloudShell แล้วอีกTerminalตั้งWEB_VM/WEB_ZONEจากT08:
+ทำหลัง API คืนปกติเท่านั้น ไม่หยุด Web/API พร้อมกัน เลือก Web VM หนึ่งเครื่องและจด ID/zone กับ survivor เปิด Terminal A ใน Cloud Shell แล้วเริ่ม probe แยกไฟล์จากการทดลอง API:
+
+```bash
+cd "$LAB_DIR"
+umask 077
+mkdir -p .build/evidence
+set -C
+python3 scripts/probe.py --base-url "https://$LAB_DOMAIN" --path /healthz --requests 120 --workers 1 --interval 1 > .build/evidence/web-fault-read.jsonl
+export WEB_PROBE_EXIT=$?
+printf 'Web probe exit: %s\n' "$WEB_PROBE_EXIT"
+tail -n 1 .build/evidence/web-fault-read.jsonl
+
+```
+
+เริ่มหยุด service จาก Terminal B ขณะที่ probe ใน Terminal A ยังทำงาน ไม่รอให้ probe จบก่อน คำสั่งหลัง probe จะแสดงผลเมื่อ window จบ: exit0 หมายถึงไม่พบ error ใน samples; exit3 หมายถึงมี error ที่ต้องบันทึก ไม่ใช่เหตุให้ลบไฟล์ผล หากไฟล์ชื่อเดิมมีอยู่แล้ว noclobber จะปฏิเสธ ให้เก็บรอบเดิมและเลือกชื่อรอบใหม่
+
+ใน Terminal B ตั้ง PROJECT_ID/REGION/WEB_VM/WEB_ZONE ให้ตรงกับเครื่องที่เลือกจากรายการปัจจุบัน ไม่ใช้ชื่อที่อาจถูก MIG recreate แล้ว จากนั้น:
 
 ```bash
 gcloud compute instances describe "$WEB_VM" --zone="$WEB_ZONE" --format='yaml(name,id,zone,status)'
@@ -891,7 +907,21 @@ terraform -chdir=infra/workloads apply api-recover.tfplan
 
 **โจทย์ทีม:** เพิ่มAPIreplicasเพื่อรับงานมากขึ้น แต่ไม่เพิ่มworker/poolแบบเดาสุ่มและไม่เปลี่ยนWebพร้อมกัน
 
-จดfinalrelease/OSimage/SecretversionsจากT11และยืนยันflagfalse ก่อนเปลี่ยนทำbaselineprobe100requests/workers4/interval0.2sด้วยprobe.pyในwindowชื่อcapacity-before.jsonl พร้อมsnapshot/connectionmetrics เวลาใกล้กัน นี่คือboundedhealth-readload ไม่ใช่benchmarkorderthroughput
+จด final release/OS image/Secret versions จาก T11 และยืนยัน flag=false ก่อนเปลี่ยน ใช้ Cloud Shell ที่ LAB_DIR แล้วเก็บ baseline ด้วยเงื่อนไขคงที่:
+
+```bash
+cd "$LAB_DIR"
+umask 077
+mkdir -p .build/evidence
+set -C
+python3 scripts/probe.py --base-url "https://$LAB_DOMAIN" --path /healthz --requests 100 --workers 4 --interval 0.2 > .build/evidence/capacity-before.jsonl
+export CAPACITY_BEFORE_EXIT=$?
+printf 'Before probe exit: %s\n' "$CAPACITY_BEFORE_EXIT"
+tail -n 1 .build/evidence/capacity-before.jsonl
+
+```
+
+เก็บ snapshot ตาม T07A และเปิด Console → SQL → lab005-sql → System insights/Monitoring ดู connections และ CPU ในช่วงเวลาเดียวกัน จดช่วง UTC และ filter ที่ใช้ หากบัญชีไม่มีสิทธิ์ดู metric ให้บันทึกข้อจำกัด อย่าใช้ snapshot เดียวแทน peak connection ตัว probe นี้เป็น bounded health-read load ไม่ใช่ benchmark order throughput; interval คือเวลาพักระหว่าง batch ไม่ใช่การรับประกัน RPS
 
 **คำนวณก่อน:** API2→4 steady16connections, rolloutที่4replicas+surge2อาจ24 บวกadmin/health/กำลังปิด/reconnectheadroomเทียบSQLmax_connections64 ตรวจquotaรวมWeb/API/disksก่อนprovision ไม่ลดSQLheadroomเพื่อให้ตัวเลขผ่าน
 
@@ -907,6 +937,19 @@ gcloud compute backend-services get-health lab005-api-internal --region="$REGION
 ```
 
 **Expected:** planเปลี่ยนAPI target_size2→4 ไม่rollouttemplate/เปลี่ยนSecret/SQLโดยไม่ตั้งใจ; หลังจบมี4APIhealthyกระจายสองzone รันprobe100/workers4/interval0.2เหมือนก่อนด้วยชื่อcapacity-after.jsonl ตรวจjourneyjournalใหม่, raceเฉพาะเมื่อคืนstockครบและใช้journalใหม่, inspectorและSQLconnections/metrics
+
+หลัง API ทั้ง 4 เครื่อง healthy และไม่มี rollout ค้างแล้ว รันเงื่อนไขเดิมโดยเปลี่ยนเฉพาะไฟล์ผล:
+
+```bash
+python3 scripts/probe.py --base-url "https://$LAB_DOMAIN" --path /healthz --requests 100 --workers 4 --interval 0.2 > .build/evidence/capacity-after.jsonl
+export CAPACITY_AFTER_EXIT=$?
+printf 'After probe exit: %s\n' "$CAPACITY_AFTER_EXIT"
+tail -n 1 .build/evidence/capacity-before.jsonl
+tail -n 1 .build/evidence/capacity-after.jsonl
+
+```
+
+แต่ละ summary มี requests/errors/status_counts/api_counts/web_counts/version_counts/p95_ms เทียบว่าจำนวนคำขอและ release ตรงกันก่อนสรุป ถ้าไฟล์ไม่มี summary เพราะถูกหยุดกลางคันให้ระบุ incomplete ไม่คำนวณเป็นรอบครบ และไม่ลบ samples ที่เป็น error ออกจากการเปรียบเทียบ
 
 เปรียบเทียบlatency/errors/CPU/connectionsและข้อจำกัดของsample ถ้าlatencyไม่ดีขึ้นให้รายงานตามจริง เช่นhealthqueryไม่ใช่businessload หรือLB/DBเป็นคอขวด อย่าเปลี่ยนผลให้ดูว่าขยายแล้วต้องเร็วขึ้นเสมอ
 

@@ -132,3 +132,6 @@ Lab 05 / Network guide review: เติม Task8 Web→SQL ด้วยคำ�
 
 Lab 05 / Guide static review: เพิ่ม CI tests สำหรับ Bash ทั้ง 45 blocks (parse เท่านั้น ไม่ execute), relative links และ Task/acceptance sections เพื่อป้องกันคำสั่งผิด syntax หรือไฟล์ประกอบหายหลังแก้คู่มือ รอผล GitHub Actions รอบนี้ก่อนยืนยันผล ยังต้องตรวจเนื้อหา workflow ด้วยคน; ไม่มี GCP writes และยังไม่เปลี่ยนเป็น Guide-ready
 
+
+
+Lab 05 / Operational guide review: เพิ่มคำสั่ง probe จริงสำหรับ Web fault และ capacity before/after พร้อม private output/noclobber/exit-code/summary/incomplete-window interpretation และจุดเทียบ SQL connections/CPU ตามเวลาเดียวกัน README มี Bash49blocksแล้ว ไม่ให้ผู้เรียนเดา flags จากคำบรรยาย; sourceก่อนหน้ายังรอCI39929963331 job120335498899ที่ติดตั้งNginxอยู่ ไม่ยกCIเป็นผลGCPและยังไม่Guide-ready
