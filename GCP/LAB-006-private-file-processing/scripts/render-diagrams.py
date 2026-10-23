@@ -71,7 +71,7 @@ def main():
 <rect x="218" y="190" width="838" height="200" rx="4" fill="#eff6ff" stroke="#2563eb"/>
 <text x="238" y="218" class="h">Control plane • login, ownership and job state</text>
 <rect x="218" y="454" width="838" height="256" rx="4" fill="#f5f3ff" stroke="#7c3aed"/>
-<text x="238" y="482" class="h">Data plane • immutable input generation → one logical result</text>
+<text x="238" y="482" class="h">Data plane • event-driven file processing</text>
 <rect x="24" y="248" width="128" height="76" rx="5" fill="#fff7ed" stroke="#c2410c"/>
 <text x="88" y="280" text-anchor="middle" class="n">Browser</text>
 <text x="88" y="304" text-anchor="middle" class="small">Customer</text>
@@ -96,7 +96,7 @@ def main():
 <text x="616" y="524" class="small">HTTPS</text>
 <path class="arrow" d="M782 542H928"/>
 <text x="816" y="524" class="small">Write</text>
-<path class="ops" d="M750 510V414H640V354"/>
+<path class="ops" d="M750 510V414H710V272H672"/>
 <text x="768" y="416" class="small">Claim / fenced publish</text>
 <text x="238" y="676" class="small">Worker reads the pinned incoming generation; event payload contains metadata, not CSV bytes.</text>
 <text x="24" y="824" class="s">Blue solid: request / data / event direction. Purple dashed: transactional worker state.</text>
