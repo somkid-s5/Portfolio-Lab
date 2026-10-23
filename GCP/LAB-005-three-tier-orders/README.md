@@ -599,3 +599,78 @@ cd "$LAB_DIR"
 | ambiguousresponses | journalเดิม / วิธีresolve | … |
 
 **เกณฑ์ไปต่อ:** HTTPoutcomesเชื่อมกับsnapshot/UUIDได้ ไม่มีoversellหรือstock/ledgerส่วนต่าง และปิดorderทดลองครบก่อนทำfault/change
+
+### Task 8 — พิสูจน์ network/identity boundaries
+
+**ทำที่ไหน:** Cloud ShellสำหรับเลือกVM/เปิดdiagnosticชั่วคราว และคำสั่งทดสอบจริงบนVMต้นทาง ห้ามใช้CloudShellยิงprivateVIPแล้วสรุปว่าfirewallถูก เพราะCloudShellไม่ได้อยู่ในVPCเดียวกัน
+
+1. เก็บรายการVM/IP/SAตามT05 และยืนยันWeb/APIhealthyก่อนทำnegative tests จดAPIbackendIPจริงหนึ่งเครื่องกับVIP10.55.20.10
+2. SSHผ่านIAPเข้าWebVMหนึ่งเครื่อง จากWebรันPythonstdllibตรวจAPIhealthผ่านVIP:
+
+```bash
+python3 -c 'import urllib.request; r=urllib.request.urlopen("http://10.55.20.10:8080/healthz",timeout=5); print("status",r.status); print(r.read(4096).decode())'
+```
+
+**Expected:** 200/readyจากAPI แสดงเส้นทางWebSA→APIพร้อม อย่าใช้pingทดแทนHTTP/portcheck เพราะICMPไม่ได้เป็นrequirementของsolutionนี้
+
+#### Webต้องอ่านDBsecretไม่ได้; APIต้องอ่านadminsecretไม่ได้
+
+กลับCloudShell ตั้งชื่อ/zoneจริงจากรายการT05:
+
+```bash
+export WEB_VM='ใส่ชื่อ-web-vm'
+export WEB_ZONE='ใส่-zone'
+export API_VM='ใส่ชื่อ-api-vm'
+export API_ZONE='ใส่-zone'
+gcloud compute scp "$LAB_DIR/scripts/check-secret-access.py"   "$WEB_VM:/tmp/lab005-check-secret-access.py" --zone="$WEB_ZONE" --tunnel-through-iap
+gcloud compute ssh "$WEB_VM" --zone="$WEB_ZONE" --tunnel-through-iap   --command="python3 /tmp/lab005-check-secret-access.py --secret lab005-db --version $DB_VERSION --expected-sa lab005-web@$PROJECT_ID.iam.gserviceaccount.com"
+gcloud compute scp "$LAB_DIR/scripts/check-secret-access.py"   "$API_VM:/tmp/lab005-check-secret-access.py" --zone="$API_ZONE" --tunnel-through-iap
+gcloud compute ssh "$API_VM" --zone="$API_ZONE" --tunnel-through-iap   --command="python3 /tmp/lab005-check-secret-access.py --secret lab005-bootstrap-admin --version $ADMIN_VERSION --expected-sa lab005-api@$PROJECT_ID.iam.gserviceaccount.com"
+```
+
+**Expected:** secret_boundary/deniedtrue/http_status403พร้อมSAที่คาด เครื่องมือใช้attachedVMtokenในmemory ไม่ใช้gcloudบัญชีผู้เรียน ไม่พิมพ์token/responsebody และไม่ยอมรับscopeไม่ครบหรือ404/timeoutเป็นผลผ่าน ถ้าdeniedfalseให้หยุดและตรวจinheritedIAMก่อนทำfault ไม่แก้โดยปิดSecretversion เพราะต้องพิสูจน์IAMกับversionที่มีจริง
+
+บัญชีroot/OSLoginadminบนVMยังเป็นtrustedboundary: IAMของattachedSAไม่ได้แยกตามLinuxprocess ผู้ที่ได้สิทธิ์ดูแลAPI VMย่อมเข้าถึงruntimecredentialsได้ตามขอบเขตเครื่อง ไม่อ้างว่าmode640แทนper-processCloudIAM
+
+หลังตรวจให้ลบเฉพาะไฟล์เครื่องมือชั่วคราวสองไฟล์นี้ ไม่ลบrelease/configของApp:
+
+```bash
+gcloud compute ssh "$WEB_VM" --zone="$WEB_ZONE" --tunnel-through-iap   --command='rm -- /tmp/lab005-check-secret-access.py'
+gcloud compute ssh "$API_VM" --zone="$API_ZONE" --tunnel-through-iap   --command='rm -- /tmp/lab005-check-secret-access.py'
+```
+
+#### Clientที่อยู่subnetเดียวกับWebแต่ใช้SAอื่น ต้องเข้าAPIไม่ได้
+
+CloudShellใช้workloadvariablesชุดเดิมของT05 เปิดdiagnosticอย่างชัดเจน:
+
+```bash
+cd "$LAB_DIR"
+terraform -chdir=infra/workloads plan -var=enable_diagnostic=true -out=diagnostic.tfplan
+terraform -chdir=infra/workloads show -no-color diagnostic.tfplan
+terraform -chdir=infra/workloads apply diagnostic.tfplan
+gcloud compute ssh lab005-diagnostic --zone=asia-southeast1-a --tunnel-through-iap
+```
+
+Reviewplanควรเพิ่มdiagnosticVMหนึ่งเครื่อง ไม่มีแก้MIG/SQLถ้าinputอื่นไม่เปลี่ยน บนdiagnosticVMทดสอบทั้งVIPและbackendIPจริงแยกทีละปลายทาง:
+
+```bash
+python3 -c 'import socket; s=socket.create_connection(("10.55.20.10",8080),timeout=5); s.close(); print("UNEXPECTED: connected")'
+python3 -c 'import socket; s=socket.create_connection(("ใส่-api-backend-private-ip",8080),timeout=5); s.close(); print("UNEXPECTED: connected")'
+```
+
+**Expected:** เชื่อมต่อไม่ได้ ทั้งที่Webpositivecontrolก่อนหน้าสำเร็จและAPIยังhealthy ถ้าconnectedแปลว่าboundaryไม่ตรงแบบ ตรวจConsole → VPC network → FirewallและeffectivepoliciesของNIC หาว่าinheritedrule/allow-internalใดเปิด8080ให้clientอื่น อย่าลบruleระบบอื่นแบบเดาสุ่ม
+
+Timeoutอย่างเดียวไม่พิสูจน์ว่าเกิดจากfirewall อาจเป็นroute/serviceเสีย ต้องแนบpositivecontrol, attachedSA, backendhealth, effectivepolicyและเวลาที่ตรงกัน ถ้าไม่มีหลักฐานพอให้บันทึก“ยังสรุปไม่ได้” ไม่ติ๊กผ่าน
+
+Web→SQLใช้egressdenyไปPSA10.85.0.0/16 ตรวจrulelab005-web-deny-sqlและeffectivepolicy พร้อมทดสอบTCP3307ไปSQLprivateIPจากWebเทียบAPIconnectorที่ทำงานจริง ห้ามใช้WebDBsecretหรือnative5432แทนเส้นทางconnectorในแบบนี้
+
+ออกdiagnosticกลับCloudShell แล้วreviewplanปิดเครื่อง:
+
+```bash
+terraform -chdir=infra/workloads plan -var=enable_diagnostic=false -out=diagnostic-cleanup.tfplan
+terraform -chdir=infra/workloads show -no-color diagnostic-cleanup.tfplan
+terraform -chdir=infra/workloads apply diagnostic-cleanup.tfplan
+```
+
+**จุดบันทึก T08:** Web→VIP200 …; WebDBsecret403 …; APIadminsecret403 …; diagnosticVIP/backendผล …; positivecontrol/healthybackendเวลาเดียวกัน …; effectivepolicy …; WebPSAdenyและAPIconnectorcontrol …; diagnosticถูกลบแล้ว …; ข้อจำกัด/สิ่งที่ยังสรุปไม่ได้ …  
+**เกณฑ์ไปต่อ:** หลักฐานตรงaccessmatrix ไม่ใช้HTTPauth401/403แทนnetworkdeny และไม่ใช้networkdenyแทนAppownership
