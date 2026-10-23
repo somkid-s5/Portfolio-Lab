@@ -10,7 +10,7 @@
 | 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 07 | ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue | Planned | Not run | — |
+| 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Brief | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 08 | ระบบรายงานตามเวลาและงาน Batch รายวัน | Planned | Not run | — |
 | 09 | ระบบส่ง Webhook ให้ระบบคู่ค้า | Planned | Not run | — |
 | 10 | ระบบ Catalog ที่ใช้ Cache ลดภาระ Database | Planned | Not run | — |
@@ -243,3 +243,6 @@ Lab06 / Diagram publication: run129 CI39993882867 job120554175358 render topolog
 
 
 Lab06: Guide-ready — review ครบ R1–R8 และ Tasks0–13/8B: direct signed POST/private incoming+results, namedFirestore transactions/quota/lease-fencing, deterministic create-or-verify output, recovery/operator retry, validation/Storage bounds/expiry/change/backout/evidence/cleanup/rebuild พร้อมเครื่องมือและ fixtures จริง CI39994451947 source58b8f719b6a881c40936fd95c88c6c1733dec19f completed success ทั้งworkflow: 52domain/state/tooling/guide +53SDK/HTTP/runtime/emulator/browser =105tests, containerbuild/import/nonroot/exclusionและTerraformสองrootsผ่าน CI39994675895ของpublication61baf2d940bb6571009bb2f8b1ae9dbf5ccd9e6b joblab006-domainผ่านหลังเพิ่มภาพ/links (25Bash/7JS); runtimecodeไม่เปลี่ยน ภาพSVG/PNGสองชุดreview960pxและpublishedพร้อมofficialiconpath/hash/attributionแล้ว ปรับการเว้นวรรคเฉพาะร้อยแก้วโดยfencedcommandsไม่เปลี่ยน ยังไม่มีGCPapply/IAM/signBlob/GCS/Eventarc/performance/retentionจริง ทุกLabCloud Notrun รอpublicationCIของสถานะใหม่ต่อ ขั้นถัดไป Lab07Brief ไม่ถือว่าGoal20Labเสร็จ
+
+
+Lab07 / Brief: เริ่มหลังLab06Guide-ready กำหนดOrderQueueDesk R1–R9: DBorder+transactionaloutboxแก้dualwritegap, authenticatedPubSubpush, PostgreSQLreservationledger/idempotency/stockrace, transient-vs-businessrejection-vs-poison/DLQ, canonicalredrive/unknownoutcome, owner/IAM/DBseparation และ1→3workercapacityพร้อมconnectionbudget ตรวจofficialPubSubpush/exactlyonce-pullonly/deadletterapproxpermissions/RunSQLprivateIPแล้ว ยังต้องDesignก่อนMaterials/Tasks ไม่มีApp/Diagram/GCPผลสำเร็จ ไม่Guide-ready
