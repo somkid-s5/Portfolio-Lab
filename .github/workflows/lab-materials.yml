@@ -442,6 +442,7 @@ jobs:
           python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_pagination.py -v
           python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_container.py -v
           python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_replay_request.py -v
+          python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_operator_client.py -v
 
   lab007-postgres:
     runs-on: ubuntu-latest

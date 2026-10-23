@@ -85,7 +85,11 @@ def create_app(orders,outbox,auth,*,database_health,emit=None,replay=None):
         return response
 
     @app.errorhandler(Conflict)
-    def conflict(_):
+    def conflict(exc):
+        if request.endpoint=="operator_replay":
+            safe={"replay_key_conflict","unknown_event","dispatch_in_flight","replay_budget_exhausted"}
+            code=str(exc)
+            return error(code if code in safe else "replay_conflict",409)
         return error("order_conflict",409)
 
     @app.errorhandler(IntegrityFailure)

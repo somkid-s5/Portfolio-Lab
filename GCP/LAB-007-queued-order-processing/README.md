@@ -367,7 +367,7 @@ Catalog อ่าน SKU/ราคา/สต็อกด้วยขอบเข
 
 Cookie เป็น Secure/HttpOnly/SameSite=Lax มีอายุ 30 นาทีและปิด automatic refresh จากการเปิดดูหน้า ล้าง session/หมุน CSRF เมื่อ login/logout แต่ signed-cookie session ไม่ใช่ระบบ revoke ทุกสำเนาที่ถูกขโมย: logout ล้าง cookie ของ client นี้ สำเนาเก่าอาจใช้ได้จนหมดอายุหรือเปลี่ยน signing key หากนำไปใช้จริงต้องเพิ่ม SSO/central session/revocation/abuse controls ตามโจทย์ทีม
 
-Customer เห็น catalog และ order ของตน Operator ดู order/outbox metadata ที่ whitelist ได้ แต่สร้างคำสั่งซื้อแทน customer ไม่ได้ และยังไม่มี replay mutation ใน API ชุดนี้ CSP อนุญาตเฉพาะ same-origin assets/connect และ logs ไม่มี password/hash/cookie/CSRF/query/payload/lease token
+Customer เห็น catalog และ order ของตน Operator ดู order/outbox metadata ที่ whitelist ได้ แต่สร้างคำสั่งซื้อแทน customer ไม่ได้ ส่วน replay mutation เพิ่มแล้วตามหัวข้อ Audited replay ด้านล่าง CSP อนุญาตเฉพาะ same-origin assets/connect และ logs ไม่มี password/hash/cookie/CSRF/query/payload/lease token
 
 [create-secrets.py](scripts/create-secrets.py) สร้างโฟลเดอร์ใหม่ mode700/ไฟล์600: auth.json กับ hash scrypt ที่กำหนด cost ชัดเจน, demo-logins.json สำหรับผู้เรียน และ DB bundles แยก Portal/worker/dispatcher/bootstrap ไม่มี cloud call ไม่พิมพ์รหัสและไม่เขียนทับ หากสร้างไปแล้วต้องเก็บชุดเดิมจน resolve ผลการติดตั้ง ไม่สร้างใหม่เพื่อกลบคำตอบ network ที่หาย
 
@@ -383,7 +383,7 @@ Customer เห็น catalog และ order ของตน Operator ดู or
 
 บันทึกใน Browser ไม่ใช่ฐานข้อมูลหลัก: sessionStorage อยู่เฉพาะ tab/Browser นั้นและหายได้เมื่อปิด tab หรือเคลียร์ข้อมูล หากบันทึกเสียหายหน้าจอจะหยุดส่งงาน ไม่ลบแล้วสร้างคำขอใหม่เงียบ ๆ ให้ตรวจรายการคำสั่งซื้อ/ประสาน operator ก่อนตัดสินใจซื้อใหม่ ไม่เก็บ password, cookie หรือ CSRF ใน storage
 
-การตรวจอัตโนมัติจำกัด 30 รอบและไม่เริ่มรอบใหม่หลัง 90 วินาที แต่ละ request มี abort timeout 10 วินาทีและ response limit 64 KiB การหยุดตรวจไม่ใช่การยกเลิก order บน server เลือกรายละเอียดเพื่อเริ่มตรวจงานเดิมต่อได้ Operator มีหน้าดู order/outbox และ metadata โดยไม่เปิดเผย payload หรือ lease token; replay mutation ยังต้องต่อก่อนใช้ runbook ส่วน dead-letter
+การตรวจอัตโนมัติจำกัด 30 รอบและไม่เริ่มรอบใหม่หลัง 90 วินาที แต่ละ request มี abort timeout 10 วินาทีและ response limit 64 KiB การหยุดตรวจไม่ใช่การยกเลิก order บน server เลือกรายละเอียดเพื่อเริ่มตรวจงานเดิมต่อได้ Operator มีหน้าดู order/outbox และ metadata โดยไม่เปิดเผย payload หรือ lease token; replay mutation มีแล้วผ่าน API/CLI ตามหัวข้อ Audited replay ส่วนเครื่องมือ DLQ inspect/ack ยังต้องต่อ
 
 ## Container สำหรับ serving services
 
@@ -408,3 +408,23 @@ PORT รับเฉพาะเลข ASCII 1–65535; Gunicorn timeout65s/grac
 ผล Lab07 ของ [CI 40011482826](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40011482826) / source8a2fc21d1ab752f1d56d59fdd0dc24c3486f5a0a: domain/dispatch/pagination/container-entry25 + SDK/HTTP/runtime/auth/SQL/browser72 = **97 tests ผ่าน** พร้อม image build/non-root/import/exclusion checks และตรวจภาพอ่านได้ครบถึง footer [Provenance](assets/ui-provenance.json) ระบุแหล่งภาพและขอบเขตจริง
 
 ผลนี้ไม่ยืนยัน Pub/Sub delivery/dead-letter, Cloud Run IAM, Cloud SQL private routing/TLS/Secrets, production capacity หรือการ cleanup จริง คู่มือและผล Cloud ยังต้องแยกตรวจต่อ
+
+## Audited replay — ส่ง event เดิมโดยไม่สร้างคำสั่งซื้อใหม่
+
+[Replay repository](app/replay.py) และ POST /api/operator/outbox/{event_id}/replay รับเฉพาะ idempotency_key/source_digest/reason ผู้เรียกต้องเป็น operator จาก session และผ่าน CSRF ไม่รับ payload, owner, ราคา, รายการสินค้า หรือ topic มาทดแทนข้อมูลเดิม
+
+reason เลือก dependency_restored/poison_removed/dispatch_restored/delivery_restored ตามสิ่งที่แก้จริง ไม่ใช้ free text เพื่อหลีกเลี่ยงข้อมูลส่วนตัวใน audit source_digest เป็น SHA-256 สำหรับอ้างอิงรายการต้นทาง **ไม่ใช่ลายเซ็นหรือหลักฐานว่าข้อความมาจาก Pub/Sub** ผู้ดูแลยังต้องตรวจ subscription/สิทธิ์/ข้อความที่ pull มาจริงในขั้น DLQ
+
+การ prepare ตรวจ canonical bytes/hash, event/order binding, price snapshot/total และ ledger ก่อนเปลี่ยน operational state กรณี pending คง attempts/epoch เดิม ไม่ reset budget ทุกครั้งที่ผู้ใช้กดซ้ำ กรณี publishing ที่ lease ยังไม่หมดตอบ409 dispatch_in_flight; หากหมดอายุแล้วการ prepare รอบใหม่จะ invalidate token เดิม งาน published/exhausted ที่ยัง accepted เปิดเพิ่มได้ epoch1/2 เท่านั้น หลังจากนั้นต้องวินิจฉัย ไม่เปิด retry ไม่จำกัด
+
+ถ้า order confirmed/rejected แล้ว ต้องตรวจ processed event และ reservation ledger ตรงกับผลเดิมจึงบันทึก already_resolved โดยไม่เปลี่ยน stock, order หรือ outbox ส่วน integrity_quarantine/canonical เสีย/ledger ไม่ตรงต้องหยุด ไม่แก้ hash หรือ payload ให้ผ่าน
+
+Audit กับการ prepare commit ใน transaction เดียว ใช้ unique(operator,key_hash) และ advisory lock เมื่อคำตอบหายให้ POST ด้วย key/event/digest/reason เดิม จะได้ผล action เดิมพร้อม replayed=true ไม่เปิด epoch ซ้ำ เปลี่ยนข้อมูลแต่ใช้ key เดิมเป็น409 replay_key_conflict ผล prepared เป็นเพียงอนุมัติให้ dispatcher ส่งงาน ไม่ใช่เหตุผลให้ ack dead-letter; ต้องตรวจผล terminal/canonical binding แยก
+
+สิทธิ์ DB ของ Portal เพิ่มเฉพาะอ่าน ledger/audit, INSERT audit และ UPDATE operational columns ของ outbox ไม่มี UPDATE canonical payload/order result/products หรือ UPDATE/DELETE audit การบังคับ operator เป็นขอบเขต App ไม่ใช่ DB role รายบุคคล ไม่มี privileged SECURITY DEFINER function ในชุดนี้
+
+[Operator replay CLI](scripts/operator-replay.py) สร้าง private journal ก่อน network mutation โดยมี origin/event/digest/reason/key เดิม เก็บ mode600 ใน directory700, fsync ก่อนส่ง, ไม่เขียนทับไฟล์เสียหรือคนละ action ใช้ HTTPS Cloud Run Portal origin และ demo-logins.json ส่วนตัว ไม่รับ password ใน arguments ไม่ตาม redirect และไม่ปิด TLS verification รันคำขอหนึ่งครั้ง ไม่มี automatic retries เมื่อไม่ทราบผลให้ใช้ journal เดิม
+
+เครื่องมือนี้ **ไม่ pull/ack Pub/Sub และไม่ยืนยัน dead-letter ถูกจัดการแล้ว** เป็นส่วน prepare/resolve ที่นำไปประกอบ runbook หลังตรวจ source message จริง ไฟล์ journal ไม่มี password/JWT/CSRF แต่ยังควรเก็บส่วนตัว ไม่อัปโหลด private bundles หรือ ack tokens เป็นหลักฐานสาธารณะ
+
+[CI40012422689](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40012422689) / source d21d92d1c850354de06e699a2f3863261cbb39d3 ผ่าน 112 tests: 27 domain/entry/replay-request +85 SDK/HTTP/runtime/auth/PG/browser รวม replay concurrency, lost-response, lease fencing, bounded epochs, immutable payload/audit grants และ terminal ledger checks ชุด CLI 7 tests เพิ่มภายหลัง source นี้ยังรอ CI ไม่ใช่ผล live Pub/Sub/GCP

@@ -23,7 +23,7 @@
     "Not GCP Console screenshots",
     "Not live PubSub, IAM, CloudSQL networking or TLS verification",
     "Customer catalog stock is snapshot at read",
-    "Operator view does not yet include replay mutation"
+    "Screenshot predates the replay API; no replay control is depicted"
   ],
-  "overall_workflow": "Lab007 jobs succeeded; attempt1 Lab005 renderer navigation timeout; targeted failed-job rerun dispatched, not yet verified"
+  "overall_workflow": "Run40011482826 completed success after targeted Lab005 rerun job120613997898 passed52 tests without code changes; initial renderer timeout retained in run history"
 }
