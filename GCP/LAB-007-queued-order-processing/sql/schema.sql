@@ -82,6 +82,7 @@ CREATE TABLE lab007.operator_actions (
     key_hash text NOT NULL CHECK (key_hash ~ '^[a-f0-9]{64}$'),
     event_id text NOT NULL REFERENCES lab007.outbox,
     source_digest text NOT NULL CHECK (source_digest ~ '^[a-f0-9]{64}$'),
+    reason text NOT NULL CHECK (reason IN ('dependency_restored','poison_removed','dispatch_restored','delivery_restored')),
     epoch integer NOT NULL CHECK (epoch BETWEEN 0 AND 2),
     outcome text NOT NULL CHECK (outcome IN ('prepared','already_resolved')),
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),

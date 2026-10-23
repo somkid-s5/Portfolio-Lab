@@ -34,6 +34,10 @@ class PortalTests(unittest.TestCase):
     def setUp(self):
         self.orders,self.outbox,self.health=Mock(),Mock(),Mock()
         self.records=[]
+        self.replay=Mock()
+        self.replay.prepare.return_value={"event_id":EVENT,"source_digest":"e"*64,
+            "reason":"dependency_restored","epoch":1,"outcome":"prepared","replayed":False,
+            "lease_token":"private-secret","payload":"private-secret"}
         self.record={"order_id":ORDER,"owner":"alice","state":"accepted","safe_reason":None,
             "total_satang":12500,"created_at":datetime(2026,10,24,tzinfo=timezone.utc),
             "finished_at":None,"order_fingerprint":"d"*64,"private_field":"private-secret",
@@ -56,7 +60,7 @@ class PortalTests(unittest.TestCase):
         self.outbox.list_operator.return_value={"items":[self.out_record],"next_cursor":None}
         self.outbox.read_operator.return_value=self.out_record
         self.app=create_app(self.orders,self.outbox,copy.deepcopy(self.auth),
-                           database_health=self.health,emit=self.records.append)
+                           database_health=self.health,emit=self.records.append,replay=self.replay)
         self.client=self.app.test_client()
 
     def get(self,path):
@@ -217,6 +221,50 @@ class PortalTests(unittest.TestCase):
             mutate(auth)
             with self.assertRaises(ValueError):
                 create_app(self.orders,self.outbox,auth,database_health=self.health)
+
+
+    def replay_body(self):
+        return {"idempotency_key":KEY,"source_digest":"e"*64,"reason":"dependency_restored"}
+
+    def test_replay_requires_login_operator_and_csrf_before_repository(self):
+        path="/api/operator/outbox/"+EVENT+"/replay"
+        self.assertEqual(self.post(path,self.replay_body()).status_code,401)
+        self.login()
+        self.assertEqual(self.post(path,self.replay_body()).status_code,403)
+        self.post("/api/logout",{})
+        self.login("operator")
+        self.assertEqual(self.client.post(path,json=self.replay_body(),base_url=BASE).status_code,403)
+        self.replay.prepare.assert_not_called()
+
+    def test_replay_uses_session_operator_exact_request_and_safe_projection(self):
+        self.login("operator")
+        path="/api/operator/outbox/"+EVENT+"/replay"
+        response=self.post(path,self.replay_body())
+        self.assertEqual((response.status_code,response.json["outcome"],response.json["epoch"]),(200,"prepared",1))
+        operator,event,raw=self.replay.prepare.call_args.args
+        self.assertEqual((operator,event),("operator",EVENT))
+        self.assertEqual(json.loads(raw),self.replay_body())
+        self.assertNotIn("private-secret",response.get_data(as_text=True))
+        self.assertNotIn("payload",response.json)
+        self.assertNotIn("lease_token",response.json)
+        self.replay.prepare.return_value.update(replayed=True,outcome="already_resolved")
+        response=self.post(path,self.replay_body())
+        self.assertEqual((response.status_code,response.json["replayed"]),(200,True))
+
+    def test_replay_invalid_replacement_fields_conflict_and_integrity_fail_safely(self):
+        self.login("operator")
+        path="/api/operator/outbox/"+EVENT+"/replay"
+        for value in ({**self.replay_body(),"payload":"private-secret"},
+            {**self.replay_body(),"reason":"arbitrary text"},{**self.replay_body(),"source_digest":"bad"}):
+            self.assertEqual(self.post(path,value).status_code,400)
+        self.replay.prepare.assert_not_called()
+        for failure,status in ((Conflict("private-secret"),409),
+            (IntegrityFailure("private-secret"),503),(RuntimeError("private-secret"),503)):
+            self.replay.prepare.side_effect=failure
+            response=self.post(path,self.replay_body())
+            self.assertEqual(response.status_code,status)
+            self.assertNotIn("private-secret",response.get_data(as_text=True))
+        self.assertNotIn("private-secret",json.dumps(self.records))
 
 
 if __name__=="__main__":

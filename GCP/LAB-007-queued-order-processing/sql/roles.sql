@@ -17,4 +17,9 @@ GRANT UPDATE(available) ON lab007.products TO order_worker;
 GRANT UPDATE(state,safe_reason,finished_at) ON lab007.orders TO order_worker;
 GRANT INSERT ON lab007.processed_events,lab007.reservations TO order_worker;
 -- No DDL, price/seed changes, DELETE, ledger UPDATE or admin credentials granted.
--- Replay/operator SQL interface is added only with its audited implementation.
+-- Replay is a Portal service-level repository; HTTP enforces operator+CSRF.
+GRANT SELECT ON lab007.processed_events,lab007.reservations,lab007.operator_actions TO order_api;
+GRANT INSERT ON lab007.operator_actions TO order_api;
+GRANT UPDATE(state,epoch,attempts,lease_token,lease_until,last_outcome,published_at)
+    ON lab007.outbox TO order_api;
+-- No UPDATE/DELETE of immutable operator actions, canonical payloads or business result.

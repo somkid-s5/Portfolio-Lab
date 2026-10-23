@@ -14,9 +14,10 @@ from auth_config import HASH_METHOD,validate_auth
 from order_domain import Rejected,create_order,identifier,read_json
 from orders import Conflict,IntegrityFailure
 from pagination import decode_cursor
+from replay import replay_request
 
 
-def create_app(orders,outbox,auth,*,database_health,emit=None):
+def create_app(orders,outbox,auth,*,database_health,emit=None,replay=None):
     auth=validate_auth(auth)
     users=auth["users"]
     if not callable(database_health):
@@ -256,6 +257,25 @@ def create_app(orders,outbox,auth,*,database_health,emit=None):
             return error("event_not_found",404)
         g.identifiers["event_id"]=event_id
         return jsonify(public_outbox(value))
+
+    @app.post("/api/operator/outbox/<event_id>/replay")
+    def operator_replay(event_id):
+        if role()!="operator":
+            return error("operator_required",403)
+        identifier(event_id)
+        if request.mimetype!="application/json":
+            raise Rejected("invalid_content_type")
+        raw=request.get_data(cache=False)
+        replay_request(raw)
+        if replay is None:
+            return error("temporary_dependency_failure",503)
+        result=replay.prepare(identity(),event_id,raw)
+        if (result.get("event_id")!=event_id or result.get("outcome") not in ("prepared","already_resolved")
+                or type(result.get("epoch")) is not int or not 0<=result["epoch"]<=2
+                or type(result.get("replayed")) is not bool):
+            raise IntegrityFailure("invalid_replay_result")
+        g.identifiers["event_id"]=event_id
+        return jsonify(project(result,("event_id","source_digest","reason","epoch","outcome","replayed")))
 
     @app.get("/livez")
     def live():

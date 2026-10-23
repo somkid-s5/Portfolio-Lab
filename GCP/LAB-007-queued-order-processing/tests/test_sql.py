@@ -18,6 +18,7 @@ from order_domain import OrderEvent, Rejected, canonical, parse_event
 from pagination import encode_cursor
 from orders import Orders, Conflict, IntegrityFailure
 from outbox import Outbox
+from replay import Replay
 from dispatch import Dispatcher
 from database import make_pool
 
@@ -526,6 +527,149 @@ class SQLTests(unittest.TestCase):
             self.api.list_owned("alice",cursor="https://attacker.example")
         with self.assertRaises(Rejected):
             self.api.list_operator(cursor="x"*257)
+
+
+    def replay_body(self,key=None,reason="dependency_restored",digest=None):
+        return canonical({"idempotency_key":key or uuid.uuid4().hex,
+                          "source_digest":digest or "d"*64,"reason":reason})
+
+    def replay_repo(self):
+        return Replay(lambda:connection("order_api"))
+
+    def test_replay_prepares_canonical_event_and_resolves_lost_response(self):
+        order=self.create()
+        event=self.event(order["order_id"])
+        claim=self.dispatcher.claim()
+        self.dispatcher.finish(event.event_id,claim["token"],published=True)
+        original=self.admin("SELECT payload,payload_sha256 FROM lab007.outbox")
+        body=self.replay_body()
+        first=self.replay_repo().prepare("operator",event.event_id,body)
+        # Response may be lost after prepare committed. Same body is the resolver.
+        second=self.replay_repo().prepare("operator",event.event_id,body)
+        self.assertEqual((first["outcome"],first["epoch"],first["replayed"]),("prepared",1,False))
+        self.assertEqual((second["epoch"],second["replayed"]),(1,True))
+        self.assertEqual(original,self.admin("SELECT payload,payload_sha256 FROM lab007.outbox"))
+        self.assertEqual(self.admin("SELECT state,attempts,epoch FROM lab007.outbox")[0],["pending",0,1])
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.operator_actions")[0][0],1)
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.orders")[0][0],1)
+
+    def test_replay_same_key_changed_event_digest_or_reason_conflicts(self):
+        first=self.create()
+        second=self.create()
+        a,b=self.event(first["order_id"]),self.event(second["order_id"])
+        key=uuid.uuid4().hex
+        body=self.replay_body(key=key)
+        self.replay_repo().prepare("operator",a.event_id,body)
+        variants=((b.event_id,body),
+            (a.event_id,self.replay_body(key=key,reason="poison_removed")),
+            (a.event_id,self.replay_body(key=key,digest="e"*64)))
+        for event_id,request in variants:
+            with self.assertRaisesRegex(Conflict,"replay_key_conflict"):
+                self.replay_repo().prepare("operator",event_id,request)
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.operator_actions")[0][0],1)
+
+    def test_replay_pending_does_not_reset_attempts_or_use_new_epoch(self):
+        self.create()
+        claim=self.dispatcher.claim()
+        self.dispatcher.finish(claim["event_id"],claim["token"],published=False)
+        first=self.replay_repo().prepare("operator",claim["event_id"],self.replay_body())
+        self.assertEqual(first["epoch"],0)
+        self.assertEqual(self.admin("SELECT attempts,epoch,state FROM lab007.outbox")[0],[1,0,"pending"])
+
+    def test_replay_refuses_active_lease_and_fences_expired_dispatcher(self):
+        self.create()
+        claim=self.dispatcher.claim()
+        body=self.replay_body()
+        with self.assertRaisesRegex(Conflict,"dispatch_in_flight"):
+            self.replay_repo().prepare("operator",claim["event_id"],body)
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.operator_actions")[0][0],0)
+        self.admin("UPDATE lab007.outbox SET lease_until=clock_timestamp()-INTERVAL '1 second'")
+        result=self.replay_repo().prepare("operator",claim["event_id"],body)
+        self.assertEqual(result["epoch"],1)
+        with self.assertRaisesRegex(Conflict,"stale_dispatch_claim"):
+            self.dispatcher.finish(claim["event_id"],claim["token"],published=True)
+
+    def test_replay_only_two_additional_epochs_then_no_mutation(self):
+        self.create()
+        event_id=self.admin("SELECT event_id FROM lab007.outbox")[0][0]
+        for epoch in (1,2):
+            self.admin("UPDATE lab007.outbox SET state='exhausted',attempts=10,last_outcome='dispatch_budget'")
+            result=self.replay_repo().prepare("operator",event_id,self.replay_body())
+            self.assertEqual(result["epoch"],epoch)
+        self.admin("UPDATE lab007.outbox SET state='exhausted',attempts=10,last_outcome='dispatch_budget'")
+        before=self.admin("SELECT state,epoch,attempts FROM lab007.outbox")
+        with self.assertRaisesRegex(Conflict,"replay_budget_exhausted"):
+            self.replay_repo().prepare("operator",event_id,self.replay_body())
+        self.assertEqual(before,self.admin("SELECT state,epoch,attempts FROM lab007.outbox"))
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.operator_actions")[0][0],2)
+
+    def test_replay_terminal_verifies_ledger_without_new_publish_or_stock_change(self):
+        order=self.create()
+        event=self.event(order["order_id"])
+        self.worker.process(event)
+        before=self.admin("SELECT sku,available FROM lab007.products ORDER BY sku")
+        dispatch=self.admin("SELECT state,epoch,attempts FROM lab007.outbox")
+        result=self.replay_repo().prepare("operator",event.event_id,self.replay_body())
+        self.assertEqual(result["outcome"],"already_resolved")
+        self.assertEqual(before,self.admin("SELECT sku,available FROM lab007.products ORDER BY sku"))
+        self.assertEqual(dispatch,self.admin("SELECT state,epoch,attempts FROM lab007.outbox"))
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.processed_events")[0][0],1)
+
+    def test_replay_rejected_terminal_and_corrupt_terminal_ledger(self):
+        order=self.create(items=[{"sku":"LAST-01","quantity":2}])
+        event=self.event(order["order_id"])
+        self.worker.process(event)
+        result=self.replay_repo().prepare("operator",event.event_id,self.replay_body())
+        self.assertEqual(result["outcome"],"already_resolved")
+        self.admin("DELETE FROM lab007.processed_events")
+        with self.assertRaisesRegex(IntegrityFailure,"terminal_integrity"):
+            self.replay_repo().prepare("operator",event.event_id,self.replay_body())
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.operator_actions")[0][0],1)
+        self.assert_stock()
+
+    def test_replay_detects_canonical_and_order_corruption_before_audit_or_update(self):
+        order=self.create()
+        event=self.event(order["order_id"])
+        original=self.admin("SELECT payload FROM lab007.outbox")[0][0]
+        self.admin("UPDATE lab007.outbox SET payload=%s",('{"schema_version":99}',))
+        with self.assertRaises(IntegrityFailure):
+            self.replay_repo().prepare("operator",event.event_id,self.replay_body())
+        self.admin("UPDATE lab007.outbox SET payload=%s",(original,))
+        self.admin("UPDATE lab007.orders SET total_satang=0")
+        with self.assertRaisesRegex(IntegrityFailure,"order_integrity"):
+            self.replay_repo().prepare("operator",event.event_id,self.replay_body())
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.operator_actions")[0][0],0)
+        self.assertEqual(self.admin("SELECT state,epoch FROM lab007.outbox")[0],["pending",0])
+
+    def test_replay_concurrent_same_key_has_single_audit_and_epoch(self):
+        self.create()
+        claim=self.dispatcher.claim()
+        self.dispatcher.finish(claim["event_id"],claim["token"],published=True)
+        body=self.replay_body()
+        barrier=threading.Barrier(2)
+        def prepare(_):
+            barrier.wait(timeout=10)
+            return self.replay_repo().prepare("operator",claim["event_id"],body)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            result=list(pool.map(prepare,range(2),timeout=30))
+        self.assertEqual(sorted(r["replayed"] for r in result),[False,True])
+        self.assertEqual([r["epoch"] for r in result],[1,1])
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.operator_actions")[0][0],1)
+
+    def test_replay_grants_do_not_allow_audit_edits_payload_changes_or_business_mutations(self):
+        for sql in ("DELETE FROM lab007.operator_actions",
+            "UPDATE lab007.operator_actions SET outcome='already_resolved'",
+            "UPDATE lab007.outbox SET payload='bad'",
+            "UPDATE lab007.orders SET state='confirmed'",
+            "UPDATE lab007.products SET available=0",
+            "DELETE FROM lab007.processed_events"):
+            con=connection("order_api")
+            try:
+                with self.assertRaises(pg8000.dbapi.DatabaseError):
+                    con.cursor().execute(sql)
+                con.rollback()
+            finally:
+                con.close()
 
 
 if __name__ == "__main__":

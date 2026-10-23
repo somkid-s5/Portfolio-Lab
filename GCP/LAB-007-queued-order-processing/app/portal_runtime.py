@@ -7,6 +7,7 @@ from auth_config import read_auth
 from database import build_database
 from orders import Orders
 from outbox import Outbox
+from replay import Replay
 from portal_http import create_app
 
 
@@ -19,7 +20,7 @@ def build_portal():
     try:
         orders=Orders(database.connect)
         outbox=Outbox(database.connect)
-        app=create_app(orders,outbox,auth,database_health=orders.health)
+        app=create_app(orders,outbox,auth,database_health=orders.health,replay=Replay(database.connect))
     except BaseException:
         database.close()
         raise
