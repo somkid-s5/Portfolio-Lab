@@ -213,3 +213,6 @@ Lab06 / Guide Tasks0–4 draft: เพิ่มพาทำCloudShellpersistentw
 
 
 Lab06 / Business guide Tasks5–6: เพิ่มBrowserupload/download/reportcomparison, ambiguousresponse/samekeyresolution, fixturevalidation/terminalack, owner/role/anonymous/CSRFnegativechecks พร้อมActual/Storagegenerationevidence; เพิ่มboundedverify-reporttool+3testsและinvalidheader/quantityfixtures ชุดใหม่รอCI ยังค้างStorage-levelsize/MIMEtool/accessfault/change/cleanup/Diagram/fullreview ไม่อ้างCloudPASS ไม่มีGCPwrites
+
+
+Lab06 / Bounded learner client draft: เพิ่มverifiedHTTPS/no-redirect/cookie-CSRF Portalclient+30call/10s/64KiBresponse/4KiBrequestboundsและprivatefileguard พร้อม3realHTTPloopbacktests เตรียมต่อStorageboundaryrunner ไม่claimpolicyenforcement ชุดใหม่รอCI ส่วนGuideชุด39958510836pendingตอนตรวจ ไม่มีGCPwrites

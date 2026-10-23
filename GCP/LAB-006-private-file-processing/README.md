@@ -677,3 +677,10 @@ console.log({missingCsrf:csrfDenied.status});
 
 **จุดบันทึก T06:** UUID/fixture/rejectedreason/outputprefixแต่ละกรณี …; historyก่อน/หลัง …; bobstatus/link/operatorlist …; anonymous401 …; missingCSRF403 …; operatorอ่านmetadataได้แต่ไม่download …; ข้อจำกัด เช่นยังไม่ทดสอบStorage-levelsize/MIME …  
 **เกณฑ์ไปต่อ:** ผลnegativeเชื่อมกับidentity/เวลา/UUIDได้ ไม่มีข้อมูลหรือcapabilityรั่ว และระบุส่วนที่ยังไม่ได้พิสูจน์ตามจริง ไม่ติ๊กR2/R3ครบจากtestใดtestหนึ่ง
+
+
+### Learner HTTP tooling checkpoint
+
+เพิ่ม [boundedPortalclient](scripts/portal_client.py) สำหรับเครื่องมือaccess/boundaryที่จะใช้ในGuide: verifiedHTTPSorigin/no-redirect/no-proxy, cookiejar/CSRFrotation, requestbudget30/timeout10s/bodylimits และprivate-login-filereaderที่ปฏิเสธsymlink/permissionกว้าง ไม่พิมพ์credentialsหรือresponseที่มีcapabilities มี [3real-loopbackHTTPtests](tests/test_portal_client.py) ตรวจlogin/cookie/CSRF/bounds/redirect/privatefiles ชุดใหม่นี้รอCI
+
+ไฟล์นี้เป็นclientlibrary ยังไม่ใช่เครื่องมือส่งไฟล์เกินขนาดครบชุด ไม่ใช้ผลtestนี้แทนGCSPOSTpolicyenforcement ต้องต่อcase-specificboundaryrunnerและหลักฐานStorageจริงก่อนปิดR3
