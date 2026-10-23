@@ -162,9 +162,44 @@ class BrowserJourneyTests(unittest.TestCase):
                 self.assertEqual(admin("SELECT count(*) FROM lab007.orders")[0][0],1)
                 preview=Path("lab007-previews/ui-ci.png")
                 preview.parent.mkdir(exist_ok=True)
-                height=min(2600,int(driver.execute_script("return document.documentElement.scrollHeight"))+40)
+                height=min(2800,int(driver.execute_script("return document.documentElement.scrollHeight"))+200)
                 driver.set_window_size(1400,height)
+                self.assertTrue(driver.execute_script("return window.innerHeight>=document.documentElement.scrollHeight;"))
                 self.assertTrue(driver.save_screenshot(str(preview)))
+                # Real browser account switch must not retain Alice's visible records.
+                def login_as(name):
+                    driver.find_element(By.ID,"logout").click()
+                    wait.until(lambda d:d.find_element(By.ID,"login-panel").is_displayed())
+                    wait.until(lambda d:not d.find_element(By.CSS_SELECTOR,"#login-form button").get_attribute("disabled"))
+                    field=driver.find_element(By.ID,"username")
+                    field.clear()
+                    field.send_keys(name)
+                    driver.find_element(By.ID,"password").send_keys(password)
+                    driver.find_element(By.CSS_SELECTOR,"#login-form button").click()
+                    wait.until(lambda d:name+" · " in d.find_element(By.ID,"identity").text)
+                login_as("bob")
+                wait.until(lambda d:"เลือกสินค้าหรือตรวจคำขอเดิม" in d.find_element(By.ID,"message").text)
+                self.assertNotIn(original_id,driver.find_element(By.ID,"orders-body").text)
+                self.assertNotIn(original_id,driver.find_element(By.ID,"order-detail").text)
+                statuses=driver.execute_async_script("""
+                    const done=arguments[arguments.length-1],id=arguments[0];
+                    Promise.all(['/api/orders/'+id,'/api/operator/outbox'].map(
+                      path=>fetch(path).then(r=>r.status))).then(done);
+                """,original_id)
+                self.assertEqual(statuses,[404,403])
+                login_as("operator")
+                wait.until(lambda d:original_id in d.find_element(By.ID,"operator-outbox-body").text)
+                wait.until(lambda d:not d.find_element(By.ID,"logout").get_attribute("disabled"))
+                self.assertFalse(driver.find_element(By.ID,"customer").is_displayed())
+                driver.find_element(By.CSS_SELECTOR,"#operator-outbox-body button").click()
+                wait.until(lambda d:'"payload_sha256"' in d.find_element(By.ID,"operator-detail").text)
+                detail=driver.find_element(By.ID,"operator-detail").text
+                self.assertNotIn('"payload":',detail)
+                self.assertNotIn("lease_token",detail)
+                height=min(2800,int(driver.execute_script("return document.documentElement.scrollHeight"))+200)
+                driver.set_window_size(1400,height)
+                self.assertTrue(driver.execute_script("return window.innerHeight>=document.documentElement.scrollHeight;"))
+                self.assertTrue(driver.save_screenshot("lab007-previews/operator-ci.png"))
         finally:
             if driver is not None:driver.quit()
             if server is not None:server.shutdown()
