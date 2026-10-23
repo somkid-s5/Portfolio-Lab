@@ -13,8 +13,36 @@ from google.auth.credentials import AnonymousCredentials
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 from firestore_jobs import Jobs
 from job_state import Conflict, new_job
+from processor import Processor, IntegrityFailure
+from csv_domain import Rejected
 
 NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+
+class MemoryObjects:
+    """Storage test double only; transaction side remains a real emulator."""
+    def __init__(self, data):
+        self.data = data
+        self.outputs = {}
+        self.creates = 0
+        self.reads = 0
+
+    def read_source(self, name, generation, max_bytes):
+        self.reads += 1
+        if generation != "123":
+            raise AssertionError("unpinned source")
+        if len(self.data) > max_bytes:
+            raise Rejected("file_too_large")
+        return self.data
+
+    def create_or_verify(self, name, body, **metadata):
+        if name in self.outputs:
+            if self.outputs[name] != (body, metadata):
+                raise IntegrityFailure()
+        else:
+            self.outputs[name] = (body, metadata)
+            self.creates += 1
+        return "456"
 
 
 class FirestoreJobsTests(unittest.TestCase):
@@ -133,6 +161,56 @@ class FirestoreJobsTests(unittest.TestCase):
         self.client.collection("jobs").document(original["job_id"]).delete()
         with self.assertRaisesRegex(Conflict, "idempotency_record_expired"):
             self.jobs.create(owner, "expired-key", "sales.csv")
+
+
+
+    def test_worker_recovers_output_metadata_gap_with_same_result(self):
+        data = b"sale_id,sku,quantity,unit_price_satang\nS1,BOOK-01,2,100\n"
+        objects = MemoryObjects(data)
+        worker = Processor(self.jobs, objects, fail_after_output_once=True)
+        first = worker.run(self.job_id, "123", NOW)
+        self.assertEqual((first["status"], first["reason"]),
+                         (503, "intentional_after_output"))
+        pending = self.ref.get(timeout=10).to_dict()
+        self.assertEqual(pending["state"], "processing")
+        self.assertTrue(pending["output_fault_consumed"])
+        self.assertNotIn("output_generation", pending)
+        self.assertEqual(worker.run(self.job_id, "123", NOW)["reason"], "succeeded")
+        done = self.ref.get(timeout=10).to_dict()
+        self.assertEqual(done["output_generation"], "456")
+        self.assertEqual(objects.creates, 1)
+        self.assertEqual(worker.run(self.job_id, "123", NOW)["reason"], "terminal")
+        self.assertEqual(objects.reads, 2)
+
+    def test_worker_validation_rejects_and_acknowledges_without_output(self):
+        objects = MemoryObjects(b"bad,header\n")
+        worker = Processor(self.jobs, objects)
+        result = worker.run(self.job_id, "123", NOW)
+        self.assertEqual((result["status"], result["reason"]), (204, "rejected"))
+        self.assertEqual(self.ref.get(timeout=10).to_dict()["safe_reason"], "invalid_header")
+        self.assertEqual(objects.creates, 0)
+
+    def test_worker_integrity_mismatch_is_not_overwritten_or_auto_retried(self):
+        objects = MemoryObjects(
+            b"sale_id,sku,quantity,unit_price_satang\nS1,BOOK-01,1,0\n")
+        name = f"results/{self.job_id}/123/v1/summary.json"
+        objects.outputs[name] = (b"corrupt", {})
+        worker = Processor(self.jobs, objects)
+        self.assertEqual(worker.run(self.job_id, "123", NOW)["reason"],
+                         "failed_integrity")
+        self.assertEqual(objects.outputs[name], (b"corrupt", {}))
+        with self.assertRaises(Conflict):
+            self.jobs.operator_retry(self.job_id)
+
+    def test_worker_different_generation_and_unknown_job_do_not_read_source(self):
+        self.jobs.claim(self.job_id, "123", "a"*32, finalized_at=NOW)
+        objects = MemoryObjects(b"unused")
+        worker = Processor(self.jobs, objects)
+        self.assertEqual(worker.run(self.job_id, "999", NOW)["reason"],
+                         "ignored_generation")
+        self.assertEqual(worker.run(uuid.uuid4().hex, "123", NOW)["reason"],
+                         "unknown_job")
+        self.assertEqual(objects.reads, 0)
 
 
 if __name__ == "__main__":

@@ -156,3 +156,6 @@ Lab06 / Firestore repository draft: เพิ่มSDKtransactionadapterสำ�
 
 
 Lab06 / Verified first Firestore transactions + create draft: CI39932700165 lab006-domainและlab006-firestoreสำเร็จ (19puretestsและ4emulatorintegrationtests); เพิ่มcreate/idempotency/quota5active-20dailytransactionพร้อม4emulatortestsใหม่ race/replay/terminalslot/dailyreset/deletedreferencefailclosed รอCIชุดใหม่ ยังไม่Guide-ready ไม่มีGCPwrites
+
+
+Lab06 / Worker orchestration draft: CI39932999988สำเร็จทั้งworkflowของcreate/quota (8Firestoretests+19puretests) เพิ่มprocessor/durableoncefaultmarkerและ4emulator-backedworker testsสำหรับoutput-metadatagaprecovery/singlelogicaloutput/rejectedfile/integrityfailure/ignoreunknowngeneration ชุดใหม่รอCI Storageยังเป็นtestdoubleในชุดนี้ ต้องต่อGCSadapter/HTTP/UI/IaC/Guide/Diagram ไม่ใช่Guide-ready ไม่มีGCPwrites

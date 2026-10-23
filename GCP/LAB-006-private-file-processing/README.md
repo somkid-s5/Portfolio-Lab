@@ -239,3 +239,10 @@ GitHubCIใช้Firestoreemulatorบนrunner, projectdemo-lab006/named databas
 Quota5active/20newjobsต่อUTCdayถูกอ่านและปรับในtransactionเดียวกัน งานsuccess/rejected/expiredคืนactive slotเมื่อสร้างงานถัดไป; failedที่ยังretryได้ยังนับactive งานawaiting_uploadจะไม่ถูกปล่อยslotเพียงเพราะเลยuploaddeadline เพื่อไม่ให้eventที่finalizeทันแต่ส่งช้าทำให้จำนวนactiveทะลุguard ต้องตรวจreconcileก่อนexpireหรือรอjobexpiry ไม่ใช้TTLลบเป็นmechanismปล่อยquotaทันที
 
 [CI39932700165](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39932700165) joblab006-firestoreผ่าน4emulatortestsของclaim/fencing/owner/retryแล้ว ชุดcreate/quotaเพิ่ม4testsยังรอCI ไม่มีGCPidentity/permissionsverification และยังไม่มีHTTP/UI/Storageworkerสำเร็จ
+
+
+### Worker orchestration checkpoint
+
+เพิ่ม [processor](app/processor.py) เชื่อมCSVdomainกับFirestoreclaim/finishและStorageadaptercontract: readsourcegenerationที่bind, canonicalsummary, create-or-verifyผล, fencedpublish และsafeack/retryreason มีdurablefaultmarkerสำหรับจำลองช่องว่างoutputเขียนแล้วแต่metadataยังไม่success
+
+[CI39932999988](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39932999988) ผ่านชุดก่อนหน้า รวม8Firestoreemulatortestsและ19puretestsแล้ว ชุดworkerเพิ่ม4integrationtestsใช้Firestoreemulatorจริงแต่Storageเป็นtestdouble จึงยังไม่พิสูจน์GCSgenerationpreconditions/permissions ชุดใหม่นี้รอCI ต้องต่อStorageadapterจริงและCloudEvent/HTTPก่อนใช้งานได้

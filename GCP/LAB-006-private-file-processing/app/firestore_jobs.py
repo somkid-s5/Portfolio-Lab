@@ -146,3 +146,14 @@ class Jobs:
             return {"job": job, "replayed": False}
 
         return create_once(self.client.transaction(max_attempts=5))
+
+
+    def consume_output_fault(self, job_id, token):
+        """Sandbox config only. Durable once-per-job marker for output/metadata gap."""
+        def transition(previous, now):
+            job_state._owned_attempt(previous, token, now)
+            if previous.get("output_fault_consumed", False):
+                return previous, False
+            updated = dict(previous, output_fault_consumed=True)
+            return updated, True
+        return self._change(job_id, transition)
