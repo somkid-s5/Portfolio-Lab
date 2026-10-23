@@ -216,3 +216,6 @@ Lab06 / Business guide Tasks5–6: เพิ่มBrowserupload/download/reportc
 
 
 Lab06 / Bounded learner client draft: เพิ่มverifiedHTTPS/no-redirect/cookie-CSRF Portalclient+30call/10s/64KiBresponse/4KiBrequestboundsและprivatefileguard พร้อม3realHTTPloopbacktests เตรียมต่อStorageboundaryrunner ไม่claimpolicyenforcement ชุดใหม่รอCI ส่วนGuideชุด39958510836pendingตอนตรวจ ไม่มีGCPwrites
+
+
+Lab06 / Storage boundary runner + Task7: CI39958914286ทุกlab006jobผ่าน แต่wholeworkflowfailที่Lab04secret-bundle subprocessrefusal timeout5s (ไม่ใช่logicassertion); ปรับเฉพาะsecretprocess testdeadlineเป็น30sโดยคงhash/permissions/nooverwriteassertions เพิ่มjournal-bound positive/oversize/MIME POSTrunner+4transport/contracttestsและGuideที่ไม่ถือHTTPerror/exit0เป็นPASS ชุดใหม่รอCI ไม่ยิงGCSจริงจากagent ยังเหลือops/change/cleanup/Diagram/fullreview

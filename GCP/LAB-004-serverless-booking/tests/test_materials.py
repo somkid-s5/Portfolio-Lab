@@ -10,13 +10,15 @@ import unittest
 from werkzeug.security import check_password_hash
 
 ROOT=Path(__file__).resolve().parents[1]
+# Process startup and scrypt work are not a performance assertion on shared CI.
+SECRET_PROCESS_TIMEOUT=30
 
 class MaterialsTests(unittest.TestCase):
     def test_secret_bundle_hashes_permissions_and_no_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
             target=Path(tmp)/'secrets'
             command=[sys.executable,str(ROOT/'scripts/create-secrets.py'),'--out',str(target)]
-            result=subprocess.run(command,capture_output=True,text=True,timeout=15)
+            result=subprocess.run(command,capture_output=True,text=True,timeout=SECRET_PROCESS_TIMEOUT)
             self.assertEqual(result.returncode,0,result.stderr)
             auth=json.loads((target/'auth.json').read_text())
             logins=json.loads((target/'demo-logins.json').read_text())
@@ -37,7 +39,7 @@ class MaterialsTests(unittest.TestCase):
                 self.assertEqual(target.stat().st_mode & 0o777,0o700)
                 for path in target.iterdir():
                     self.assertEqual(path.stat().st_mode & 0o777,0o600)
-            self.assertNotEqual(subprocess.run(command,capture_output=True,text=True,timeout=5).returncode,0)
+            self.assertNotEqual(subprocess.run(command,capture_output=True,text=True,timeout=SECRET_PROCESS_TIMEOUT).returncode,0)
             self.assertEqual((target/'db-a.json').read_bytes(),old)
             self.assertEqual(snapshot,{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in target.iterdir()})
 

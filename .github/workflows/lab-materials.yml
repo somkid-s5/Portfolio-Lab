@@ -285,6 +285,7 @@ jobs:
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_guide.py -v
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_verify_report.py -v
           python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_portal_client.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_upload_boundary.py -v
 
   lab006-firestore:
     runs-on: ubuntu-latest
