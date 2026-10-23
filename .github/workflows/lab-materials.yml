@@ -275,4 +275,6 @@ jobs:
         with:
           persist-credentials: false
       - name: Verify bounded CSV processing and deterministic business summaries
-        run: python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_csv_domain.py -v
+        run: |
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_csv_domain.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_job_state.py -v

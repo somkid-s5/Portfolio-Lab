@@ -216,3 +216,10 @@ Retention: incoming/results lifecycledeleteหลัง2วันและบั
 รับUTF-8 BOMหนึ่งชุดที่ต้นไฟล์, LF/CRLFและquotedfieldsตามCSV แต่ไม่รับnewlineในfield, blankrecord, whitespaceรอบตัวเลข, leadingzeroเช่น01, exponent, floatหรือformulaเป็นidentifier ตัวเลขราคา0ได้แต่quantityต้องมากกว่า0 ชื่อSKUต้องuppercaseตามallowlist
 
 [ไฟล์ตัวอย่าง](fixtures/valid-sales.csv) มี3รายการ/6หน่วย/72,400สตางค์ เทียบกับ [expected business summary](fixtures/valid-sales.expected.json); inputSHAคำนวณจากไฟล์จริงไม่ตรึงhashที่อาจเปลี่ยนตามlineendings มี [duplicate fixture](fixtures/duplicate-sale-id.csv) และ [10 domain tests](tests/test_csv_domain.py) รวมboundedstream/max+1, inputผิดและchange1→5MiB/10k→50krows กำลังรอcloudCIยืนยันผล ไม่ใช่ผลGCPหรือFirestoretransaction verification
+
+
+### Job-state transition materials
+
+เพิ่ม [state transitions](app/job_state.py) และ [9 tests](tests/test_job_state.py) สำหรับgenerationbinding, duplicate/busy, lease120s/reclaim, stale-tokenfencing, expiry, outputbinding, rejection, retrybudgetและmanualepochs การเปลี่ยนสถานะไม่อ่านclock/networkและไม่แก้dictต้นฉบับ จึงนำไปใช้ในFirestoretransactioncallbackได้ แต่ยัง **ไม่ได้พิสูจน์concurrencyของFirestore** จนกว่าจะต่อrepositoryและรันemulatortests
+
+เงื่อนไขuploaddeadlineใช้เวลาที่object finalizedจากStorageevent ไม่ใช่เวลาeventมาถึงworker เพราะtransportอาจส่งช้า; workerต้องvalidateเวลาจากeventที่ผ่านIAM/source/bucketbindingแล้ว ไม่รับtimestampจากclientเอง งานยังต้องไม่เกินexpires_atตอนclaim/publish ผลfailed_integrityห้ามoperatorretryเพื่อกลบoutputที่ไม่ตรง ต้องตรวจเหตุผิดปกติก่อน
