@@ -262,6 +262,27 @@ def create_app(orders,outbox,auth,*,database_health,emit=None,replay=None):
         g.identifiers["event_id"]=event_id
         return jsonify(public_outbox(value))
 
+    @app.get("/api/operator/outbox/<event_id>/verification")
+    def operator_verification(event_id):
+        if role()!="operator":
+            return error("operator_required",403)
+        identifier(event_id)
+        if replay is None:
+            return error("temporary_dependency_failure",503)
+        value=replay.verify(event_id)
+        if (value.get("event_id")!=event_id or
+                type(value.get("terminal_verified")) is not bool or
+                value.get("order_state") not in ("accepted","confirmed","rejected") or
+                value["terminal_verified"]!=(value["order_state"] in ("confirmed","rejected"))):
+            raise IntegrityFailure("invalid_verification_result")
+        identifier(value.get("order_id"))
+        for field in ("order_fingerprint","payload_sha256"):
+            if not isinstance(value.get(field),str) or not re.fullmatch(r"[a-f0-9]{64}",value[field]):
+                raise IntegrityFailure("invalid_verification_result")
+        g.identifiers["event_id"]=event_id
+        return jsonify(project(value,("event_id","order_id","order_fingerprint","payload_sha256",
+                                      "order_state","terminal_verified")))
+
     @app.post("/api/operator/outbox/<event_id>/replay")
     def operator_replay(event_id):
         if role()!="operator":

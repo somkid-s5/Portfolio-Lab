@@ -39,43 +39,10 @@ class Replay(Orders):
                 return {**previous,"replayed":True}
             # Only outbox is locked. Worker locks orders, but never locks outbox,
             # so replay does not introduce an inverse order/outbox lock cycle.
-            cursor.execute("""SELECT *,lease_until>clock_timestamp() AS lease_live
-                FROM lab007.outbox WHERE event_id=%s FOR UPDATE""",(event_id,))
-            event=row(cursor)
-            if event is None:
-                raise Conflict("unknown_event")
-            cursor.execute("SELECT * FROM lab007.orders WHERE order_id=%s",(event["order_id"],))
-            order=row(cursor)
-            if order is None:
-                raise IntegrityFailure("missing_order")
-            try:
-                payload=event["payload"].encode("ascii")
-                parsed=parse_event(payload)
-                if (payload!=event_bytes(event_id,order["order_id"],order["order_fingerprint"])
-                        or hashlib.sha256(payload).hexdigest()!=event["payload_sha256"]
-                        or parsed.event_id!=event_id):
-                    raise IntegrityFailure("canonical_integrity")
-                cursor.execute("""SELECT sku,quantity,unit_price_satang FROM lab007.order_items
-                    WHERE order_id=%s ORDER BY sku""",(order["order_id"],))
-                items=[{"sku":sku,"quantity":quantity,"unit_price_satang":price}
-                       for sku,quantity,price in cursor.fetchall()]
-                _,fingerprint,total=order_binding(order["owner"],order["order_id"],items)
-                if fingerprint!=order["order_fingerprint"] or total!=order["total_satang"]:
-                    raise IntegrityFailure("order_integrity")
-            except (UnicodeError,Rejected):
-                raise IntegrityFailure("canonical_integrity") from None
-            cursor.execute("SELECT * FROM lab007.processed_events WHERE order_id=%s",(order["order_id"],))
-            processed=row(cursor)
-            cursor.execute("""SELECT sku,units,unit_price_satang FROM lab007.reservations
-                WHERE order_id=%s ORDER BY sku""",(order["order_id"],))
-            reservations=[tuple(value) for value in cursor.fetchall()]
+            event,order,processed,reservations,items,fingerprint=self._checked(cursor,event_id)
             epoch=event["epoch"]
             if order["state"] in ("confirmed","rejected"):
-                expected=[(i["sku"],i["quantity"],i["unit_price_satang"]) for i in items]
-                if (processed is None or processed["event_id"]!=event_id or
-                        processed["order_fingerprint"]!=fingerprint or processed["outcome"]!=order["state"] or
-                        reservations!=(expected if order["state"]=="confirmed" else [])):
-                    raise IntegrityFailure("terminal_integrity")
+                self._terminal(event_id,order,processed,reservations,items,fingerprint)
                 outcome="already_resolved"
             else:
                 # A worker may have committed between these reads; a retry is safe.
@@ -100,3 +67,55 @@ class Replay(Orders):
                 (operator,scoped,event_id,request["source_digest"],request["reason"],epoch,outcome))
             return {"event_id":event_id,"source_digest":request["source_digest"],"reason":request["reason"],
                     "epoch":epoch,"outcome":outcome,"replayed":False}
+
+    def _checked(self,cursor,event_id):
+        cursor.execute("""SELECT *,lease_until>clock_timestamp() AS lease_live
+            FROM lab007.outbox WHERE event_id=%s FOR UPDATE""",(event_id,))
+        event=row(cursor)
+        if event is None:
+            raise Conflict("unknown_event")
+        cursor.execute("SELECT * FROM lab007.orders WHERE order_id=%s",(event["order_id"],))
+        order=row(cursor)
+        if order is None:
+            raise IntegrityFailure("missing_order")
+        try:
+            payload=event["payload"].encode("ascii")
+            parsed=parse_event(payload)
+            if (payload!=event_bytes(event_id,order["order_id"],order["order_fingerprint"])
+                    or hashlib.sha256(payload).hexdigest()!=event["payload_sha256"]
+                    or parsed.event_id!=event_id):
+                raise IntegrityFailure("canonical_integrity")
+            cursor.execute("""SELECT sku,quantity,unit_price_satang FROM lab007.order_items
+                WHERE order_id=%s ORDER BY sku""",(order["order_id"],))
+            items=[{"sku":sku,"quantity":quantity,"unit_price_satang":price}
+                   for sku,quantity,price in cursor.fetchall()]
+            _,fingerprint,total=order_binding(order["owner"],order["order_id"],items)
+            if fingerprint!=order["order_fingerprint"] or total!=order["total_satang"]:
+                raise IntegrityFailure("order_integrity")
+        except (UnicodeError,Rejected):
+            raise IntegrityFailure("canonical_integrity") from None
+        cursor.execute("SELECT * FROM lab007.processed_events WHERE order_id=%s",(order["order_id"],))
+        processed=row(cursor)
+        cursor.execute("""SELECT sku,units,unit_price_satang FROM lab007.reservations
+            WHERE order_id=%s ORDER BY sku""",(order["order_id"],))
+        reservations=[tuple(value) for value in cursor.fetchall()]
+        return event,order,processed,reservations,items,fingerprint
+
+    @staticmethod
+    def _terminal(event_id,order,processed,reservations,items,fingerprint):
+        expected=[(i["sku"],i["quantity"],i["unit_price_satang"]) for i in items]
+        if (processed is None or processed["event_id"]!=event_id or
+                processed["order_fingerprint"]!=fingerprint or processed["outcome"]!=order["state"] or
+                reservations!=(expected if order["state"]=="confirmed" else [])):
+            raise IntegrityFailure("terminal_integrity")
+
+    def verify(self,event_id):
+        event_id=identifier(event_id)
+        with self.transaction() as cursor:
+            event,order,processed,reservations,items,fingerprint=self._checked(cursor,event_id)
+            terminal=order["state"] in ("confirmed","rejected")
+            if terminal:
+                self._terminal(event_id,order,processed,reservations,items,fingerprint)
+            return {"event_id":event_id,"order_id":order["order_id"],"order_fingerprint":fingerprint,
+                    "payload_sha256":event["payload_sha256"],"order_state":order["state"],
+                    "terminal_verified":terminal}

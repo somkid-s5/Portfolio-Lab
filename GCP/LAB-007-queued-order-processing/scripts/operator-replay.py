@@ -80,7 +80,7 @@ class Portal:
         self.csrf=None
 
     def request(self,path,body=None):
-        if not re.fullmatch(r"/api/(?:session|login|operator/outbox/[a-f0-9]{32}/replay)",path):
+        if not re.fullmatch(r"/api/(?:session|login|operator/outbox/[a-f0-9]{32}/(?:replay|verification))",path):
             raise ValueError("invalid_api_route")
         headers={"Accept":"application/json"}
         if body is not None:
@@ -119,6 +119,10 @@ class Portal:
         if not isinstance(token,str) or not re.fullmatch(r"[a-f0-9]{64}",token):
             raise ValueError("invalid_session_response")
         self.csrf=token
+
+    def verify(self,event_id):
+        identifier(event_id)
+        return self.request("/api/operator/outbox/"+event_id+"/verification")
 
     def prepare(self,event_id,body):
         identifier(event_id)

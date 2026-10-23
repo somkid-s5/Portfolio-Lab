@@ -672,5 +672,40 @@ class SQLTests(unittest.TestCase):
                 con.close()
 
 
+    def test_operator_verification_reads_accepted_without_mutation_or_audit(self):
+        order=self.create()
+        event=self.event(order["order_id"])
+        before=self.admin("SELECT state,epoch,attempts FROM lab007.outbox")
+        result=self.replay_repo().verify(event.event_id)
+        self.assertEqual((result["order_state"],result["terminal_verified"]),("accepted",False))
+        self.assertEqual(result["order_id"],order["order_id"])
+        self.assertEqual(before,self.admin("SELECT state,epoch,attempts FROM lab007.outbox"))
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.operator_actions")[0][0],0)
+
+    def test_operator_verification_requires_terminal_ledger_not_just_order_state(self):
+        order=self.create()
+        event=self.event(order["order_id"])
+        self.worker.process(event)
+        before=self.admin("SELECT sku,available FROM lab007.products ORDER BY sku")
+        result=self.replay_repo().verify(event.event_id)
+        self.assertEqual((result["order_state"],result["terminal_verified"]),("confirmed",True))
+        self.assertEqual(result["payload_sha256"],hashlib.sha256(
+            self.admin("SELECT payload FROM lab007.outbox")[0][0].encode("ascii")).hexdigest())
+        self.admin("DELETE FROM lab007.reservations")
+        with self.assertRaisesRegex(IntegrityFailure,"terminal_integrity"):
+            self.replay_repo().verify(event.event_id)
+        self.assertEqual(before,self.admin("SELECT sku,available FROM lab007.products ORDER BY sku"))
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.operator_actions")[0][0],0)
+
+    def test_operator_verification_detects_canonical_corruption_before_ack_proof(self):
+        order=self.create()
+        event=self.event(order["order_id"])
+        self.worker.process(event)
+        self.admin("UPDATE lab007.outbox SET payload_sha256=%s",("e"*64,))
+        with self.assertRaisesRegex(IntegrityFailure,"canonical_integrity"):
+            self.replay_repo().verify(event.event_id)
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.operator_actions")[0][0],0)
+
+
 if __name__ == "__main__":
     unittest.main()

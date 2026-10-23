@@ -267,5 +267,39 @@ class PortalTests(unittest.TestCase):
         self.assertNotIn("private-secret",json.dumps(self.records))
 
 
+    def verification(self):
+        return {"event_id":EVENT,"order_id":ORDER,"order_fingerprint":"d"*64,
+            "payload_sha256":"e"*64,"order_state":"confirmed","terminal_verified":True,
+            "payload":"private-secret","lease_token":"private-secret"}
+
+    def test_operator_verification_is_role_gated_and_projects_safe_terminal_proof(self):
+        path="/api/operator/outbox/"+EVENT+"/verification"
+        self.assertEqual(self.get(path).status_code,401)
+        self.login()
+        self.assertEqual(self.get(path).status_code,403)
+        self.replay.verify.assert_not_called()
+        self.post("/api/logout",{})
+        self.login("operator")
+        self.replay.verify.return_value=self.verification()
+        response=self.get(path)
+        self.assertEqual((response.status_code,response.json["terminal_verified"]),(200,True))
+        self.replay.verify.assert_called_once_with(EVENT)
+        self.assertNotIn("private-secret",response.get_data(as_text=True))
+        self.assertNotIn("payload",response.json)
+        self.assertNotIn("lease_token",response.json)
+
+    def test_verification_rejects_inconsistent_boolean_binding_and_dependency_failure(self):
+        self.login("operator")
+        path="/api/operator/outbox/"+EVENT+"/verification"
+        for field,value in (("terminal_verified","true"),("order_state","accepted"),
+                            ("event_id","f"*32),("order_fingerprint","bad")):
+            self.replay.verify.return_value={**self.verification(),field:value}
+            self.assertEqual(self.get(path).status_code,503)
+        self.replay.verify.side_effect=IntegrityFailure("private-secret")
+        response=self.get(path)
+        self.assertEqual(response.status_code,503)
+        self.assertNotIn("private-secret",response.get_data(as_text=True))
+
+
 if __name__=="__main__":
     unittest.main()
