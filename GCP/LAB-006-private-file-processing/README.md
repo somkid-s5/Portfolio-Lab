@@ -370,3 +370,204 @@ TTLและlifecycleไม่ลบทันที softdeleteยังเก็
 maxinstances2/Portalconcurrency8/worker1, startup/livenessใช้/livezไม่ผูกกับFirestorehealth และfaultflagfalseเป็นdefault มีกำแพงdeletionprotectionก่อนcleanup CORSยังอยู่foundationให้updateด้วยportal_uriจริงหลังworkloadsพร้อม ไม่ใส่wildcardเพื่อแก้ปัญหาbrowser
 
 CI39937892197ชุดfoundation/containerก่อนหน้านี้สำเร็จแล้ว ส่วนworkloadsชุดใหม่รอfmt/init-backendfalse/validate ไม่ได้plan/applyหรือพิสูจน์CloudRunIAM/triggerdeliveryจริง Secretmountmode292คือ0444สำหรับnonrootcontainerอ่านได้; ไม่ใช่per-processIAMisolation ต้องถือruntimecontainerเป็นtrustedboundary
+
+## เริ่มทำ Lab — สร้างระบบจาก sandbox ว่าง
+
+ส่วนนี้เป็นคู่มือที่ผู้เรียนใช้สร้างทรัพยากรมีค่าใช้จ่าย ไม่ใช่คำสั่งที่ผู้จัดทำรันแทนคุณ ช่อง Actual ยังไม่มีผล GCP บันทึกไว้ล่วงหน้า คู่มือยังอยู่ระหว่างเขียน ต้องมี Tasks ทดสอบ/ดูแล/change/cleanup ครบก่อน Guide-ready
+
+### Task 0 — เตรียม project สิทธิ์ และพื้นที่ทำงาน
+
+**ทำที่ไหน:** Google Cloud Console → เลือก sandbox project → Activate Cloud Shell ใช้ Bash ของ Cloud Shell ไม่ใช่ PowerShell และไม่ใช่ terminal บน laptop
+
+1. เลือก project สำหรับ Lab นี้โดยเฉพาะ เปิด Billing และตั้งเวลาปิดระบบ/งบก่อนเริ่ม Budget alert ไม่ใช่ hard cap ค่า Cloud Run, builds/images, Storage operations/soft delete, Firestore และ Eventarc/PubSub อาจยังมีหลังหยุด Browser
+2. เปิด IAM & Admin → Quotas & System Limits ตรวจ Cloud Run ใน asia-southeast1, Firestore named databases, Eventarc triggers และ Artifact Registry ตรวจนโยบายองค์กรเรื่อง public invoker ด้วย เพราะ Portal เปิดให้เข้า login แต่ worker ไม่เปิด anonymous
+3. ผู้ทำต้องสร้าง APIs/SA/custom roles/IAM bindings/Storage/Firestore/Run/Eventarc/Secret containers ได้ และมี actAs ของ runtime/trigger identities อย่าแก้การติดสิทธิ์ด้วยการให้ Owner กับ runtime SA
+4. ใน Firestore → Databases ตรวจว่าไม่มี lab006-files ของงานอื่นอยู่แล้ว ไม่เปลี่ยน default database หรือ import ของทีมอื่นเข้าระบบนี้
+5. Clone ใหม่ใน persistent Cloud Shell home โดยไม่ทับงานเดิม:
+
+```bash
+export PROJECT_ID='ใส่-sandbox-project-id'
+export INCOMING_BUCKET='ใส่ชื่อ-incoming-bucketใหม่ที่ไม่ซ้ำทั่วโลก'
+export RESULTS_BUCKET='ใส่ชื่อ-results-bucketใหม่ที่ไม่ซ้ำทั่วโลก'
+export REGION='asia-southeast1'
+gcloud config set project "$PROJECT_ID"
+gcloud auth list --filter=status:ACTIVE --format='value(account)'
+gcloud config get-value project
+umask 077
+export CHECKOUT_PARENT="$(mktemp -d "$HOME/lab006-work-XXXXXX")"
+git clone --branch docs/gcp-solution-labs --single-branch https://github.com/somkid-s5/Portfolio-Lab.git "$CHECKOUT_PARENT/Portfolio-Lab"
+export REPO_DIR="$CHECKOUT_PARENT/Portfolio-Lab"
+export LAB_DIR="$REPO_DIR/GCP/LAB-006-private-file-processing"
+cd "$LAB_DIR"
+export SOURCE_COMMIT="$(git rev-parse HEAD)"
+printf 'Source commit: %s\n' "$SOURCE_COMMIT"
+terraform version
+gcloud version
+docker version
+python3 --version
+
+```
+
+**Expected:** active account/project ตรง sandbox, SHA เต็ม40ตัว, Terraform1.9.x (CIใช้1.9.8), Dockerใช้งานได้ และ Python3.12ที่รองรับdependencies ถ้าไม่มีTerraformให้ติดตั้งรุ่นที่รองรับจากHashiCorpก่อน ไม่ลดconstraintเพื่อข้ามการตรวจ providerตรึง6.50.0 ไม่ใช้init-upgradeระหว่างทำLabโดยไม่ทบทวนdiff
+
+พื้นที่นี้อยู่persistent home ไม่ใช่ /tmp เก็บpathและstateของทั้งสองTerraformrootsไว้จนCleanupจบ หากเปิดCloudShellใหม่ให้กลับcheckout/stateเดิมและตั้งvariablesคืน ไม่cloneใหม่แล้วapplyซ้ำโดยไม่ตรวจstate ไฟล์state/plan/Secretbundleเป็นprivate ห้ามcommitGitHub หากองค์กรไม่ให้เก็บstateในCloudShellต้องเตรียมcontrolledremote backendก่อนprovision
+
+**จุดบันทึก T00:** project/accountที่ตรวจ …; SOURCE_COMMIT …; versions …; persistentdirectory/ผู้มีสิทธิ์เข้าถึง …; budget/เวลาปิด …; quotas/orgpolicy …; prefixชื่อที่ยืนยันว่าไม่ชนระบบอื่น …  
+**เกณฑ์ไปต่อ:** project/สิทธิ์/งบ/พื้นที่stateครบ ถ้ายังไม่ครบหยุดก่อนapply ไม่เปลี่ยนworkerเป็นpublicเพื่อให้ขั้นตอนผ่าน
+
+### Task 1 — สร้าง foundation โดยยังไม่เปิดบริการ
+
+**เป้าหมาย:** privatebucketsสองใบ, Firestoredatabaseแยก, identities, IAM, authSecretcontainerว่าง และArtifactRegistry ไม่มีSecretpayloadในTerraformstate
+
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR จาก T00 ทุกapplyด้านล่างผู้เรียนต้องอ่านplanและยืนยันเอง
+
+```bash
+cd "$LAB_DIR"
+export TF_VAR_project_id="$PROJECT_ID"
+export TF_VAR_bucket_names="{\"incoming\":\"$INCOMING_BUCKET\",\"results\":\"$RESULTS_BUCKET\"}"
+export TF_VAR_portal_origin=''
+terraform -chdir=infra/foundation init -input=false
+terraform -chdir=infra/foundation validate
+terraform -chdir=infra/foundation plan -out=foundation.tfplan
+terraform -chdir=infra/foundation show -no-color foundation.tfplan
+
+```
+
+ตรวจplan: databaseชื่อlab006-files/FIRESTORE_NATIVE/asia-southeast1 ไม่ใช่(default), protectionเปิด/PREVENT, bucketsชื่อตรงตัวแปรไม่ซ้ำกัน/publicaccessprevention/uniform/force_destroyfalse, lifecycle2วัน/softdelete7วัน, SA5ชุดและcustomroleget/create/signBlobตามmatrix ไม่มีSecretversion/privatekey/CloudRun/Eventarctriggerหรือresourceลบของระบบอื่น ถ้าไม่ตรงอย่าapply
+
+```bash
+terraform -chdir=infra/foundation apply foundation.tfplan
+terraform -chdir=infra/foundation output
+gcloud firestore databases describe --database=lab006-files --format='yaml(name,locationId,type,concurrencyMode,deleteProtectionState)'
+gcloud storage buckets describe "gs://$INCOMING_BUCKET"
+gcloud storage buckets describe "gs://$RESULTS_BUCKET"
+gcloud storage buckets get-iam-policy "gs://$INCOMING_BUCKET"
+gcloud storage buckets get-iam-policy "gs://$RESULTS_BUCKET"
+gcloud secrets get-iam-policy lab006-auth
+
+```
+
+เปิด Console → Firestore → Databases → lab006-files ตรวจlocation/type/protection แล้วเปิดTTLpoliciesตรวจdelete_afterของjobs/idempotency/owner_quotas รอpolicyพร้อมตามoperationเดิม ไม่สร้างdatabaseซ้ำชื่ออื่นเพราะรอ จากนั้นStorage → bucketsแต่ละใบ → Permissions/Protection/Lifecycle ตรวจไม่publicและretentionตามแบบ
+
+**Expected:** ไม่มีallUsers/allAuthenticatedUsersที่bucket; upload signerมีcreateincomingอย่างเดียว, workergetincoming/create+getresults, download signergetresults, portalไม่มีobjectaccessโดยตรง ส่วนauthSecretAccessorให้portalเท่านั้น ต้องตรวจinheritedproject/orggrantsร่วมด้วย policyระดับbucketไม่ได้ถอนสิทธิ์กว้างที่มีอยู่ก่อน
+
+FirestoreIAMconditionต้องชี้databaseนี้โดยเฉพาะ ไม่ได้แยกสิทธิ์เป็นรายcollectionหรือรายAppuser และConsoleผู้ดูแลไม่ใช่หลักฐานว่าruntimeSAถูกจำกัดจริง TTL/lifecycleไม่รับประกันลบตรงเวลา softdeleteอาจเก็บของต่อ7วันและคิดค่าใช้จ่าย
+
+**ถ้าไม่ผ่าน:** bucketnameชนให้เลือกชื่อใหม่ก่อนapply ไม่importbucketคนอื่น; permissioncustomrole/SAให้แก้สิทธิ์ผู้deploy ไม่ให้runtimeOwner; API/TTLoperationยังรันให้ตรวจoperationเดิมจนterminalก่อนapplyใหม่; Firestorelocationผิดให้หยุด ไม่ลบdatabaseเพื่อแก้แบบเดาสุ่ม
+
+**จุดบันทึก T01:** reviewedplan …; bucketpolicy/retention …; database/location/protection …; TTLสถานะ …; IAMcondition/runtimeSAที่ตรวจ …; inheritedgrants/ข้อจำกัด …; error/วิธีแก้ …  
+**เกณฑ์ไปต่อ:** foundationตรงDesignและstateถูกเก็บ ไม่ใช่เพียงexit0
+
+### Task 2 — สร้างบัญชีสังเคราะห์และ Secret version
+
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR ห้ามset-x, gcloud--log-http หรือถ่ายภาพไฟล์ที่มีรหัส
+
+```bash
+cd "$LAB_DIR"
+umask 077
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python scripts/create-secrets.py --out secrets
+export AUTH_VERSION_NAME="$(gcloud secrets versions add lab006-auth --data-file=secrets/auth.json --format='value(name)')"
+export AUTH_VERSION="$(basename "$AUTH_VERSION_NAME")"
+printf 'Auth version: %s\n' "$AUTH_VERSION"
+gcloud secrets versions list lab006-auth --format='table(name,state)'
+
+```
+
+**Expected:** generatorพิมพ์เฉพาะeventไม่พิมพ์รหัส, secretsdirectorymode700/auth.jsonกับdemo-logins.jsonmode600, AUTH_VERSIONเป็นเลขและENABLED auth.jsonมีhash/sessionkey ไม่มีplaintextpassword ส่วนdemo-logins.jsonเป็นprivateสำหรับอ่านรหัสตอนBrowserlogin ไม่อัปโหลดไฟล์นี้เป็นSecretที่Appไม่ต้องใช้
+
+ถ้าdirectoryมีอยู่generatorจะปฏิเสธ อย่าลบเพื่อข้ามการป้องกันหรือออกbundleใหม่แล้วเปลี่ยนversionโดยไม่รู้ว่าใช้อะไรอยู่ หากuploadversionล้มให้ตรวจversionslistก่อนรันใหม่ ไม่ใช้latestเพื่อเลี่ยงการตัดสินใจ deploymentจะmountnumericversionและAppอ่านตอนstartup ถ้าmountอ่านไม่ได้ต้องแก้IAM/version ไม่ปิดauth
+
+**จุดบันทึก T02:** AUTH_VERSION …; versionENABLED/IAM …; privatefilepermissionsที่ตรวจ …; ข้อผิดพลาด/retest …  
+ไม่บันทึกรหัส/passwordhash/sessionkey/payloadลงช่องนี้  
+**เกณฑ์ไปต่อ:** versionที่ตั้งใจใช้ชัดเจนและruntimeportalอ่านได้ตามpolicy workerไม่มีสิทธิ์อ่านauthSecret
+
+### Task 3 — Build และบันทึก image digest
+
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR; buildจากcheckoutSOURCE_COMMITที่สะอาด ไม่คัดลอกsecretsเข้าapp โครงDockerใช้explicitCOPY/dockerignoreแต่ผู้เรียนยังต้องตรวจไฟล์ก่อนbuild
+
+```bash
+cd "$LAB_DIR"
+git status --short
+export IMAGE_REPOSITORY="$(terraform -chdir=infra/foundation output -raw image_repository)"
+export IMAGE_TAG="$IMAGE_REPOSITORY/files:$SOURCE_COMMIT"
+gcloud auth configure-docker asia-southeast1-docker.pkg.dev
+docker pull python:3.12.15-slim-bookworm
+docker image inspect python:3.12.15-slim-bookworm --format '{{json .RepoDigests}}'
+docker build -t "$IMAGE_TAG" .
+docker push "$IMAGE_TAG"
+gcloud artifacts docker images describe "$IMAGE_TAG" --format=json
+export IMAGE_DIGEST="$(gcloud artifacts docker images describe "$IMAGE_TAG" --format='value(image_summary.digest)')"
+export PINNED_IMAGE="$IMAGE_REPOSITORY/files@$IMAGE_DIGEST"
+printf 'Pinned image: %s\n' "$PINNED_IMAGE"
+
+```
+
+**Expected:** digestเป็นsha256ตามด้วย64hex, PINNED_IMAGEอยู่repository/projectนี้และอ้าง@sha256ไม่ใช่tag ตรวจJSONจากdescribeร่วมด้วย หากfieldว่างหรือpushไม่สำเร็จให้หยุด ไม่แต่งdigestหรือใช้tagแทน [Artifact Registry describe](https://docs.cloud.google.com/sdk/gcloud/reference/artifacts/docker/images/describe)
+
+SourceimageรวมPortalและworker เลือกSERVICE_ROLEตอนruntime USER10001:10001 ไม่มีtests/fixtures/privatebundleในimage การbuildสำเร็จยังไม่พิสูจน์Firestore/Storage/IAMหรือCloudRunstartup Baseimageแม้ตรึงversiontagยังอาจถูกrebuild และpipdependenciesชั้นล่างอาจเปลี่ยน จึงจดbase/image digestจริง ไม่อ้างbit-identicalrebuildจากชื่อtagอย่างเดียว
+
+หากdockerpermission/daemonไม่พร้อมให้แก้CloudShellruntimeหรือเลือกcloudbuildenvironmentที่ได้รับอนุญาตก่อน ไม่ย้ายไปทำบนlaptopเพื่อพึ่งเครื่องเปิดค้าง หากpush403ตรวจArtifactRegistrywriterของผู้deploy ไม่เพิ่มstorageadminให้signer
+
+**จุดบันทึก T03:** commit/workingtreestatus …; baseRepoDigests …; buildเวลา …; IMAGE_TAG/digest/PINNED_IMAGE …; registrydescribeที่ตรวจ …; ปัญหา/retest …  
+**เกณฑ์ไปต่อ:** imageมีอยู่จริงในregistryและdigestถูกต้อง เก็บv1digestไว้ใช้backoutภายหลัง
+
+### Task 4 — เปิด Portal/worker และ Eventarc แล้วตั้ง CORS เฉพาะ origin
+
+**ทำที่ไหน:** Cloud Shell ที่ LAB_DIR ใช้foundationstate/variablesชุดเดิมและauthversion/imageจากT02–03
+
+```bash
+export TF_VAR_image="$PINNED_IMAGE"
+export TF_VAR_auth_version="$AUTH_VERSION"
+export TF_VAR_upload_limit_mode='baseline'
+export TF_VAR_worker_fail_after_output_once=false
+terraform -chdir=infra/workloads init -input=false
+terraform -chdir=infra/workloads validate
+terraform -chdir=infra/workloads plan -out=workloads.tfplan
+terraform -chdir=infra/workloads show -no-color workloads.tfplan
+
+```
+
+ตรวจplan: Portal/workerคนละSA/roleแต่imageเดียว@digest, maxinstances2, Portalconcurrency8/30s worker1/60s, numericSecretmountเฉพาะPortal, /livezprobes, Eventarctypefinalized+incomingbucketในasia-southeast1/path/events/storage; workerinvokerเฉพาะportal/triggerSA ไม่มีallUsers มีpublicinvokerเฉพาะPortalเพื่อเข้าlogin ไม่ให้portalอ่านไฟล์ตรงหรือworkerอ่านauthSecret
+
+```bash
+terraform -chdir=infra/workloads apply workloads.tfplan
+export PORTAL_URL="$(terraform -chdir=infra/workloads output -raw portal_uri)"
+export WORKER_URL="$(terraform -chdir=infra/workloads output -raw worker_uri)"
+gcloud run services describe lab006-portal --region="$REGION" --format=yaml
+gcloud run services describe lab006-worker --region="$REGION" --format=yaml
+gcloud run services get-iam-policy lab006-worker --region="$REGION"
+gcloud eventarc triggers describe lab006-incoming-finalized --location="$REGION" --format=yaml
+
+```
+
+Console → Cloud Run → แต่ละservice → Revisions/Logs ตรวจreadyrevision, digest, runtimeSA, Secretmountและcontainerstartup ไม่ถือว่าapplyexit0แทนHTTPready Eventarc → Triggers → lab006-incoming-finalized ตรวจsource/region/destination/identityและสถานะพร้อม หากserviceagent/IAMpropagationยังไม่พร้อมให้ดูoperation/errorเดิม ไม่สร้างtriggerชื่อใหม่ซ้ำ
+
+workerมีHTTPSURLที่เข้าถึงnetworkได้แต่ต้องIAMauthentication ไม่ใช่privateVPCendpoint ต้องไม่มีpublicinvoker ที่Portalstartupอ่านauthmountmode0444ภายในtrustedcontainerสำหรับnonroot ไม่อ้างfilemodeแทนper-processCloudIAM
+
+เมื่อได้PortalURLจริงจึงกลับfoundationตั้งCORS:
+
+```bash
+export TF_VAR_portal_origin="$PORTAL_URL"
+terraform -chdir=infra/foundation plan -out=cors.tfplan
+terraform -chdir=infra/foundation show -no-color cors.tfplan
+terraform -chdir=infra/foundation apply cors.tfplan
+curl --fail --show-error --silent --max-time 15 "$PORTAL_URL/livez"
+curl --fail --show-error --silent --max-time 15 "$PORTAL_URL/healthz"
+curl --silent --show-error --max-time 15 --output /dev/null --write-out '%{http_code}\n' "$WORKER_URL/livez"
+
+```
+
+**ReviewCORSplan:** เปลี่ยนเฉพาะincomingCORSให้ตรงPortalURL ไม่มีwildcard ไม่มีผลกับresultsbucket/Secret/IAM ถ้ามีdiffอื่นต้องเข้าใจก่อนapply **Expected:** Portal/livez200และ/healthzready; anonymousworkerต้องถูกplatformปฏิเสธ(โดยทั่วไป403) หากได้200ให้หยุดตรวจIAM/inheritedgrantsก่อนทดสอบไฟล์ CORSไม่ได้ทำให้bucketpublicและไม่ใช่authentication
+
+| อาการ | จุดเริ่มตรวจ |
+|---|---|
+| Portalrevisionไม่ready | AUTH_FILE/mount/numericversion/SecretAccessor, startupJSONและerrorที่ปลอดภัย ไม่พิมพ์Secret |
+| livez200แต่healthz503 | namedFirestore/condition/runtimeSA/metadataread ไม่เพิ่มEditorเพื่อข้าม |
+| uploadถูกBrowserCORSblock | exactPortalorigin/POSTpolicyendpointและCORSpropagation ไม่ตั้งwildcard/ปิดBrowsersecurity |
+| Workeranonymous200 | serviceIAM/inheritedrun.invoker ต้องแก้ก่อนทำLabต่อ |
+| Triggerไม่ส่งงาน | filterbucket/location, Storageagentpublisher, triggerSAeventReceiver/workerinvokerและoperation ไม่ใช้manualHTTPแทนแล้วอ้างEventarcผ่าน |
+
+**จุดบันทึก T04:** image/Secretversion/revisionIDs …; Portal/workerSA …; workerIAM/anonymousstatus …; triggerregion/filter/destination/status …; CORSdiff/origin …; livez-healthzผล …; error/แก้/retest …  
+**เกณฑ์ไปต่อ:** Portalพร้อม, workerไม่anonymous, triggerตรงแบบและCORSเฉพาะorigin ตอนนี้ยังไม่ถือว่าbusinessflowหรือGCSsignedpermissionผ่าน ต้องพิสูจน์ด้วยไฟล์จริงในTasksถัดไป

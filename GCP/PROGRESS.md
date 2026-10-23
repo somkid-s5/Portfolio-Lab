@@ -207,3 +207,6 @@ Lab06 / Foundation IaC draft: เพิ่มprivatebuckets/lifecycle2d-softdele
 
 
 Lab06 / Workloads IaC draft: CI39937892197ครบsuccess เพิ่มdigestpinnedCloudRunPortal/worker+numericSecretmount/specificworkerinvokers/Eventarctype-bucketfilter+path,limits/probes/deletiongates/faultdefaultfalse ปรับCIvalidateทั้ง2roots ยังไม่GCPplan/apply ไม่มีGCPwrites เหลือtools/Guide/Diagram/fullreviewและภาพรอบแก้ก่อนGuide-ready
+
+
+Lab06 / Guide Tasks0–4 draft: เพิ่มพาทำCloudShellpersistentworkspace/cost-access-state→foundationreview/apply→privateauth/numericSecret→Dockerpush/digest→CloudRun/Eventarc/CORSและpositive-negativeHTTPchecks พร้อมExpected/Actual/stopcriteria/troubleshootingข้างงาน เพิ่มBashparse/relative-link/authoredtaskCItests ไม่executecloudcommands ชุดworkloadsCI39957408102ยังin_progressตอนตรวจ เหลือbusiness/ops/change/evidence/cleanup/Diagram/fullreviewก่อนGuide-ready ไม่มีGCPwrites
