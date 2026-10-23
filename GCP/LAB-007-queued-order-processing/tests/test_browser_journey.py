@@ -1,5 +1,11 @@
 """Real Chrome/HTTPS/PG journey; Queue transport and IAM are explicit test doubles."""
 import base64
+import hashlib
+import http.cookiejar
+import importlib.util
+import ssl
+import urllib.request
+from unittest.mock import patch
 import json
 from pathlib import Path
 import subprocess
@@ -22,6 +28,7 @@ from dispatch import Dispatcher
 from orders import Orders
 from outbox import Outbox
 from portal_http import create_app
+from replay import Replay
 from queue_http import create_worker
 from test_sql import connection  # Do not import SQLTests: schema already initialized by earlier CI step.
 
@@ -66,7 +73,7 @@ class BrowserJourneyTests(unittest.TestCase):
             name:{"role":"operator" if name=="operator" else "customer",
                   "password_hash":generate_password_hash(password,method=HASH_METHOD,salt_length=16)}
             for name in ("alice","bob","operator")}}
-        app=create_app(api,api_outbox,auth,database_health=api.health,emit=lambda _:None)
+        app=create_app(api,api_outbox,auth,database_health=api.health,emit=lambda _:None,replay=Replay(engines[0].raw_connection))
         subscription="projects/demo-lab007/subscriptions/lab007-orders-push"
         receiver=create_worker(worker,subscription,database_health=worker.health)
         class QueueDouble:
@@ -90,7 +97,8 @@ class BrowserJourneyTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as folder:
                 cert,key=Path(folder)/"cert.pem",Path(folder)/"key.pem"
                 subprocess.run(["openssl","req","-x509","-newkey","rsa:2048","-nodes",
-                    "-keyout",str(key),"-out",str(cert),"-days","1","-subj","/CN=localhost"],
+                    "-keyout",str(key),"-out",str(cert),"-days","1","-subj","/CN=localhost",
+                    "-addext","subjectAltName=IP:127.0.0.1,DNS:localhost"],
                     check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=15)
                 server=make_server("127.0.0.1",0,app,threaded=True,
                     ssl_context=(str(cert),str(key)),request_handler=QuietHandler)
@@ -200,6 +208,42 @@ class BrowserJourneyTests(unittest.TestCase):
                 driver.set_window_size(1400,height)
                 self.assertTrue(driver.execute_script("return window.innerHeight>=document.documentElement.scrollHeight;"))
                 self.assertTrue(driver.save_screenshot("lab007-previews/operator-ci.png"))
+                # Real operator client HTTPS/cookies/CSRF -> real Portal -> real PG.
+                # Only the origin allowlist is replaced for this trusted loopback CA.
+                spec=importlib.util.spec_from_file_location("ci_operator_client",LAB/"scripts/operator-replay.py")
+                cli=importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(cli)
+                origin=f"https://127.0.0.1:{server.server_port}"
+                bundle=Path(folder)/"demo-logins.json"
+                bundle.write_bytes(cli.canonical({"operator":{"password":password,"role":"operator"}}))
+                bundle.chmod(0o600)
+                event_id=admin("SELECT event_id FROM lab007.outbox")[0][0]
+                digest=hashlib.sha256(b"explicit-ci-transport-double-not-live-DLQ").hexdigest()
+                trusted=urllib.request.build_opener(cli.NoRedirect(),
+                    urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=str(cert))),
+                    urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+                class LoseReplayReply:
+                    lost=False
+                    def open(self,request,timeout):
+                        response=trusted.open(request,timeout=timeout)
+                        if request.full_url.endswith("/replay") and not self.lost:
+                            self.lost=True
+                            response.read(65537)
+                            response.close()
+                            raise TimeoutError("CI lost replay reply after server committed")
+                        return response
+                with patch.object(cli,"origin_url",return_value=origin):
+                    request_body=cli.journal(Path(folder)/"replay.json",origin,event_id,digest,"delivery_restored")
+                    client=cli.Portal(origin,opener=LoseReplayReply())
+                    client.login(bundle)
+                    with self.assertRaisesRegex(ValueError,"outcome_unconfirmed_reuse_journal"):
+                        client.prepare(event_id,request_body)
+                    resolved=client.prepare(event_id,request_body)
+                self.assertEqual((resolved["outcome"],resolved["replayed"]),("already_resolved",True))
+                self.assertEqual(admin("SELECT count(*) FROM lab007.operator_actions")[0][0],1)
+                self.assertEqual(admin("SELECT count(*) FROM lab007.orders")[0][0],1)
+                self.assertEqual(admin("SELECT count(*) FROM lab007.processed_events")[0][0],1)
+                self.assertEqual(dict(admin("SELECT sku,available FROM lab007.products")),stock)
         finally:
             if driver is not None:driver.quit()
             if server is not None:server.shutdown()
