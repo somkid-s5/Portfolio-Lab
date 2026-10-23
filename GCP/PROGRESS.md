@@ -125,3 +125,6 @@ Lab 05 / Diagram visual review round1: CI39928693783สร้างofficialcompu
 
 
 Lab 05 / Reviewed diagram assets: บันทึก SVG/PNG ทั้ง topology และ release/recovery พร้อม official icon provenance และฝังใน README แล้ว ตรวจภาพที่ความกว้าง 960px หลังแก้ข้อความล้นและตำแหน่ง TLS label; CI run 39928910636 ผ่านครบทั้ง 7 jobs รวม Orders 49 tests, browser check และ Terraform validation สาม roots แก้ข้อความสถานะเก่าในคู่มือให้ตรงกับ Tasks 0–14 ที่มีแล้ว ยัง Authoring ระหว่าง full-guide review; Cloud verification Not run ไม่มี GCP provisioning
+
+
+Lab 05 / Guide static review: เพิ่ม CI tests สำหรับ Bash ทั้ง 45 blocks (parse เท่านั้น ไม่ execute), relative links และ Task/acceptance sections เพื่อป้องกันคำสั่งผิด syntax หรือไฟล์ประกอบหายหลังแก้คู่มือ รอผล GitHub Actions รอบนี้ก่อนยืนยันผล ยังต้องตรวจเนื้อหา workflow ด้วยคน; ไม่มี GCP writes และยังไม่เปลี่ยนเป็น Guide-ready
