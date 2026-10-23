@@ -433,6 +433,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Check Order Queue Desk browser syntax
+        run: node --check GCP/LAB-007-queued-order-processing/app/static/app.js
       - name: Verify order and wrapped PubSub contracts without cloud calls
         run: |
           python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_domain.py -v
