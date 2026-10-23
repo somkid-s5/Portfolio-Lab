@@ -234,5 +234,41 @@ class FirestoreJobsTests(unittest.TestCase):
             self.jobs.list_owned(alice, cursor="../other")
 
 
+
+    def test_attempt_history_is_atomic_bounded_and_contains_no_tokens(self):
+        self.jobs.claim(self.job_id, "123", "a"*32, finalized_at=NOW)
+        self.jobs.release_transient(self.job_id, "a"*32)
+        self.jobs.claim(self.job_id, "123", "b"*32, finalized_at=NOW)
+        self.jobs.finish(self.job_id, "b"*32, reason="invalid_utf8")
+        item = self.jobs.read_operator(self.job_id)
+        self.assertEqual(item["history_count"], 4)
+        self.assertEqual([e["state"] for e in item["history"]],
+                         ["processing", "processing", "processing", "rejected"])
+        self.assertNotIn("attempt_token", str(item["history"]))
+        before = list(item["history"])
+        self.jobs.claim(self.job_id, "123", "c"*32, finalized_at=NOW)
+        self.assertEqual(self.jobs.read_operator(self.job_id)["history"], before)
+        self.ref.set(new_job(self.job_id, "alice", NOW))
+        entry = {"time": NOW, "state": "processing", "epoch": 0, "attempt": 1,
+                 "reason": None}
+        self.ref.update({"history": [entry]*100, "history_count": 100})
+        self.jobs.claim(self.job_id, "123", "a"*32, finalized_at=NOW)
+        item = self.jobs.read_operator(self.job_id)
+        self.assertEqual((len(item["history"]), item["history_count"]), (100, 101))
+        self.assertTrue(item["history_truncated"])
+
+    def test_operator_listing_is_bounded_and_missing_lookup_is_not_found(self):
+        page = self.jobs.list_operator(limit=2)
+        self.assertLessEqual(len(page["jobs"]), 2)
+        if page["next_cursor"]:
+            later = self.jobs.list_operator(limit=2, cursor=page["next_cursor"])
+            self.assertTrue(set(item["job_id"] for item in page["jobs"]).isdisjoint(
+                item["job_id"] for item in later["jobs"]))
+        with self.assertRaises(KeyError):
+            self.jobs.read_operator(uuid.uuid4().hex)
+        with self.assertRaises(ValueError):
+            self.jobs.list_operator(limit=21)
+
+
 if __name__ == "__main__":
     unittest.main()

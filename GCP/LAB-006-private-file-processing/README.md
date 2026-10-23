@@ -290,3 +290,10 @@ build_appเลือกnamedFirestoredatabaseอย่างชัดเจน,
 เพิ่มJobs.list_ownedด้วยFirestoreowner-equalityfilter+documentIDordering+limitสูงสุด20/cursor และGET/api/jobsที่ใช้ownerจากsessionเท่านั้น ไม่รับownerqueryหรือqueryซ้ำ ลบinternalobject/attempttokenก่อนส่งstatus/listให้Browser cursorเป็นตำแหน่งเรียง ไม่ใช่สิทธิ์เข้าถึง
 
 เพิ่มemulatortestกรองowner/แบ่งหน้า/foreigncursorและHTTPtestสำหรับsessionowner/querybounds/fieldprojection ชุดใหม่นี้รอCI; CI39934400587และ39934698336 lab006-domain/firestoreผ่านsignedaccess/PortalAPIชุดก่อนแล้ว ไม่ใช่CloudRunIAMหรือGCSจริง ส่วนcompositeindex/productionqueryต้องตรวจตอนทำIaC/Guide ไม่ใช้emulatorแทนข้อกำหนดindexจริง
+
+
+### Operator metadata และ attempt history
+
+เพิ่มoperator-onlylist/detailแบบboundedpaginationและsafeprojection ไม่ออกdownloadlinkหรือเผยobjectpathให้operatorโดยอ้อม เก็บhistoryในtransactionเดียวกับstatechange สูงสุด100entriesพร้อมcount/truncatedflag มีเวลา/state/epoch/attempt/safereason ไม่มีattempttoken/credentials/rawexceptions Duplicateที่ไม่เปลี่ยนstateไม่เพิ่มhistory
+
+เพิ่ม2emulatortestsสำหรับatomicboundedhistory/operatorlookupและ1HTTPtestสำหรับcustomer403/metadata-onlyprojection ชุดใหม่นี้รอCI การมีoperatorreadไม่ใช่manualretryสำเร็จ ยังต้องต่อretrydispatchที่รักษาgeneration/epochและruntimeidentityก่อนGuide-ready

@@ -177,3 +177,6 @@ Lab06 / Portal API draft: เพิ่มsession/CSRF/login/logout/jobcreate/rea
 
 
 Lab06 / Bounded owner listing: CI39934400587+39934698336 lab006jobsสำเร็จ เพิ่มFirestoreownerfilteredpagination(limit20/docIDcursor)+PortalGETlist/publicfieldprojectionพร้อม2testsใหม่ (emulator+HTTP) รอCIชุดนี้ ยังต้องoperatorretry/runtimewiring/UI/browser/IaC/Guide/Diagram ไม่มีGCPwrites
+
+
+Lab06 / Operator inspection draft: เพิ่มboundedoperatorlist/detailและsafehistoryprojection; transactionstatechangesเก็บbounded100entryhistoryพร้อมtruncatedflag ไม่มีtoken/payload เพิ่ม3tests(emulator2/HTTP1) รอCIชุดใหม่ ก่อนเริ่มmanualretrydispatch/runtime/UI ยังไม่มีGCPwrites ไม่ใช่Guide-ready

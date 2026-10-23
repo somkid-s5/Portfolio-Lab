@@ -124,5 +124,30 @@ class PortalTests(unittest.TestCase):
             self.assertEqual(self.get("/api/jobs?"+query).status_code, 400)
 
 
+
+    def test_operator_routes_deny_customer_and_project_only_safe_metadata(self):
+        self.login("alice")
+        self.assertEqual(self.get("/api/operator/jobs").status_code, 403)
+        self.assertEqual(self.get("/api/operator/jobs/"+JOB_ID).status_code, 403)
+        self.jobs.list_operator.assert_not_called()
+        self.jobs.read_operator.assert_not_called()
+        self.post("/api/logout", {})
+        self.csrf = self.get("/api/session").json["csrf"]
+        self.login("operator")
+        item = new_job(JOB_ID, "alice", NOW)
+        item["history"] = [{"time": NOW, "state": "failed", "epoch": 0,
+                            "attempt": 5, "reason": "retry_budget"}]
+        item["output_name"] = "never-expose-object-path"
+        self.jobs.list_operator.return_value = {"jobs": [item], "next_cursor": None}
+        self.jobs.read_operator.return_value = item
+        result = self.get("/api/operator/jobs")
+        self.assertEqual(result.status_code, 200)
+        detail = self.get("/api/operator/jobs/"+JOB_ID)
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.json["history"][0]["reason"], "retry_budget")
+        self.assertNotIn("never-expose", detail.get_data(as_text=True))
+        self.access.download_link.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

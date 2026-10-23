@@ -35,8 +35,18 @@ class Jobs:
                 raise KeyError("job_not_found")
             previous = snapshot.to_dict()
             # Refresh UTC time on every SDK transaction retry.
-            updated, result = transition(previous, self.clock())
+            now = self.clock()
+            updated, result = transition(previous, now)
             if updated != previous:
+                history = list(previous.get("history", []))
+                history.append({"time": now, "state": updated["state"],
+                                "epoch": updated["attempt_epoch"],
+                                "attempt": updated["attempt_count"],
+                                "reason": updated.get("safe_reason")})
+                updated["history"] = history[-100:]
+                updated["history_count"] = previous.get("history_count", 0) + 1
+                updated["history_truncated"] = len(history) > 100 or previous.get(
+                    "history_truncated", False)
                 transaction.set(ref, updated)
             return result
 
@@ -175,3 +185,23 @@ class Jobs:
         page = snapshots[:limit]
         return {"jobs": [snapshot.to_dict() for snapshot in page],
                 "next_cursor": page[-1].id if len(snapshots) > limit else None}
+
+
+    def list_operator(self, *, limit=20, cursor=None):
+        """Operational metadata only. HTTP caller must enforce operator role."""
+        if type(limit) is not int or not 1 <= limit <= 20:
+            raise ValueError("invalid_limit")
+        query = self.client.collection("jobs").order_by("__name__")
+        if cursor is not None:
+            query = query.start_after({"__name__": self._ref(cursor)})
+        snapshots = list(query.limit(limit + 1).get(timeout=10))
+        page = snapshots[:limit]
+        return {"jobs": [item.to_dict() for item in page],
+                "next_cursor": page[-1].id if len(snapshots) > limit else None}
+
+    def read_operator(self, job_id):
+        """Metadata lookup, not file access. Authorization belongs to portal."""
+        snapshot = self._ref(job_id).get(timeout=10)
+        if not snapshot.exists:
+            raise KeyError("job_not_found")
+        return snapshot.to_dict()

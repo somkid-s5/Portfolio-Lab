@@ -162,6 +162,43 @@ def create_app(jobs, access, auth, *, clock=None, metadata_health=None,
             return jsonify(error="job_not_found"), 404
         return jsonify(public_job(item))
 
+    def operator_allowed():
+        return users[identity()]["role"] == "operator"
+
+    @app.get("/api/operator/jobs")
+    def operator_list():
+        if not operator_allowed():
+            return jsonify(error="operator_required"), 403
+        if (set(request.args) - {"limit", "cursor"} or
+                any(len(request.args.getlist(key)) != 1 for key in request.args)):
+            raise ValueError("invalid_query")
+        raw_limit = request.args.get("limit", "20")
+        if not raw_limit.isascii() or not raw_limit.isdigit():
+            raise ValueError("invalid_limit")
+        limit = int(raw_limit)
+        if not 1 <= limit <= 20:
+            raise ValueError("invalid_limit")
+        result = jobs.list_operator(limit=limit, cursor=request.args.get("cursor"))
+        return jsonify(jobs=[public_job(item) for item in result["jobs"]],
+                       next_cursor=result["next_cursor"])
+
+    @app.get("/api/operator/jobs/<job_id>")
+    def operator_read(job_id):
+        if not operator_allowed():
+            return jsonify(error="operator_required"), 403
+        try:
+            item = jobs.read_operator(job_id)
+        except KeyError:
+            return jsonify(error="job_not_found"), 404
+        result = public_job(item)
+        result["history"] = [
+            {"time": entry["time"].isoformat(), "state": entry["state"],
+             "epoch": entry["epoch"], "attempt": entry["attempt"],
+             "reason": entry.get("reason")}
+            for entry in item.get("history", [])[-100:]]
+        result["history_truncated"] = item.get("history_truncated", False)
+        return jsonify(result)
+
     @app.post("/api/jobs/<job_id>/upload-policy")
     def upload(job_id):
         body(())
