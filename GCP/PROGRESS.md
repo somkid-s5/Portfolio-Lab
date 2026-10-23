@@ -273,3 +273,6 @@ Lab07 / Outbox verified + publisher draft: run140 CI40000048463 source50884b294e
 
 
 Lab07 / Publisher verified + HTTP draft: run141 CI40001402332 sourceb674318dad81e808c97cc97f20ef442efa98b23b jobs120578122380/120578122460ผ่าน11domain+8dispatcher+5SDK+22PG=46tests อ่านlogsยืนยันsingleRPC/retryNone/timeout5/noSQLlock/unknownpublish-finishrecoveryแล้ว ไม่ใช่PubSubจริง เพิ่มworker+dispatcherFlaskfactories/body-routing/ack204-vs400/503/safeJSONlogs/serverRequestID/livez-vsDBhealth พร้อม10HTTPtests+1PGhealth (SQL23) รอCI ยังต้องruntime/Portal/operator/bootstrap/IaC/Guide/Diagram ไม่มีGCPwrites
+
+
+Lab07 / HTTP verified + CI font repair: run142 CI40002222352 source08232d4f76f2f12e6a97d2bbd936d8610f54f3d2 jobs120580970185/120580970449ผ่าน11domain+8dispatcher+5SDK+10HTTP+23PG=57tests อ่านlogsยืนยันแล้ว run141wholeworkflowfailเพราะUbuntuazuremirrorดาวน์โหลดfonts-noto-core13.3MBไม่จบ180s (ไม่ใช่Lab007tests) จึงbundleunmodifiedNotoSansThaiจากofficialgoogle/fonts commit e7db6ca603fd4862010383ff17ffd6cc4ffac1c0 พร้อมOFL1.1/sourceblobhashและCI-onlyinstall/fc-match ใช้แทนfontaptในLab05/06 รอCI+ภาพใหม่ ไม่มีGCPwrites
