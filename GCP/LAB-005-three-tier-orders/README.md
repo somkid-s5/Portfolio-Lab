@@ -32,6 +32,12 @@ Optional extensions ที่ไม่ใช้แทน baseline: mTLS ระ�
 
 ## Architecture ที่เลือก
 
+![โครงสร้าง Orders สามชั้นและขอบเขตเครือข่าย](assets/solution-preview.png)
+
+[เปิด SVG สำหรับขยายหรือแก้ไข](assets/solution.svg) · [แหล่งที่มาไอคอน](assets/diagram-sources.md)
+
+ภาพนี้อธิบายการออกแบบ ไม่ใช่หลักฐานว่าทรัพยากรถูกสร้างหรือผ่านการทดสอบแล้ว
+
 - Region asia-southeast1; Web และ API เป็น regional managed instance groups คนละกลุ่ม กลุ่มละ 2VM กระจายสอง zone ไม่ใช่ unmanaged groups จาก Lab01
 - Public global external Application Load Balancer รับ HTTPS ด้วย domain ที่ผู้เรียนควบคุม DNS ได้ ส่งไป Web Nginx บน private VMs
 - Web ให้ static UI และ reverse proxy /api ไป **regional internal passthrough Network Load Balancer TCP8080** ซึ่งกระจายไป API VMs ใช้ L4 เพื่อรักษา client source และกำหนด ingress API ให้มาจาก Web tier ตาม matrix ไม่วาดเป็น regional L7proxy หรือเพิ่ม proxy-only subnet โดยไม่มีบริการนั้น
@@ -54,7 +60,11 @@ API มี /livez สำหรับ process และ /healthz ตรวจ sch
 
 App user ใช้ hashed demo passwords, secure session/CSRF/ownership/role มีข้อจำกัด production ระบุชัด ชุดทดสอบต้องไม่พิมพ์ cookie/secret และอ่านรหัสจาก privatefile ไม่รับ plaintextpassword ใน command line
 
-## Operation scenarios ที่ต้องเตรียม
+## Operation scenarios
+
+![วงจร release การสังเกตอาการ และการกู้คืน](assets/operations-preview.png)
+
+[เปิด operations SVG](assets/operations.svg)
 
 1. Normal journey + unauthorized/cross-owner/role/network checks
 2. Concurrent orders บน API สอง process, duplicate delivery/key conflict, cancel replay และ reconciliation
@@ -79,7 +89,7 @@ SQL HA, VMs หลายเครื่อง, NAT, LB, disks/backups/logs แ�
 - [Managed instance group rolling updates](https://docs.cloud.google.com/compute/docs/instance-groups/rolling-out-updates-to-managed-instance-groups)
 - [External Application Load Balancer](https://docs.cloud.google.com/load-balancing/docs/https)
 
-ขั้นถัดไป: ยืนยัน ports/source identities/routes/health policy, tier placement, SQL sizing/connection budget และ data invariants → working App/installer/tests/IaC → Diagram → Tasks พาทำ → Review/Guide-ready ยังไม่ถือว่า Brief นี้เป็น Lab ที่ทำเสร็จ
+รายละเอียดขอบเขตเครือข่าย สิทธิ์ health policy และ connection budget อยู่ใน Design ด้านล่าง ส่วน Tasks จะพาสร้างและตรวจระบบตามขอบเขตเดียวกัน
 
 
 ## Design — ขอบเขตที่ใช้ทำ Materials
@@ -171,7 +181,7 @@ Failoverprobe ต้องมี boundeddeadline/requests และ idempotencyk
 
 ## Materials ที่กำลังตรวจ
 
-[Order domain](app/orders.py), [schema](db/schema.sql), [seed](db/seed.sql), [runtime grants](db/grants.sql), [invariants](db/check-invariants.sql) และ [PostgreSQL transaction tests](tests/test_orders.py) เป็นแกนธุรกรรมที่ใช้ร่วมกับ API ยังไม่ใช่คู่มือ Deploy หรือผล Cloud SQL HA จริง
+[Order domain](app/orders.py), [schema](db/schema.sql), [seed](db/seed.sql), [runtime grants](db/grants.sql), [invariants](db/check-invariants.sql) และ [PostgreSQL transaction tests](tests/test_orders.py) เป็นแกนธุรกรรมที่ใช้ร่วมกับ API ผลทดสอบ PostgreSQL ใน CI ไม่ใช่ผลทดสอบ Cloud SQL HA
 
 
 [Orders API](app/main.py), [private DB pool](app/database.py), [Web UI](web/index.html), [browser script](web/app.js), [Nginx template](web/nginx.conf.template) และ [config renderer](scripts/render-web-config.py) แยก Web static tier ออกจาก API โดยใช้ session/CSRF/owner/role และแชร์ข้อมูลผ่าน PostgreSQL ไม่ใช้ in-memory stock
@@ -191,7 +201,7 @@ UI เก็บเฉพาะ pending cart + idempotency key ใน sessionStor
 
 ## เริ่มทำ Lab — จาก Cloud Shell ถึง release ที่ตรวจสอบได้
 
-**สถานะคู่มือ: กำลังเขียน** ส่วนด้านล่างมีร่าง Tasks 0–14 พร้อม 7A/7B/9B; ยังต้องตรวจทานและเติม Diagram ยังต้องต่อ Secret/bootstrap/เปิดระบบ/ทดสอบ/operations/change/cleanup ก่อนใช้เป็นคู่มือจบทั้ง Solution ไม่มีผล GCP จริงถูกบันทึกไว้ล่วงหน้า
+**สถานะคู่มือ: อยู่ระหว่างตรวจทาน** Tasks 0–14 ครอบคลุมการสร้างระบบ ทดสอบ ดูแล เปลี่ยนแปลง และ Cleanup แล้ว รวมการทดสอบเพิ่มเติมใน 7A/7B/9B ช่อง Actual ให้เติมจากการรันของคุณเท่านั้น ยังไม่มีผลทดสอบ GCP จริง
 
 ### Task 0 — เตรียมพื้นที่ฝึกและบันทึกเวอร์ชัน
 
