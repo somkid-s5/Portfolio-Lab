@@ -420,3 +420,13 @@ jobs:
             GCP/LAB-006-private-file-processing/assets/diagram-provenance.json
           if-no-files-found: error
           retention-days: 14
+
+  lab007-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify order and wrapped PubSub contracts without cloud calls
+        run: python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_domain.py -v

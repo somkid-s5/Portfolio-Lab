@@ -1,7 +1,7 @@
 ---
 lab: LAB-007
 platform: GCP
-guide_status: design
+guide_status: authoring
 cloud_verification: not-run
 last_verified: null
 ---
@@ -13,7 +13,7 @@ last_verified: null
 
 Solution นี้ชื่อ **Order Queue Desk** ผลสำเร็จทางธุรกิจคือจองสต็อกและเปลี่ยนคำสั่งซื้อเป็น confirmed ไม่ใช่การตัดเงิน ส่งสินค้า หรือรับประกัน exactly-once ของบริการภายนอก
 
-**สถานะ:** Design — กำหนดโจทย์และสัญญาระบบแล้ว ขั้นถัดไปสร้าง Materials และทดสอบตามลำดับด้านล่าง ยังไม่ใช่คู่มือพร้อมทำและไม่มีผลทดสอบ GCP จริง
+**สถานะ:** กำลังสร้าง Materials ตาม Design เริ่มจากตัวตรวจคำขอและข้อความ ยังไม่ใช่คู่มือพร้อมทำและไม่มีผลทดสอบ GCP จริง
 
 ## ผู้ใช้และงานที่ต้องทำได้
 
@@ -286,3 +286,11 @@ SQLbackup retentionไม่ใช่การรับประกันrestore
 - [Cloud Run scheduled invocation](https://docs.cloud.google.com/run/docs/triggering/using-scheduler)
 
 **Design checkpoint:** นี่คือสัญญาที่ Materials ต้องทำให้เป็นจริง ยังไม่มีApp/schema/infraสำเร็จหรือผล GCP ขั้นถัดไปเริ่มdomain+SQLtestsตามลำดับข้างต้น หากSDK/providerมีข้อจำกัดให้ปรับDesignพร้อมเหตุผลก่อนเขียนTask
+
+## ตัวตรวจคำขอและข้อความ
+
+[order_domain.py](app/order_domain.py) ตรวจคำขอไม่รับ owner/ราคาจาก Browser, จำกัด SKU/จำนวนสินค้า, normalize ลำดับรายการ, fingerprint และ key hash ตาม owner ส่วน order binding รวม owner/order ID/ราคาที่อ่านจากฐานข้อมูล เพื่อให้ข้อความแก้ข้อมูลเองไม่กลายเป็นคำสั่งซื้อที่ถูกต้อง
+
+ตัวอ่าน wrapped Pub/Sub รับ messageId/message_id และ publishTime/publish_time ตามตัวอย่างทางการ โดย aliases ที่มีพร้อมกันต้องตรงกัน แยก message ID จาก canonical event ID รองรับ deliveryAttempt แบบ optional แต่ไม่ใช้ตัวเลขนั้นเป็น hard retry budget และ **ไม่ใช้ JSON fields เป็น authentication**
+
+มี [10 tests](tests/test_domain.py) สำหรับ normal/canonical/bounds/duplicates/encoding/schema/alias-conflict และ [คำขอตัวอย่าง](fixtures/order-request.json) / [catalog สังเคราะห์](fixtures/catalog.json) ชุดนี้ยังต้องผ่าน CI และต่อ PostgreSQL transaction tests ก่อนพิสูจน์ race, stock reservation หรือ outbox reliability

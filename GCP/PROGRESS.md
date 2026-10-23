@@ -10,7 +10,7 @@
 | 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Design | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 08 | ระบบรายงานตามเวลาและงาน Batch รายวัน | Planned | Not run | — |
 | 09 | ระบบส่ง Webhook ให้ระบบคู่ค้า | Planned | Not run | — |
 | 10 | ระบบ Catalog ที่ใช้ Cache ลดภาระ Database | Planned | Not run | — |
@@ -249,3 +249,6 @@ Lab07 / Brief: เริ่มหลังLab06Guide-ready กำหนดOrderQ
 
 
 Lab07 / Design: ปิดresource/identity/API/schema/outbox/stocktransaction/ack-DLQ-redriveและcapacitycontracts เลือกRun3services+SchedulerOIDC/PubSubpush-DLT/PG16privateIP+PythonconnectorTLS+DBroles/Secretversions; no-network-underSQLlocks, dispatcherleasefencing120s/budget/attempts, canonicalevent/orderbinding, SQLatomicreservation+ledger, unknownpublish/commit-before-ackrecovery, boundedoperatorcanonicalreplayและconnectionbudget1→3workers พร้อมCI/test/taskorder/cleanupboundaries ยังไม่มีMaterials/schema/App/DiagramหรือGCPผลจริง ขั้นถัดไปdomain/SQLtests ไม่Guide-ready
+
+
+Lab07 / Domain materials: เพิ่มstrictorder/event/wrappedpushparser, sortedrequestfingerprint/owner-keyhash/server-pricebinding, bounds/duplicateJSON/NaN/base64/aliasconflict และsyntheticcatalog/orderfixture พร้อม10testsกับcloud-onlyCI job ตรวจofficialpushตัวอย่างพบmessage_id/publish_timealiasesจึงรองรับแบบconsistentก่อนเขียนworker ชุดใหม่รอCI ไม่ถือdomainเป็นSQLrace/Queueverification Lab06publicationCI39995374068 completed successแล้ว ไม่มีGCPwrites ขั้นถัดไปSQLschema/roles/realPGtests
