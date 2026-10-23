@@ -395,6 +395,12 @@ class SQLTests(unittest.TestCase):
         self.assertEqual(self.api.read_owned("alice",order["order_id"])["state"],"accepted")
         self.assert_stock()
 
+    def test_health_reads_schema_using_runtime_roles_without_creating_orders(self):
+        self.assertTrue(self.api.health())
+        self.assertTrue(self.worker.health())
+        self.assertTrue(self.dispatcher.health())
+        self.assertEqual(self.admin("SELECT count(*) FROM lab007.orders")[0][0],0)
+
 
 if __name__ == "__main__":
     unittest.main()

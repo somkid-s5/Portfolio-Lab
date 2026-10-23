@@ -270,3 +270,6 @@ Lab07 / First SQL verified + outbox draft: CI39999204524 source10bace2db521edd3a
 
 
 Lab07 / Outbox verified + publisher draft: run140 CI40000048463 source50884b294e0ea478812e1570dcc0e44617b490ed completed success ทั้งworkflow อ่านjob120573981066ยืนยัน18realPGtestsรวมclaim/fencing/unconfirmedpublish/budget/integrity และ11domainผ่าน เพิ่มsyncGAPICsinglepublish(retryNone/RPC5s), boundedDispatcher20claims/cooperative40s/no-tight-retry/finishunknownไม่releaseทับ พร้อม8unit+5SDKcontract+4PGintegrationใหม่ (SQL22) รอCI ไม่เรียกPubSub/GCPจริง ไม่มีprovisioning
+
+
+Lab07 / Publisher verified + HTTP draft: run141 CI40001402332 sourceb674318dad81e808c97cc97f20ef442efa98b23b jobs120578122380/120578122460ผ่าน11domain+8dispatcher+5SDK+22PG=46tests อ่านlogsยืนยันsingleRPC/retryNone/timeout5/noSQLlock/unknownpublish-finishrecoveryแล้ว ไม่ใช่PubSubจริง เพิ่มworker+dispatcherFlaskfactories/body-routing/ack204-vs400/503/safeJSONlogs/serverRequestID/livez-vsDBhealth พร้อม10HTTPtests+1PGhealth (SQL23) รอCI ยังต้องruntime/Portal/operator/bootstrap/IaC/Guide/Diagram ไม่มีGCPwrites

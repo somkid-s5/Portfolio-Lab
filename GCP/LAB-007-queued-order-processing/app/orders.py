@@ -97,6 +97,13 @@ class Orders:
                 WHERE owner=%s AND order_id=%s""", (owner,order_id))
             return row(cursor)
 
+    def health(self):
+        with self.transaction() as cursor:
+            cursor.execute("SELECT version,seed_version FROM lab007.schema_meta WHERE singleton")
+            if tuple(cursor.fetchone() or ()) != (1,"catalog-v1"):
+                raise IntegrityFailure("schema_mismatch")
+            return True
+
     def process(self, event, *, fail_after_write=False):
         if not isinstance(event,OrderEvent):
             raise TypeError("parsed_event_required")

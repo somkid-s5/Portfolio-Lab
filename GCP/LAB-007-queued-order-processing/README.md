@@ -323,6 +323,16 @@ SQLbackup retentionไม่ใช่การรับประกันrestore
 
 แยก publish_acks ออกจาก finished: Pub/Sub รับแล้วแต่ SQL finish ไม่ทราบผลอาจเกิดได้ จึงไม่ release ทับหลัง finish exception ให้ตรวจ state หรือรอ lease recovery ส่วน publish ไม่ทราบผลจะคืน pending และหยุดรอบนั้น ไม่วนยิง event เดิมจนใช้ budget หมดใน request เดียว ผลจาก dispatcher ไม่ใช่ผลธุรกิจว่า order confirmed
 
-เพิ่ม [8 unit tests](tests/test_dispatch.py), [5 real-SDK contract tests](tests/test_pubsub_publish.py) และ PostgreSQL integration อีก 4 กรณี รวม SQL suite เป็น 22 tests ตรวจว่า publish อยู่นอก SQL lock, คำตอบ publish หายหลังจองสำเร็จ, finish commit หาย และ canonical serialization ที่ผิดแม้ hash ตรง ชุดใหม่นี้รอ CI การทดสอบ publisher ใช้ mock RPC และการทดสอบ SQL ใช้ publisher double ไม่เรียก Pub/Sub จริง
+เพิ่ม [8 unit tests](tests/test_dispatch.py), [5 real-SDK contract tests](tests/test_pubsub_publish.py) และ PostgreSQL integration อีก 4 กรณี รวม SQL suite เป็น 22 tests ตรวจว่า publish อยู่นอก SQL lock, คำตอบ publish หายหลังจองสำเร็จ, finish commit หาย และ canonical serialization ที่ผิดแม้ hash ตรง ส่วน publisher/dispatcher ผ่าน [CI 40001402332](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40001402332) แล้ว: domain11 + dispatcher8 + SDK5 + PostgreSQL22 รวม 46 tests การทดสอบ publisher ใช้ mock RPC และการทดสอบ SQL ใช้ publisher double ไม่เรียก Pub/Sub จริง
 
 อ้างอิง [GAPIC PublisherClient รุ่นที่ตรึง](https://github.com/googleapis/python-pubsub/blob/v2.33.0/google/pubsub_v1/services/publisher/client.py) แทนการใช้ timeout ของ future เป็นหลักฐานว่างาน background หยุดแล้ว
+
+## HTTP receiver และขอบเขต ack
+
+[Worker/dispatcher factories](app/queue_http.py) รับ request เฉพาะ route/body ที่กำหนด Worker ตอบ 204 เมื่อ repository คืนผล confirmed/rejected ที่ commit แล้ว หรือผลเดิมแบบ duplicate เท่านั้น ส่วนข้อความ schema/binding เสียเป็น 400 เพื่อให้ Pub/Sub retry/dead-letter และ dependency/integrity/ผลไม่แน่นอนเป็น 503 ไม่ใช้ HTTP success ซ่อนปัญหา
+
+Dispatcher รับเพียง JSON ว่าง ไม่รับ topic/SQL/URL จาก caller คืน counts ที่แยก publish ack กับ SQL finish และ log เฉพาะ IDs/attempt/outcome ที่ whitelist ไม่มี token/payload/JWT/query/exception text ใน log ใช้ request ID ที่ server สร้าง ไม่เชื่อ ID จาก client
+
+/livez ตรวจ process แยกจาก /healthz ที่อ่าน schema version ด้วย runtime DB role ไม่สร้างข้อมูล ทั้งสอง service ยังต้อง Cloud Run IAM ด้านหน้า **Flask factory และ ce/message headers ไม่ได้ทำให้ caller ผ่าน IAM เอง** ต้องให้ push/scheduler identities เท่านั้นในขั้น deploy
+
+เพิ่ม [10 HTTP tests](tests/test_queue_http.py) และ SQL health test ทำให้ SQL suite เป็น 23 tests ชุดใหม่รอ CI ยังไม่มี Cloud Run runtime wiring, Portal UI หรือการพิสูจน์ push identity จริง
