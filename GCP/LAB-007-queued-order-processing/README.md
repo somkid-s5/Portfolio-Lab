@@ -13,7 +13,7 @@ last_verified: null
 
 Solution นี้ชื่อ **Order Queue Desk** ผลสำเร็จทางธุรกิจคือจองสต็อกและเปลี่ยนคำสั่งซื้อเป็น confirmed ไม่ใช่การตัดเงิน ส่งสินค้า หรือรับประกัน exactly-once ของบริการภายนอก
 
-**สถานะ:** กำลังสร้าง Materials ตาม Design เริ่มจากตัวตรวจคำขอและข้อความ ยังไม่ใช่คู่มือพร้อมทำและไม่มีผลทดสอบ GCP จริง
+**สถานะ:** กำลังสร้าง Materials — มี Portal/Queue worker/dispatcher, PostgreSQL transactions และ serving image ที่ตรวจใน CI แล้ว แต่ยังขาด bootstrap, operator replay/DLQ tooling, infrastructure และคู่มือครบทุก Task จึงยังไม่ Guide-ready และไม่มีผลทดสอบ GCP จริง
 
 ## ผู้ใช้และงานที่ต้องทำได้
 
@@ -372,3 +372,39 @@ Customer เห็น catalog และ order ของตน Operator ดู or
 [create-secrets.py](scripts/create-secrets.py) สร้างโฟลเดอร์ใหม่ mode700/ไฟล์600: auth.json กับ hash scrypt ที่กำหนด cost ชัดเจน, demo-logins.json สำหรับผู้เรียน และ DB bundles แยก Portal/worker/dispatcher/bootstrap ไม่มี cloud call ไม่พิมพ์รหัสและไม่เขียนทับ หากสร้างไปแล้วต้องเก็บชุดเดิมจน resolve ผลการติดตั้ง ไม่สร้างใหม่เพื่อกลบคำตอบ network ที่หาย
 
 [Portal runtime](app/portal_runtime.py) อ่าน auth mount แบบ bounded/numeric version และใช้ DB role Portal เท่านั้น ไม่โหลด admin bundle [12 API tests](tests/test_portal_http.py) และ [5 auth/runtime tests](tests/test_auth_config.py) ชุดใหม่รอ CI ยังไม่มี browser UI/การพิสูจน์ Cloud login/Secret IAM จริง
+
+## หน้าจอสั่งซื้อและการกลับมาหางานเดิม
+
+[หน้าจอ Order Queue Desk](app/static/index.html) ใช้ [JavaScript แบบ same-origin](app/static/app.js) และ [stylesheet ภายใน image](app/static/style.css) ไม่โหลด script ภายนอก ลูกค้าเลือกได้ 1–2 SKU จำนวน SKU ละ 1–3 ชิ้น ราคาใน Browser มีไว้แสดงเท่านั้น API อ่านราคาและเก็บ snapshot จากฐานข้อมูลเอง
+
+ก่อน POST คำสั่งซื้อ หน้าจอบันทึก idempotency key กับรายการสินค้าใน sessionStorage ที่แยกตามบัญชี เมื่อคำตอบขาดหายให้คงรายการเดิมไว้ รีโหลดแล้วกดส่งซ้ำ หน้าจอจะใช้ key เดิม ไม่สร้าง key ใหม่และไม่ POST อัตโนมัติเมื่อเปิดหน้า หากเปลี่ยนจำนวนสินค้าระหว่างที่คำขอเดิมยังไม่ทราบผล หน้าจอจะหยุดให้กลับมายืนยันงานเดิมก่อน
+
+เมื่อได้ order ID แล้ว ปุ่มส่งจะใช้ GET ตรวจงานเดิม ไม่ส่งซื้ออีกครั้ง หลังงาน terminal ต้องกด **เริ่มรายการใหม่** ก่อนสั่งครั้งต่อไป งานที่ accepted ยังแยกจาก confirmed/rejected; สถานะ published ของ outbox ไม่ใช่ผลจองสินค้า
+
+บันทึกใน Browser ไม่ใช่ฐานข้อมูลหลัก: sessionStorage อยู่เฉพาะ tab/Browser นั้นและหายได้เมื่อปิด tab หรือเคลียร์ข้อมูล หากบันทึกเสียหายหน้าจอจะหยุดส่งงาน ไม่ลบแล้วสร้างคำขอใหม่เงียบ ๆ ให้ตรวจรายการคำสั่งซื้อ/ประสาน operator ก่อนตัดสินใจซื้อใหม่ ไม่เก็บ password, cookie หรือ CSRF ใน storage
+
+การตรวจอัตโนมัติจำกัด 30 รอบและไม่เริ่มรอบใหม่หลัง 90 วินาที แต่ละ request มี abort timeout 10 วินาทีและ response limit 64 KiB การหยุดตรวจไม่ใช่การยกเลิก order บน server เลือกรายละเอียดเพื่อเริ่มตรวจงานเดิมต่อได้ Operator มีหน้าดู order/outbox และ metadata โดยไม่เปิดเผย payload หรือ lease token; replay mutation ยังต้องต่อก่อนใช้ runbook ส่วน dead-letter
+
+## Container สำหรับ serving services
+
+[Dockerfile](Dockerfile) ใช้ Python 3.12.15 และ Gunicorn 23.0.0 ที่ตรึงรุ่น รันเป็น UID/GID 10001 ไม่ติดตั้ง bootstrap/admin credentials และ [allowlist build context](.dockerignore) ไม่ส่ง private bundles, SQL หรือ tests เข้า image
+
+[Process entrypoint](scripts/run-container.py) รับ SERVICE_ROLE เพียง portal/worker/dispatcher แล้วเลือก factory ที่กำหนดไว้ ไม่รับ arbitrary import target หรือประกอบ shell command จาก environment ใช้หนึ่ง process ต่อ container, Portal สี่ threads ส่วน worker/dispatcher หนึ่ง thread ตรงกับ concurrency baseline; pool ยังมีขอบเขตแยกต่างหาก การเพิ่ม threads ไม่ได้เพิ่ม DB connection budget ให้เอง
+
+PORT รับเฉพาะเลข ASCII 1–65535; Gunicorn timeout65s/graceful15s ไม่ preload database connections ก่อน fork และไม่เปิด access logs ที่เก็บ query string ทุก request ใช้ application logs ที่ whitelist correlation fields แทน ทั้งนี้ container build/import checks ไม่ใช่หลักฐานว่ารันผ่าน Cloud Run IAM/Secret mounts/private networking จริง
+
+## ตัวอย่างหน้าจอจาก CI
+
+ภาพต่อไปนี้เป็น **Chrome ใน GitHub Actions กับ PostgreSQL 16 จริงบน loopback HTTPS** ใช้ Queue/IAM transport double ไม่ใช่ Console หรือผล Deploy บน GCP
+
+![Order Queue Desk หลังจองสินค้า — ภาพจาก CI](assets/ui-ci.png)
+
+![Operator ตรวจ metadata ของงานเดิม — ภาพจาก CI](assets/operator-ci.png)
+
+[Browser journey test](tests/test_browser_journey.py) จำลองคำตอบ POST ที่หายหลัง server รับ order แล้ว จากนั้น reload/คืนตะกร้า/ส่งด้วย key เดิม ตรวจว่า order/outbox มีเพียงหนึ่งรายการ เมื่อ dispatcher ส่ง event เข้า worker HTTP สองครั้ง มี processed ledger หนึ่งรายการและ reservations สอง SKU เท่านั้น BOOK-01 เหลือ198/USB-01เหลือ199 ยอดรวม34900สตางค์ ภายในฐานข้อมูล CI สังเคราะห์รอบนี้
+
+ทดสอบสลับบัญชีผ่านหน้าจอจริง: bob ไม่เห็นข้อมูล alice และ GET foreign order เป็น404/operator API เป็น403; operator อ่าน outbox metadata ได้โดยไม่มี payload/lease token ภาพแสดง stock ตอนอ่าน catalog ไม่ใช่ตัวเลขที่ update แบบ real-time หลัง worker จองสินค้า
+
+ผล Lab07 ของ [CI 40011482826](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40011482826) / source8a2fc21d1ab752f1d56d59fdd0dc24c3486f5a0a: domain/dispatch/pagination/container-entry25 + SDK/HTTP/runtime/auth/SQL/browser72 = **97 tests ผ่าน** พร้อม image build/non-root/import/exclusion checks และตรวจภาพอ่านได้ครบถึง footer [Provenance](assets/ui-provenance.json) ระบุแหล่งภาพและขอบเขตจริง
+
+ผลนี้ไม่ยืนยัน Pub/Sub delivery/dead-letter, Cloud Run IAM, Cloud SQL private routing/TLS/Secrets, production capacity หรือการ cleanup จริง คู่มือและผล Cloud ยังต้องแยกตรวจต่อ

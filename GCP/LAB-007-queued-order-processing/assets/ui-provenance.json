@@ -1,0 +1,29 @@
+{
+  "source_commit": "8a2fc21d1ab752f1d56d59fdd0dc24c3486f5a0a",
+  "workflow_run": 40011482826,
+  "job": 120612779179,
+  "files": [
+    {
+      "name": "ui-ci.png",
+      "sha": "ed3973e78e4e733817f41bdb43a839ea102d7929"
+    },
+    {
+      "name": "operator-ci.png",
+      "sha": "691bf9e3dc0d60ec0cc2433b18d4accfdeff4c2f"
+    }
+  ],
+  "origin": "Real headless Chrome screenshot, GitHub Actions",
+  "environment": "Disposable PostgreSQL16, loopback HTTPS; PubSub/IAM explicit transport double",
+  "visual_review": "Thai readable, customer/operator data and footer visible; no passwords/cookies/CSRF/raw payload/lease tokens",
+  "tests": {
+    "lab007": 97,
+    "cloud": "Not run"
+  },
+  "limitations": [
+    "Not GCP Console screenshots",
+    "Not live PubSub, IAM, CloudSQL networking or TLS verification",
+    "Customer catalog stock is snapshot at read",
+    "Operator view does not yet include replay mutation"
+  ],
+  "overall_workflow": "Lab007 jobs succeeded; attempt1 Lab005 renderer navigation timeout; targeted failed-job rerun dispatched, not yet verified"
+}
