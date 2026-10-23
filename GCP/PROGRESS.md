@@ -252,3 +252,6 @@ Lab07 / Design: ปิดresource/identity/API/schema/outbox/stocktransaction/ac
 
 
 Lab07 / Domain materials: เพิ่มstrictorder/event/wrappedpushparser, sortedrequestfingerprint/owner-keyhash/server-pricebinding, bounds/duplicateJSON/NaN/base64/aliasconflict และsyntheticcatalog/orderfixture พร้อม10testsกับcloud-onlyCI job ตรวจofficialpushตัวอย่างพบmessage_id/publish_timealiasesจึงรองรับแบบconsistentก่อนเขียนworker ชุดใหม่รอCI ไม่ถือdomainเป็นSQLrace/Queueverification Lab06publicationCI39995374068 completed successแล้ว ไม่มีGCPwrites ขั้นถัดไปSQLschema/roles/realPGtests
+
+
+Lab07 / SQL materials draft: เพิ่มPGschema/seed/constraints+NOLOGINleastprivilegeroles, DBAPIOrders repositoryสำหรับatomiccreate+outbox/advisorykeylockและrowlockedall-or-nothingstock+immutableledger/dedup/integrity/ownerread ใช้pg8000 1.31.5ตรงdriverที่จะใช้กับconnector เพิ่ม12realPG16integrationtests+cloudCIloopbackguard ครอบคลุมrace/rollback/commit-before-ack/grants/price-snapshot ชุดใหม่รอCIยังไม่อ้างผ่าน และยังต้องdispatcher/workerHTTP/runtime/bootstrap/UI/IaC/Guide/Diagram ไม่มีGCPwrites

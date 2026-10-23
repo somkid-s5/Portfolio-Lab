@@ -430,3 +430,36 @@ jobs:
           persist-credentials: false
       - name: Verify order and wrapped PubSub contracts without cloud calls
         run: python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_domain.py -v
+
+  lab007-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: lab007_ci
+          POSTGRES_USER: lab007_ci_admin
+          POSTGRES_PASSWORD: disposable-lab007-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lab007_ci_admin -d lab007_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGDATABASE: lab007_ci
+      PGUSER: lab007_ci_admin
+      PGPASSWORD: disposable-lab007-ci
+      LAB007_DISPOSABLE_TEST: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned PostgreSQL driver without cloud credentials
+        run: |
+          python3 -m venv .ci-lab007
+          .ci-lab007/bin/pip install -r GCP/LAB-007-queued-order-processing/requirements.txt
+      - name: Verify real transactions races rollback and DB role boundaries
+        run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_sql.py -v

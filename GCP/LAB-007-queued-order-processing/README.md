@@ -294,3 +294,15 @@ SQLbackup retentionไม่ใช่การรับประกันrestore
 ตัวอ่าน wrapped Pub/Sub รับ messageId/message_id และ publishTime/publish_time ตามตัวอย่างทางการ โดย aliases ที่มีพร้อมกันต้องตรงกัน แยก message ID จาก canonical event ID รองรับ deliveryAttempt แบบ optional แต่ไม่ใช้ตัวเลขนั้นเป็น hard retry budget และ **ไม่ใช้ JSON fields เป็น authentication**
 
 มี [10 tests](tests/test_domain.py) สำหรับ normal/canonical/bounds/duplicates/encoding/schema/alias-conflict และ [คำขอตัวอย่าง](fixtures/order-request.json) / [catalog สังเคราะห์](fixtures/catalog.json) ชุดนี้ยังต้องผ่าน CI และต่อ PostgreSQL transaction tests ก่อนพิสูจน์ race, stock reservation หรือ outbox reliability
+
+## ฐานข้อมูลและการจองสต็อก
+
+[Schema](sql/schema.sql) แยก order/items/outbox/processed events/reservations และ seed สังเคราะห์ออกชัดเจน [DB roles](sql/roles.sql) เริ่มเป็น NOLOGIN เพื่อให้ขั้น bootstrap ตั้ง credentials ส่วนตัวภายหลัง ไม่มีรหัสผ่านใน SQL หรือ repository และไม่มีสิทธิ์ลบ/แก้ ledger ให้ runtime
+
+[Orders repository](app/orders.py) เป็น transaction interface ใน Python ไม่ใช่ SECURITY DEFINER SQL functions: API ใช้ column/table grants เท่าที่ต้องใช้และตรวจ owner ฝั่ง App; DB role เป็นขอบเขตของ service ไม่ใช่สิทธิ์รายลูกค้า หากเพิ่ม privileged SQL functions สำหรับ operator ภายหลังต้องมี search_path/grants ที่ตรวจแยก ไม่อ้างว่ามีแล้วในชุดนี้
+
+การ create ใช้ transaction advisory lock ตาม owner/key hash ก่อนตรวจ idempotency อ่านราคาจาก catalog และ commit order/items/outbox พร้อมกัน การ process ล็อก order ก่อน แล้วล็อกสินค้าเรียง SKU ตรวจครบทุกชิ้นก่อนเปลี่ยนยอด และ commit stock/reservations/processed result/order state พร้อมกัน ไม่มี publish หรือ network ไปบริการอื่นระหว่างถือ locks
+
+[12 integration tests](tests/test_sql.py) ใช้ PostgreSQL 16 จริงกับ pg8000 1.31.5 และ SET ROLE เพื่อทดสอบ grants: concurrent create, duplicate processing, LAST-01 race, multi-item rejection, partial-write rollback, commit-before-ack replay, owner/event binding, ledger corruption และ price snapshot คำสั่งทดสอบยอมรับเฉพาะ disposable loopback database ชื่อ lab007_ci ไม่ fallback ไป Cloud SQL
+
+ชุดนี้กำลังรอ CI ไม่ใช่ผล Cloud SQL/IAM/TLS/secret login จริง และยังต้องต่อ outbox dispatcher, HTTP/runtime, bootstrap, UI, infrastructure, Diagram และคู่มือก่อน Guide-ready
