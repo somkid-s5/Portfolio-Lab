@@ -96,6 +96,49 @@ class OrdersTests(unittest.TestCase):
                 conn.execute(text("UPDATE products SET available=available+1 WHERE sku='BOOK-01'"))
         self.assertTrue(inspector.inspect(self.engines[0])['invariants_ok'])
 
+
+    def test_bounded_http_journey_resumes_same_journal_without_duplicate_order(self):
+        import importlib.util
+        import tempfile
+        import threading
+        from werkzeug.serving import make_server
+        from main import create_app
+        spec=importlib.util.spec_from_file_location('orders_journey',ROOT/'scripts/journey.py')
+        runner=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        with patch.dict(os.environ,{'APP_LOCAL_TEST':'1','APP_VERSION':'v1','DEPLOYMENT_TARGET':'ci'}):
+            app=create_app(engine=self.engines[0],auth_config=self.auth)
+        server=make_server('127.0.0.1',0,app,threaded=True)
+        thread=threading.Thread(target=server.serve_forever,daemon=True)
+        thread.start()
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                path=Path(directory)/'journal.json'
+                state=runner.journal(path)
+                self.assertEqual(path.stat().st_mode&0o777,0o600)
+                base=runner.origin('http://127.0.0.1:'+str(server.server_port),True)
+                logins={'alice':'test-alice','bob':'test-bob'}
+                first=runner.journey(base,logins,state)
+                resumed=runner.journey(base,logins,runner.journal(path))
+                self.assertEqual(first['order_id'],resumed['order_id'])
+                self.assertLessEqual(first['requests'],20)
+                self.assertNotIn('test-alice',str(first))
+                self.assertIn('csrf-denied',first['checks'])
+                with self.admin.connect() as conn:
+                    self.assertEqual(conn.execute(text('SELECT count(*) FROM orders')).scalar_one(),1)
+                    self.assertEqual(conn.execute(text("SELECT available FROM products WHERE sku='BOOK-01'")).scalar_one(),10)
+                    self.assertEqual(conn.execute(text("SELECT count(*) FROM stock_events WHERE event='cancelled'")).scalar_one(),1)
+                for bad in ['http://orders.example.com','https://user:password@example.com','https://example.com?token=x']:
+                    with self.assertRaises(ValueError):
+                        runner.origin(bad)
+                path.chmod(0o644)
+                with self.assertRaises(ValueError):
+                    runner.private_json(path)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(5)
+
     def test_replay_normalization_snapshot_and_cancel_once(self):
         items=[{'sku':'PEN-01','quantity':1},{'sku':'BOOK-01','quantity':2}]
         first,replayed=self.place(items=items)

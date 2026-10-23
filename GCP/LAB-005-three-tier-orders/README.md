@@ -516,3 +516,50 @@ python3 scripts/probe.py --base-url "https://$LAB_DOMAIN"   --path /healthz --re
 บันทึกorderUUID, requestID, Web/APIidentityที่เห็นและเวลาUTCจากprobeให้เชื่อมกับlogsได้ ภาพพอร์ตใช้เฉพาะUIที่ไม่มีรหัส/Token ไม่ใช้ภาพCIแทนผลที่คุณทำบนGCP
 
 **เกณฑ์ไปต่อ:** journeyและnegativecasesข้างต้นผ่านจริง หากมีfailureให้จดอาการ/สาเหตุ/การแก้/retestไว้ติดตาราง ไม่ติ๊กผ่านเพราะเข้าเว็บได้อย่างเดียว
+
+### Task 7A — ส่งคำขอเดิมซ้ำอย่างควบคุมและตรวจ ledger
+
+**ทำที่ไหน:** Cloud Shell สำหรับ HTTPjourney จากนั้น SSHผ่านIAPไปAPI VMหนึ่งเครื่องเพื่อตรวจDBด้วยruntime role ไม่ใช้postgres/adminsecret
+
+ก่อนรันต้องเหลือBOOK-01อย่างน้อย1หน่วย และไม่มีผู้ใช้อื่นกำลังแก้ข้อมูลทดสอบ เครื่องมือนี้สร้างorderสังเคราะห์หนึ่งรายการแล้วยกเลิก ไม่ใช่read-only และไม่ควรยิงใส่ระบบอื่น
+
+```bash
+cd "$LAB_DIR"
+.venv/bin/python scripts/journey.py --base-url "https://$LAB_DOMAIN"   --logins-file secrets/demo-logins.json --journal secrets/journey-baseline.json
+```
+
+**Expected:** checksครอบคลุมanonymous401, create/resume, keyเดิมได้referenceเดิม, keyเดิมpayloadต่าง409, ไม่มีCSRF403, bobอ่านalice404, customerอ่านoperator403 และcancelซ้ำได้replayed เครื่องมือบันทึกkeyและcartในjournalmode600ก่อนส่งคำขอแรก; ไม่พิมพ์password/cookie/CSRF และไม่retryไม่จำกัด
+
+รันคำสั่งเดิมอีกครั้งโดยใช้journalเดิม ต้องได้orderUUIDเดิม ไม่ใช่orderใหม่ แม้orderถูกcancelแล้วก็ไม่ควรตัดstockใหม่ ถ้าคำสั่งล้ม/responseหาย **เก็บjournalเดิม** ตรวจระบบก่อนretry ห้ามลบjournalเพื่อหลบerror การเปลี่ยนjournalคือlogicalorderใหม่ที่อาจสร้างผลซ้ำจากมุมธุรกิจ
+
+#### ตรวจจากฐานข้อมูล ไม่ใช้HTTPเพียงอย่างเดียวสรุปข้อมูลถูกต้อง
+
+จากCloudShellแสดงVMในAPI MIGแล้วเลือกชื่อและzoneจริง:
+
+```bash
+gcloud compute instance-groups managed list-instances lab005-api-mig --region="$REGION"
+```
+
+เปิดSSHผ่านIAPไปเครื่องที่เลือก (แทนชื่อสองช่องให้ตรงผลจริง):
+
+```bash
+gcloud compute ssh 'ใส่ชื่อ-api-vm' --zone='ใส่-zone-ของเครื่อง' --tunnel-through-iap
+```
+
+**คำสั่งถัดไปทำในAPI VM** ไม่ใช่CloudShell ตั้งAPI_HASHจากT02ของreleaseที่VMนี้ใช้:
+
+```bash
+export API_HASH='ใส่-api-sha256-64ตัวจากT02'
+sudo systemd-run --wait --pipe --collect --uid=lab005-api   --property=EnvironmentFile=/etc/lab005/api.env   --working-directory="/opt/lab005/releases/$API_HASH/app"   "/opt/lab005/venvs/$API_HASH/bin/python"   "/opt/lab005/releases/$API_HASH/scripts/inspect-db.py"
+```
+
+systemd managerอ่านEnvironmentFileให้transientprocess ซึ่งมีเฉพาะreferences ไม่มีpasswordliteralในคำสั่ง ใช้UIDlab005-apiและสิทธิ์DBเดิม ไม่ต้องcatไฟล์db.json/admin.json และไม่ให้postgresกับApp
+
+**Expected:** db_roleorders_app, invariants_oktrue, violationsว่าง, stockbalance/order_total/itemledgerตรงกัน snapshotเป็นREPEATABLE READ/READ ONLYชุดเดียว countsรวมข้อมูลก่อนหน้าทั้งLabจึงไม่จำเป็นเท่ากับ1 หากทำT06ไปแล้ว ควรเทียบก่อน/หลังของคุณเอง; connectionsรวมinspectorหนึ่งconnectionและเป็นเพียงค่าขณะนั้น ไม่ใช่connectionpeakระหว่างfailover
+
+หากinspect-db.pyไม่มีในrelease แสดงว่าarchiveมาจากcommitก่อนเพิ่มเครื่องมือนี้ อย่าคัดลอกscriptจากHEADใหม่แล้วอ้างว่าเป็นreleaseเดิม ให้กลับT02สร้างarchiveจากcommitที่มีไฟล์ครบ บันทึกhashใหม่และrolloutตามversionนั้นก่อนทดสอบ
+
+**ถ้าไม่ผ่าน:** violationsไม่ว่างให้หยุดwritesและเก็บsnapshot/ช่วงเวลาที่เกิดปัญหา ไม่แก้stockด้วยมือให้ตัวเลขดูผ่าน; connectionerrorให้ตรวจSQL/Secret/connectorก่อน; permissionerrorให้ตรวจว่าใช้runtimeUID/envfile/roleถูกต้อง ไม่เปลี่ยนเป็นadminเพื่อให้ผ่าน
+
+**จุดบันทึก T07A:** journalpathส่วนตัว …; orderUUIDครั้งแรก/รันซ้ำ …; HTTPchecksที่ผ่าน/ไม่ผ่าน …; snapshotก่อน/หลัง …; violations …; stockและledgereventsที่สัมพันธ์กับorder …; ปัญหา/การแก้/retest …  
+การทดสอบนี้ยังไม่ใช่concurrentoversellหรือGCPfailover ต้องมีหลักฐานแยกในหัวข้อถัดไป
