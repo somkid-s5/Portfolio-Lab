@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 concurrency:
   group: lab-materials-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:

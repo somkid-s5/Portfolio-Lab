@@ -563,3 +563,39 @@ systemd managerอ่านEnvironmentFileให้transientprocess ซึ่ง
 
 **จุดบันทึก T07A:** journalpathส่วนตัว …; orderUUIDครั้งแรก/รันซ้ำ …; HTTPchecksที่ผ่าน/ไม่ผ่าน …; snapshotก่อน/หลัง …; violations …; stockและledgereventsที่สัมพันธ์กับorder …; ปัญหา/การแก้/retest …  
 การทดสอบนี้ยังไม่ใช่concurrentoversellหรือGCPfailover ต้องมีหลักฐานแยกในหัวข้อถัดไป
+
+### Task 7B — ส่งคำสั่งซื้อพร้อมกันโดยไม่ขายเกินสต็อก
+
+**ทำที่ไหน:** Cloud Shell; ใช้journalใหม่สำหรับการทดลองนี้เท่านั้น ก่อนเริ่มให้ตรวจsnapshotจากT07Aว่าUSB-01มีavailable4 และไม่มีผู้ใช้อื่นเขียนข้อมูล หากไม่ใช่4ให้ตรวจorderเดิม/คืนรายการผ่านbusinesscancelแล้วsnapshotใหม่ **ไม่UPDATE stockหรือรันseedทับเพื่อให้ได้ตัวเลขที่อยากเห็น**
+
+```bash
+cd "$LAB_DIR"
+.venv/bin/python scripts/stock-race.py --base-url "https://$LAB_DOMAIN"   --logins-file secrets/demo-logins.json --journal secrets/usb-race-01.json
+```
+
+เครื่องมือใช้6sessionsของaliceส่งlogicalorderคนละkeyพร้อมกัน สินค้าUSB-01จำนวน1ต่อorder แต่ละclientมีtimeout5sและไม่ยิงซ้ำไม่จำกัด การloginทำก่อนbarrierจึงไม่เอาpasswordhashloadมาปนกับช่วงrace
+
+**Expectedเมื่อเริ่มstock4/ไม่มีwriterอื่น:** attempts6, confirmed4, rejected2จากinsufficient_stock และUUIDของ4ordersไม่ซ้ำกัน เก็บผลterminalในusb-race-01.json.result.jsonแบบprivateก่อนพิมพ์ผล หากคำสั่งจบแล้วรันซ้ำjournalเดิมจะอ่านผลที่เก็บโดยไม่ส่งnetworkใหม่ **ผลstoredไม่ใช่การretestระบบ**
+
+หากresponseขาดหายก่อนผลครบ ให้เก็บjournalเดิมไว้ ตรวจระบบแล้วรันคำสั่งเดิมเพื่อresolveด้วยkeysเดิม ห้ามcancelorder/resetstock/สร้างjournalใหม่ก่อนresolve เพราะkeyที่เคยstockไม่พออาจสร้างorderใหม่ได้เมื่อมีการคืนstockแล้ว หากเริ่มcancelไปก่อนให้หยุดอัตโนมัติและตรวจoutcomesจากDB/operatorlist ไม่เดาว่าทุกรายการล้มเหลว
+
+หลังได้ผลครบ ให้รันinspectorบนAPI VMตามT07Aอีกครั้ง:
+- USBavailableต้อง0ถ้าเริ่ม4และสำเร็จ4
+- ledgerreservedรวมของสี่orderต้อง-4 ไม่ใช่-6
+- invariants_oktrueและviolationsว่าง
+- ผลHTTPอย่างเดียวไม่ยืนยันว่าคำขอผ่านAPIครบสองเครื่อง ดูbackend/requestlogsและhealthyMIGเพิ่มเติม ไม่อ้างmulti-backendraceหากไม่มีหลักฐานการกระจายจริง
+
+เก็บผลก่อนcancel จากนั้นaliceเปิดUIยกเลิกเฉพาะUUIDทั้ง4ที่เครื่องมือรายงาน ตรวจsnapshotอีกครั้งstockกลับ4และcancelledgerของแต่ละorderเกิดครั้งเดียว อย่าcancelรายการของT06หรือorderนอกการทดลองนี้ ถ้าการcancelไม่ครบให้บันทึกรายการค้างและแก้ก่อนเริ่มraceรอบใหม่ ใช้journalชื่อใหม่เฉพาะหลังยืนยันปิดรอบเดิมแล้ว
+
+**จุดบันทึก T07B**
+
+| จุดตรวจ | Expectedสำหรับbaseline | Actual / หลักฐาน |
+|---|---|---|
+| ก่อนrace | USBavailable4 / ไม่มีwriterอื่น | … |
+| HTTP | 6attempts / 4confirmed / 2stockconflicts | … |
+| หลังrace | available0 / reservedรวม-4 / invariantsครบ | … |
+| การกระจายAPI | ระบุเฉพาะเครื่องที่มีหลักฐาน | … |
+| หลังcancel4orders | available4 / cancelครั้งเดียวต่อorder | … |
+| ambiguousresponses | journalเดิม / วิธีresolve | … |
+
+**เกณฑ์ไปต่อ:** HTTPoutcomesเชื่อมกับsnapshot/UUIDได้ ไม่มีoversellหรือstock/ledgerส่วนต่าง และปิดorderทดลองครบก่อนทำfault/change

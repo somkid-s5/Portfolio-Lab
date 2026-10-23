@@ -139,6 +139,40 @@ class OrdersTests(unittest.TestCase):
             server.server_close()
             thread.join(5)
 
+
+    def test_http_six_order_stock_race_and_ambiguous_resume(self):
+        import importlib.util
+        import tempfile
+        import threading
+        from werkzeug.serving import make_server
+        from main import create_app
+        sys.path.insert(0,str(ROOT/'scripts'))
+        spec=importlib.util.spec_from_file_location('orders_stock_race',ROOT/'scripts/stock-race.py')
+        runner=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        with patch.dict(os.environ,{'APP_LOCAL_TEST':'1','APP_VERSION':'v1','DEPLOYMENT_TARGET':'ci'}):
+            app=create_app(engine=self.engines[0],auth_config=self.auth)
+        server=make_server('127.0.0.1',0,app,threaded=True)
+        thread=threading.Thread(target=server.serve_forever,daemon=True)
+        thread.start()
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                journal=runner.state(Path(directory)/'race.json')
+                base=runner.origin('http://127.0.0.1:'+str(server.server_port),True)
+                first=runner.race(base,{'alice':'test-alice'},journal)
+                resumed=runner.race(base,{'alice':'test-alice'},journal)
+                self.assertEqual((first['confirmed'],first['rejected']),(4,2))
+                self.assertEqual((resumed['confirmed'],resumed['rejected']),(4,2))
+                self.assertTrue(all(row.get('replayed') for row in resumed['results'] if row['outcome']=='confirmed'))
+                with self.admin.connect() as conn:
+                    self.assertEqual(conn.execute(text('SELECT count(*) FROM orders')).scalar_one(),4)
+                    self.assertEqual(conn.execute(text("SELECT available FROM products WHERE sku='USB-01'")).scalar_one(),0)
+                    self.assertEqual(conn.execute(text("SELECT sum(delta) FROM stock_events WHERE sku='USB-01'")).scalar_one(),-4)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(5)
+
     def test_replay_normalization_snapshot_and_cancel_once(self):
         items=[{'sku':'PEN-01','quantity':1},{'sku':'BOOK-01','quantity':2}]
         first,replayed=self.place(items=items)
