@@ -262,3 +262,10 @@ Quota5active/20newjobsต่อUTCdayถูกอ่านและปรับ�
 Parserนี้ไม่ใช่authentication ต้องใช้หลังCloudRunIAMเท่านั้น โดยjobIDจากservernamespace/generationจะถูกตรวจซ้ำในFirestoreclaim ส่วนforeignbucket/namespaceคืนignored ไม่สร้างjobจากmetadataที่clientใส่เอง [Eventarc HTTP binding](https://docs.cloud.google.com/eventarc/docs/cloudevents)
 
 CI39933281841ของworkerชุดก่อนผ่านlab006-domainและlab006-firestoreแล้ว; GCScontractชุด39933551789ยังin_progressตอนตรวจ CloudEventชุดใหม่นี้ยังรอCI และยังต้องต่อHTTPreceiverจริง
+
+
+### Worker HTTP receiver checkpoint
+
+เพิ่ม [Flask receiver](app/worker_http.py) ที่ /events/storage รับbinaryCloudEventแบบจำกัด64KiB ตรวจeventก่อนเรียกprocessor, ack204เฉพาะterminal/success/ignored และคืน503ให้retryเมื่อbusy/dependencyerror มีrequestID/structuredlogsที่ไม่บันทึกpayload/query/credentials แยกprocess/liveกับmetadatahealth
+
+build_appเลือกnamedFirestoredatabaseอย่างชัดเจน, ปฏิเสธemulatorenvในruntime และผูกObjects/Jobs/Processorจริง มี [6HTTPtests](tests/test_worker_http.py) สำหรับdispatch/retry/sanitization/foreignevents/bodylimit/health เป็นFlasktestclientไม่ใช่CloudRunIAMverification **ต้องdeployworkerโดยไม่grantallUsersInvoker** ส่วนce-headersไม่ใช่หลักฐานauthentication [CI39933551789](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39933551789) GCScontract/emulatorชุดก่อนผ่านแล้ว HTTPชุดใหม่นี้ยังรอCI

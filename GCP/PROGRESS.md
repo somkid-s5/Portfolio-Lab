@@ -165,3 +165,6 @@ Lab06 / GCS adapter draft: เพิ่มpinnedgeneration boundedrawreads/no-de
 
 
 Lab06 / CloudEvent parser draft: CI39933281841 workerชุดก่อนผ่านpure+12Firestoreintegrationtests เพิ่มstrictbinaryCloudEventparser+5testsสำหรับenvelope/source/bucket/key/generation/timeCreated/duplicateJSON/bodybounds พร้อมCIstep ไม่มีการตามURLในevent; GCSชุด39933551789ยังlab006-firestorein_progressตอนตรวจ ชุดใหม่ยังรอCI ไม่อ้างIAMหรือGCPdeliveryจริง
+
+
+Lab06 / Worker HTTP draft: CI39933551789 lab006-domain/firestoreสำเร็จรวม7GCScontracttests เพิ่มFlaskreceiver/boundedCloudEventdispatch/safe503-vs204/requestIDlogs/livez-healthzและruntimefactoryเลือกnamedDB+refuseemulators พร้อม6HTTPtestclienttests/CIstep ชุดใหม่รอCI ยังไม่พิสูจน์CloudRunIAMหรือStorageeventdeliveryจริง เหลือsignedaccess/portal/UI/IaC/Guide/Diagram ไม่มีGCPwrites

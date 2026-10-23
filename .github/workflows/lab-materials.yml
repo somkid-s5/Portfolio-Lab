@@ -304,6 +304,8 @@ jobs:
           .ci-lab006/bin/pip install -r GCP/LAB-006-private-file-processing/requirements.txt
       - name: Verify GCS adapter SDK contracts without cloud calls
         run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_gcs_objects.py -v
+      - name: Verify worker HTTP event acknowledgement and safe errors
+        run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_worker_http.py -v
       - name: Exercise real emulator transactions without cloud credentials
         shell: bash
         run: |
