@@ -191,8 +191,8 @@ jobs:
           persist-credentials: false
       - name: Install Nginx config validator
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y nginx fonts-noto-core
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y nginx fonts-noto-core
       - name: Install pinned Orders dependencies
         run: |
           python3 -m venv .ci-lab005

@@ -47,6 +47,18 @@ class ChangeTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 generator.generate(path)
 
+    def test_validation_only_is_small_invalid_utf8_and_no_overwrite(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/"validation"
+            manifest = generator.generate(path, validation_only=True)
+            self.assertEqual(set(manifest), {"invalid-utf8.csv"})
+            self.assertLess(manifest["invalid-utf8.csv"]["bytes"], 1024)
+            with self.assertRaises(Rejected) as error:
+                summarize((path/"invalid-utf8.csv").read_bytes())
+            self.assertEqual(error.exception.code, "invalid_utf8")
+            with self.assertRaises(FileExistsError):
+                generator.generate(path, validation_only=True)
+
     def test_invalid_target_sizes_and_row_counts_are_refused(self):
         for size, rows in [(1,1), (99999999,2), (10000,50001), (1000,True)]:
             with self.subTest(size=size,rows=rows), self.assertRaises(ValueError):

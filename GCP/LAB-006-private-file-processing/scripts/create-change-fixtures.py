@@ -34,11 +34,15 @@ def row_csv(rows):
     return HEADER + b"".join(f"S{i},BOOK-01,1,100\n".encode() for i in range(rows))
 
 
-def generate(destination):
+def generate(destination, *, validation_only=False):
     target = Path(destination)
     target.mkdir(mode=0o700)
     os.chmod(target, 0o700)
     fixtures = {
+        "invalid-utf8.csv": HEADER + b"S1,BOOK-01,1,100\xff\n",
+    }
+    if not validation_only:
+        fixtures.update({
         "exact-1mib.csv": exact_csv(1048576, 10000),
         "byte-change.csv": HEADER + b"".join(
             f"S{i:05d}{'A'*58},{SKU},1,100000000\n".encode() for i in range(10000)),
@@ -46,7 +50,7 @@ def generate(destination):
         "exact-5mib.csv": exact_csv(5242880, 50000),
         "too-many-rows.csv": row_csv(50001),
         "too-large.csv": b"x"*5242881,
-    }
+        })
     manifest = {}
     for name, data in fixtures.items():
         fd = os.open(target/name, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -62,9 +66,10 @@ def generate(destination):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", required=True)
+    parser.add_argument("--validation-only", action="store_true")
     args = parser.parse_args()
     try:
-        manifest = generate(args.out)
+        manifest = generate(args.out, validation_only=args.validation_only)
         print(json.dumps({"event":"change_fixtures_created", "files":manifest}, sort_keys=True))
         return 0
     except Exception as exc:

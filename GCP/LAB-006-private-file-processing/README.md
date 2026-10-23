@@ -520,20 +520,30 @@ Cloud Shell → Console → Firestore → lab006-files → jobs → UUIDนี�
 
 #### Validation ที่ worker ต้องตรวจ
 
-ดาวน์โหลดfixtures/duplicate-sale-id.csv, fixtures/invalid-header.csv และ fixtures/invalid-quantity.csvจากcheckoutเดียวกัน แล้วใช้aliceส่งทีละไฟล์ รอผลแน่นอนก่อนเริ่มไฟล์ถัดไป:
+ใช้ fixtures/duplicate-sale-id.csv, fixtures/invalid-header.csv และ fixtures/invalid-quantity.csv จาก checkout เดียวกัน ส่วนไฟล์ UTF-8 เสียให้สร้างใน Cloud Shell โดยไม่แก้หรือบันทึกใหม่ผ่าน text editor เพราะ editor อาจซ่อม encoding ให้เอง:
+
+```bash
+cd "$LAB_DIR"
+mkdir -p .build
+.venv/bin/python scripts/create-change-fixtures.py --out .build/validation-fixtures --validation-only
+
+```
+
+เครื่องมือสร้างโฟลเดอร์ใหม่ส่วนตัวและไม่เขียนทับ หากมีอยู่แล้วให้ตรวจ manifest/ไฟล์ของรอบเดิมก่อน ไม่ลบทิ้งเพื่อให้คำสั่งผ่าน ดาวน์โหลด invalid-utf8.csv จาก .build/validation-fixtures โดยตรง แล้วใช้ alice ส่งแต่ละ fixture เป็นงานใหม่ รอผลแน่นอนก่อนเริ่มไฟล์ถัดไป:
 
 | Fixture | Expected / สิ่งที่ต้องพิสูจน์ |
 |---|---|
 | duplicate-sale-id.csv | rejected/duplicate_sale_id ไม่มีpublishedoutputของjobนี้ |
 | invalid-header.csv | rejected/invalid_header ไม่มีpublishedoutput |
 | invalid-quantity.csv | rejected/integer_out_of_range ไม่มีpublishedoutput |
+| invalid-utf8.csv จากตัวสร้าง | rejected/invalid_utf8 ไม่มี published output ไม่ใช่ header error |
 | ไฟล์เกินbaseline1MiB | UIปฏิเสธก่อนcreate/upload; นี่พิสูจน์เฉพาะBrowserguard ไม่ใช่GCSpolicyenforcement |
 
 ตรวจFirestorejobstate/safe_reasonและStorageprefixของUUIDแต่ละตัวด้วยสิทธิ์ผู้ดูแล การที่jobไม่มีปุ่มdownloadยังไม่พิสูจน์ว่าไม่มีoutputobject ต้องตรวจทั้งmetadataกับStorage ส่วนinvalidCSVอาจถูกเก็บในincomingจนlifecyclecleanup ไม่อ้างว่าrejectedหมายถึงลบไฟล์ต้นฉบับทันที
 
 Validationfailureต้องackเป็นterminal ไม่วนattemptขึ้นเรื่อย ๆ เก็บhistoryสองจุดเวลาที่ห่างกันอย่างเหมาะสมและดูworkerlogs หากattemptเพิ่มไม่จบให้หยุดfault/retryและแก้การแยกterminal/transient ไม่เพิ่มretrybudgetเพื่อให้ดูสำเร็จ
 
-การตรวจoversizedที่StorageจริงและMIMEปลอมต้องทำผ่านsignedrequestที่เปลี่ยนข้อมูลโดยตั้งใจและยังไม่เผยpolicy/tokenในlog จะเพิ่มboundedtoolในหัวข้อaccess test ไม่ใช้ผลUIguardแทนการพิสูจน์R3ทั้งหมด
+การตรวจoversizedที่StorageจริงและMIMEปลอมต้องทำผ่านsignedrequestที่เปลี่ยนข้อมูลโดยตั้งใจและยังไม่เผยpolicy/tokenในlog ใช้ bounded tool ใน Task 7 ไม่ใช้ผลUIguardแทนการพิสูจน์R3ทั้งหมด
 
 #### Owner/role และ CSRF แยกจาก Cloud IAM
 
@@ -915,7 +925,7 @@ try {
 | R1 journey/report | T05: UUID/sourceSHA/input-outputgenerations/reportverified … |
 | R2 owner/identity | T04/T06: anonworkerIAMdeny, bob404/operator403, Secret/bucket/SApolicies … |
 | R3 validation/bounds | T06/T07: rejectedreason, Storagepositivecontrol/negativecode/objectabsence … |
-| R4 duplicate/convergence | T08: eventIDs/attempts/generationbinding/outputเดียว … |
+| R4 duplicate/convergence | T08/T08B: event IDs เดิม–ใหม่, owner/input/output generation/hash ก่อน–หลัง, ผลเดียว และขอบเขตของ sequential replay เทียบกับ emulator race tests … |
 | R5 fault/recovery | T08–09: revision/marker/budget/epoch/samekeyreplay/reconcile … |
 | R6 accessage/retention | T11: URL/policyexpiry, App24hผลจริงหรือNotrun, retainedinventory … |
 | R7 change | T10: ทางเลือก/limitsimmutable/fixtures/metrics/backout … |

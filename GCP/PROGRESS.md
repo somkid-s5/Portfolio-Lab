@@ -234,3 +234,6 @@ Lab06 / Full-guide CI verified + diagram authoring: CI39991195096 ของ sour
 
 
 Lab06 / Guide consolidation: รวมmaterialschangelogเป็นแผนที่ไฟล์และคำอธิบายพฤติกรรมปัจจุบัน แยกCIproofจากCloudActual เก็บcontract/quota/recovery/security/retentionและTasks0–13ไว้ครบ ลบคำอ้างยังไม่มีApp/รอCIเก่าที่ขัดกับผล39991195096 เพิ่มguidecheckไม่ให้ย้อนเป็นauthoringhistory Diagramรอบ124renderผ่านแต่พบเส้นstateทับheadingจึงแก้source3a560e05และรอrun126 ไม่publishภาพที่ยังไม่ตรงsource/ไม่Guide-readyก่อนreviewครบ ไม่มีGCPwrites
+
+
+Lab06 / Replay and validation coverage: เพิ่ม authenticated replay ≤3 requests (same ID twice + new ID/same generation), source metadata pinned/fromStorageจริง, no-token-output และ Task8B แยกHTTPackจากbusinessresult/IAMtemporaryscope; เพิ่มprotocol-roundtrip testผ่านreceiverparserจริงและinvalidUTF8fixturegeneration+Task6+testเพื่อให้R3ทำได้จริง อัปเดตR4evidencematrix เพิ่มnetworktimeout/retryเฉพาะaptของLab005สำหรับCIรอบหน้า หลังrun127jobinstallค้างจริง ไม่cancel/rerunlivejob ชุดใหม่รอCI/ภาพสุดท้ายและreviewก่อนGuide-ready ไม่มีGCPwrites

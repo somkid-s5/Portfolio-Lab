@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import sys
 import unittest
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError
@@ -12,6 +13,9 @@ path = Path(__file__).resolve().parents[1]/"scripts"/"replay-storage-event.py"
 spec = importlib.util.spec_from_file_location("replay_storage", path)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+sys.path.insert(0, str(path.parents[1]/"app"))
+from storage_events import parse_event
+
 PROJECT = "demo-lab006"
 ACCOUNT = "lab006-trigger@demo-lab006.iam.gserviceaccount.com"
 ORIGIN = "https://worker-abc.asia-southeast1.run.app"
@@ -66,6 +70,29 @@ class ReplayTests(unittest.TestCase):
             self.assertEqual(call.args[0].data, b"{}")
         self.assertNotIn("a.b.c", json.dumps(outcomes))
         response.read.assert_not_called()
+
+    def test_replay_envelope_roundtrips_through_actual_receiver_parser(self):
+        client = Mock()
+        blob = client.bucket.return_value.blob.return_value
+        blob.generation = 123
+        blob.name = f"incoming/{JOB}/source.csv"
+        blob.bucket.name = "lab006-input"
+        blob.time_created = datetime(2026, 10, 24, tzinfo=timezone.utc)
+        body, source, subject = module.event_payload(
+            client, PROJECT, "lab006-input", JOB, "123")
+        opener = Mock()
+        response = Mock(status=204)
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        opener.open.return_value = response
+        module.replay(opener, ORIGIN, "a.b.c", body, source, subject)
+        for call in opener.open.call_args_list:
+            request = call.args[0]
+            event = parse_event(dict(request.header_items()), request.data,
+                                "lab006-input")
+            self.assertEqual(event.job_id, JOB)
+            self.assertEqual(event.generation, "123")
+            self.assertEqual(event.finalized_at, blob.time_created)
 
     def test_unknown_and_http_failure_stop(self):
         opener = Mock()
