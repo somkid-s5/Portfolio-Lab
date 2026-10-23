@@ -470,7 +470,7 @@ jobs:
       - name: Install pinned PostgreSQL driver without cloud credentials
         run: |
           python3 -m venv .ci-lab007
-          .ci-lab007/bin/pip install -r GCP/LAB-007-queued-order-processing/requirements.txt
+          .ci-lab007/bin/pip install -r GCP/LAB-007-queued-order-processing/requirements.txt -r GCP/LAB-007-queued-order-processing/tests/requirements.txt
       - name: Verify real synchronous PubSub SDK request contracts without RPC
         run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_pubsub_publish.py -v
       - name: Verify worker dispatcher HTTP acknowledgement and safe logs
@@ -483,3 +483,15 @@ jobs:
         run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_auth_config.py -v
       - name: Verify real transactions races rollback and DB role boundaries
         run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_sql.py -v
+      - name: Install pinned Thai browser preview font
+        run: bash scripts/install-ci-thai-font.sh
+      - name: Verify real Chrome lost-reply retry with real PostgreSQL and explicit Queue double
+        run: timeout 180s .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_browser_journey.py -v
+      - name: Emit real browser CI preview
+        run: python3 -c "import base64,pathlib; print('LAB007_UI_PREVIEW='+base64.b64encode(pathlib.Path('lab007-previews/ui-ci.png').read_bytes()).decode())"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab007-ui-ci-preview
+          path: lab007-previews/ui-ci.png
+          if-no-files-found: error
+          retention-days: 14
