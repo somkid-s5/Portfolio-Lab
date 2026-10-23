@@ -1,0 +1,9 @@
+{
+  "workflow_run": 39936909967,
+  "job_id": 120358985515,
+  "source_commit": "d4416c4cc8eb3d30b0653d746b43fca7f30aa725",
+  "capture": "Real headless Chrome on GitHub Actions; HTTPS loopback Portal and real Firestore emulator; Storage/signing are explicit test doubles.",
+  "scenario": "Create response lost after commit, reload and resume same key, one job and one summary: 3 rows, 6 units, 72400 satang.",
+  "review": "Inspected Thai rendering and succeeded row. Baseline viewport crop; pending revision expands screenshot and corrects terminal status banner.",
+  "cloud_verification": "not-run"
+}

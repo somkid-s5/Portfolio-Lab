@@ -79,7 +79,11 @@ async function poll(id) {
   const token = ++polling;
   for (let i = 0; i < 30 && token === polling; i++) {
     const item = await detail(id);
-    if (['succeeded','rejected','failed','expired'].includes(item.state)) { await list(true); return; }
+    if (token !== polling) return;
+    if (['succeeded','rejected','failed','expired'].includes(item.state)) {
+      message('งาน ' + id + ' · ' + item.state + (item.safe_reason ? ' · ' + item.safe_reason : ''));
+      await list(true); return;
+    }
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
   if (token === polling) message('ครบช่วงตรวจอัตโนมัติแล้ว กดรายละเอียดหรือโหลดรายการใหม่เพื่อตรวจต่อ');

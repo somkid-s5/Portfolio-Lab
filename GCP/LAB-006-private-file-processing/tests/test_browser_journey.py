@@ -170,6 +170,8 @@ class BrowserJourneyTests(unittest.TestCase):
                 driver.execute_script("document.getElementById('password').value='';")
                 preview = Path("lab006-previews/ui-ci.png")
                 preview.parent.mkdir(exist_ok=True)
+                height = min(2600, int(driver.execute_script("return document.documentElement.scrollHeight")) + 40)
+                driver.set_window_size(1400, height)
                 driver.save_screenshot(str(preview))
             finally:
                 if driver is not None:

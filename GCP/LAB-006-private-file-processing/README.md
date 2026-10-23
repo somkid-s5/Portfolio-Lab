@@ -343,3 +343,12 @@ Portalตอบ202พร้อมdispatchacknowledgedหรือunconfirmed; �
 เพิ่ม [Dockerfile](Dockerfile) สำหรับทั้งPortal/worker เลือกSERVICE_ROLEชัดเจน, process1worker/Portal8threads/worker1thread, bindPORTที่validateแล้วและnon-rootUID10001 ไม่ต่อshellจากinput ใช้explicitCOPYและdockerignoreไม่ส่งSecretbundle/fixtures/tests/stateเข้าbuildcontext ค่าauth/tokenอ่านตอนruntimeไม่bakeลงimage
 
 เพิ่ม3containercontracttestsและCIbuild/import/imagecontentcheckโดยไม่ใช้GCPcredentials Baseเป็นofficialPython3.12.15-slim-bookwormที่อาจได้รับrebuildpatch จึงต้องจดresolvedbase/image digestจากbuildจริงก่อนdeploy ไม่อ้างbit-reproducibleจากtagหรือtransitivepipdependenciesเพียงอย่างเดียว ชุดใหม่นี้รอCI ส่วนBrowserrun39936909967ยังpendingตอนตรวจ ต้องตรวจภาพ/ผลจริงก่อนGuide-ready
+
+
+## หลักฐาน UI จาก CI (ไม่ใช่ผล Deploy GCP)
+
+![Portal หลัง resume งานเดิมใน Chrome บน GitHub Actions](assets/ui-ci-preview.png)
+
+[CI39936909967](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39936909967) / job120358985515 ผ่านBrowserlost-create-response→reload→samekey→onejob/oneoutput รวมถึง17FirestoreintegrationtestsและชุดSDK/HTTP/runtimeที่อยู่ในjobเดียวกัน ภาพนี้ใช้HTTPSloopback/Firestoreemulatorจริง ส่วนStorage/signingเป็นtestdouble ไม่ใช่GoogleCloudConsoleหรือGCS/IAMverification [รายละเอียดที่มาภาพ](assets/ui-ci-provenance.json)
+
+ตรวจภาพแล้วอ่านข้อความไทยและแถวsucceededได้ แต่viewportเดิมตัดรายละเอียดล่างและbannerยังบอกรอworker จึงแก้terminalbannerและขยายcaptureheightในsourceถัดไป ต้องรอภาพรอบใหม่ก่อนอ้างว่าpreviewตรงUIล่าสุด ContainerbuildยังรอCIแยก ไม่ถือว่าBrowserPASSแทนimagebuild
