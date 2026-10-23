@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[1]
 PREFIX='GCP/LAB-005-three-tier-orders'
 LAYOUT={
  'web':('web/index.html','web/app.js','web/style.css','web/nginx.conf.template','scripts/render-web-config.py'),
- 'api':('app/main.py','app/orders.py','app/database.py','requirements.txt','db/schema.sql','db/seed.sql','db/grants.sql','db/check-invariants.sql','scripts/init-db.py')
+ 'api':('app/main.py','app/orders.py','app/database.py','requirements.txt','db/schema.sql','db/seed.sql','db/grants.sql','db/check-invariants.sql','scripts/init-db.py','scripts/inspect-db.py')
 }
 MAX_ARCHIVE=10*1024*1024
 MAX_EXPANDED=32*1024*1024

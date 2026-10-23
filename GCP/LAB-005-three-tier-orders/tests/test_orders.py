@@ -71,6 +71,31 @@ class OrdersTests(unittest.TestCase):
     def place(self,index=0,username='alice',key='order-key-001',items=None):
         return self.services[index].place(username,key,items if items is not None else [{'sku':'BOOK-01','quantity':2}])
 
+
+    def test_read_only_inspector_detects_inconsistent_stock(self):
+        import importlib.util
+        spec=importlib.util.spec_from_file_location('orders_inspector',ROOT/'scripts/inspect-db.py')
+        inspector=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(inspector)
+        self.place()
+        result=inspector.inspect(self.engines[0])
+        self.assertTrue(result['invariants_ok'])
+        self.assertEqual(result['counts']['orders'],1)
+        self.assertEqual(result['counts']['ledger_events'],1)
+        self.assertEqual(result['db_role'],'orders_app')
+        self.assertNotIn('username',str(result))
+        self.assertNotIn('idempotency',str(result))
+        with self.admin.begin() as conn:
+            conn.execute(text("UPDATE products SET available=available-1 WHERE sku='BOOK-01'"))
+        try:
+            broken=inspector.inspect(self.engines[1])
+            self.assertFalse(broken['invariants_ok'])
+            self.assertIn({'invariant':'stock_balance','reference':'BOOK-01'},broken['violations'])
+        finally:
+            with self.admin.begin() as conn:
+                conn.execute(text("UPDATE products SET available=available+1 WHERE sku='BOOK-01'"))
+        self.assertTrue(inspector.inspect(self.engines[0])['invariants_ok'])
+
     def test_replay_normalization_snapshot_and_cancel_once(self):
         items=[{'sku':'PEN-01','quantity':1},{'sku':'BOOK-01','quantity':2}]
         first,replayed=self.place(items=items)
