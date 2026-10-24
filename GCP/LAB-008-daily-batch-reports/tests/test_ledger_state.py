@@ -184,7 +184,7 @@ class LedgerStateTests(unittest.TestCase):
             now = NOW + timedelta(seconds=i)
             record, _, token = claim(record, business_date=DAY, now=now,
                 execution=f"exec-{i}", task_attempt=0, source_object=SOURCE,
-                source_generation="101")
+                source_generation="101", operator_backfill=True)
             if i < 119:
                 record = release_attempt(record, token, now=now,
                                          reason="dependency_failure")

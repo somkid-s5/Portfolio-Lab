@@ -1,0 +1,6 @@
+Flask==3.1.2
+google-auth==2.41.1
+google-cloud-firestore==2.21.0
+google-cloud-pubsub==2.33.0
+google-cloud-storage==3.4.1
+gunicorn==23.0.0

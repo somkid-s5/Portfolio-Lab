@@ -259,8 +259,14 @@ def record_report(record: dict, token: dict, *, now: datetime, report: dict):
         raise StateConflict("report_binding_mismatch")
     item = deepcopy(record)
     if item["status"] in {"report_written", "notification_pending"}:
-        previous = {key: item.get({"object": "report_object"}.get(key, key))
-                    for key in required}
+        previous = {
+            "object": item.get("report_object"),
+            "generation": item.get("report_generation"),
+            "sha256": item.get("report_sha256"),
+            "report_id": item.get("report_id"),
+            "source_generation": item.get("source_generation"),
+            "source_sha256": item.get("source_sha256"),
+        }
         expected = dict(report)
         if previous != expected:
             raise StateConflict("report_integrity_conflict")

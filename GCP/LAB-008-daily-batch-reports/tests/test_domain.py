@@ -57,7 +57,7 @@ class DomainTests(unittest.TestCase):
                          business_date=DATE, source_generation="1")
 
     def test_rejects_timezone_naive_timestamp(self):
-        with self.assertRaisesRegex(InputError, "TIMEZONE_REQUIRED"):
+        with self.assertRaisesRegex(InputError, "INVALID_TIMESTAMP"):
             build_report(csv_bytes([row(sold="2026-10-23T09:00:00")]),
                          business_date=DATE, source_generation="1")
 
