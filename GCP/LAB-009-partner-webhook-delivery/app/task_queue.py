@@ -117,6 +117,25 @@ class CloudTasksEnqueuer:
         self._client = client
         self._timeout_seconds = timeout_seconds
 
+
+    def task_exists(self, task_name: str) -> bool:
+        """Check only existence using Cloud Tasks BASIC view."""
+        if not isinstance(task_name, str) or not re.fullmatch(
+            r"^projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/locations/[a-z0-9-]{1,63}/queues/[A-Za-z0-9_-]{1,100}/tasks/d-[0-9a-f]{32}-g[1-9][0-9]*$",
+            task_name,
+        ):
+            raise ValidationError("task_name is invalid")
+        try:
+            task = self._client.get_task(
+                name=task_name,
+                timeout=self._timeout_seconds,
+            )
+        except NotFound:
+            return False
+        if getattr(task, "name", None) != task_name:
+            raise TaskNameConflict("GetTask returned a different task name")
+        return True
+
     def enqueue(
         self,
         event: Mapping[str, Any],
