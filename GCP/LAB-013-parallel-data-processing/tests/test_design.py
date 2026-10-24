@@ -25,7 +25,8 @@ class DesignCheckpointTests(unittest.TestCase):
         self.assertIn("roles/artifactregistry.reader", README)
         self.assertIn("Operator user (เป็น publisher ด้วย)", README)
         self.assertIn("input/attempt-output/published-manifest buckets เพื่ออ่านและยืนยันสถานะ", README)
-        self.assertIn("runtime ได้ 403 เมื่อพยายามสร้าง object", README)
+        self.assertIn("roles/storage.objectCreator) เฉพาะ input bucket เพื่อเพิ่ม source objects และ published-manifest bucket เพื่อ publish", README)
+        self.assertIn("worker ต้องได้ผล 403 เมื่อ probe การสร้าง object แบบสุ่มใน input และ published-manifest buckets", README)
         for role_id in (
             "roles/cloudbuild.builds.editor", "roles/batch.jobsEditor",
             "roles/compute.networkViewer", "roles/logging.viewer",

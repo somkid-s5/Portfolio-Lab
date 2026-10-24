@@ -28,7 +28,7 @@ last_verified: null
 | R1 | รับเฉพาะ synthetic input ที่มี manifest ระบุ shard, จำนวนแถว และ SHA-256; input bucket เป็น private | manifest, object metadata และผลตรวจ hash ก่อน submit |
 | R2 | แบ่งหนึ่ง task ต่อ shard โดยกำหนดเพดาน parallelism และ task timeout ชัดเจน | Batch job configuration, task index ↔ shard mapping และเวลารันจริง |
 | R3 | Worker ทำงานใน private subnet, ไม่มี external IP, ไม่ใช้ service-account key และใช้ image ที่ pin ด้วย digest | Terraform plan/state ที่ปกปิดข้อมูล, VM/job config และ image digest |
-| R4 | Worker อ่านได้เฉพาะ input bucket และสร้าง output ได้เฉพาะ attempt-output bucket; publisher เขียน completion manifest ไปอีก bucket | IAM policy, object paths และ probe ที่ runtime ได้ 403 เมื่อพยายามสร้าง object ใน published-manifest bucket |
+| R4 | Worker อ่านได้เฉพาะ input bucket และสร้าง output ได้เฉพาะ attempt-output bucket; publisher เขียน completion manifest ไปอีก bucket | IAM policy, object paths และ probe ที่ runtime ได้ 403 เมื่อพยายามสร้าง object ใน input และ published-manifest buckets |
 | R5 | ส่ง structured logs ไป Cloud Logging พร้อม run ID, shard/task index, retry attempt และผลลัพธ์ | Logs Explorer query/JSON log record และ job/task status |
 | R6 | จำลอง transient failure ที่ retry ได้แบบมีขอบเขต และ malformed input ที่ fail แบบไม่ retry | lifecycle policy, task attempts และ error code/log ที่สอดคล้อง |
 | R7 | เมื่อมี shard ล้มเหลว ให้สร้าง partial report ได้ แต่ห้ามสร้าง completion manifest | failed job status, partial report และยืนยันว่า published bucket ไม่มี manifest |
@@ -77,13 +77,13 @@ Batch retries มี semantics แบบ at-least-once; design นี้ **ไ�
 
 | Principal | สิทธิ์ที่ตั้งใจให้ | ขอบเขต/ข้อห้าม |
 |---|---|---|
-| Operator user (เป็น publisher ด้วย) | Cloud Build Editor (roles/cloudbuild.builds.editor), Batch Job Editor (roles/batch.jobsEditor), Compute Network Viewer (roles/compute.networkViewer), Logging Viewer (roles/logging.viewer); Service Account User (roles/iam.serviceAccountUser) เฉพาะ build/runtime accounts; Storage Object Viewer (roles/storage.objectViewer) เฉพาะ input/attempt-output/published-manifest buckets เพื่ออ่านและยืนยันสถานะ; Storage Object Creator (roles/storage.objectCreator) เฉพาะ published-manifest bucket | ไม่ใช้ Owner/Editor ทั้ง Project โดยไม่จำเป็น; ไม่มี key |
+| Operator user (เป็น publisher ด้วย) | Cloud Build Editor (roles/cloudbuild.builds.editor), Batch Job Editor (roles/batch.jobsEditor), Compute Network Viewer (roles/compute.networkViewer), Logging Viewer (roles/logging.viewer); Service Account User (roles/iam.serviceAccountUser) เฉพาะ build/runtime accounts; Storage Object Viewer (roles/storage.objectViewer) เฉพาะ input/attempt-output/published-manifest buckets เพื่ออ่านและยืนยันสถานะ; Storage Object Creator (roles/storage.objectCreator) เฉพาะ input bucket เพื่อเพิ่ม source objects และ published-manifest bucket เพื่อ publish | ไม่ใช้ Owner/Editor ทั้ง Project โดยไม่จำเป็น; ไม่มี key |
 | Cloud Build service account | Artifact Registry Writer (roles/artifactregistry.writer) เฉพาะ worker repository และ Logs Writer (roles/logging.logWriter) ระดับ project สำหรับ Cloud Build logs | ไม่มีสิทธิ์อ่าน input หรือเขียนผล Batch |
 | Runtime service account | Batch Agent Reporter (roles/batch.agentReporter) และ Logs Writer (roles/logging.logWriter) ระดับ project; Artifact Registry Reader (roles/artifactregistry.reader) เฉพาะ worker repository; Storage Object Viewer (roles/storage.objectViewer) เฉพาะ input bucket; Storage Object Creator (roles/storage.objectCreator) เฉพาะ attempt-output bucket | ไม่มีสิทธิ์ลบ/แก้ input หรือเขียน published manifest |
 | Publisher identity | Operator user ตรวจ task/job และ attempt outputs แล้วสร้าง completion manifest ด้วย Storage Object Creator เฉพาะ published-manifest bucket | เป็น user identity ไม่ใช่ worker identity; ไม่ใช้ service-account key |
 | Cloud Batch service agent | Google จัดการ Google Batch Service Agent (roles/batch.serviceAgent) ให้อัตโนมัติหลังเปิดใช้บริการ | ห้าม revoke role นี้หรือมอบให้ principal อื่นนอกจาก service agent |
 
-การแยก bucket ทำให้ worker ไม่มีสิทธิ์สร้าง completion manifest โดยไม่ต้องพึ่ง prefix condition ภายใน bucket เดียว; operator มี Object Viewer บน published-manifest bucket เพื่อยืนยัน manifest/กรณีไม่มี manifest ได้ ส่วน worker ต้องได้ผล 403 เมื่อ probe การสร้าง object แบบสุ่มใน bucket นี้; runtime ยังต้องอ่าน image จาก Artifact Registry จึงได้ Artifact Registry Reader เฉพาะ repository ส่วน build identity ได้ Writer เฉพาะ repository การตั้งค่า Terraform ต้องพิสูจน์ขอบเขตด้วย negative access check จริงใน Lab ส่วนการ grant role ที่จำเป็นต่อ service agent ให้เป็นไปตามขั้นตอน enable service/API ของ Google Cloud; ห้ามสร้าง key ให้ service account
+การแยก bucket ทำให้ worker ไม่มีสิทธิ์สร้าง completion manifest โดยไม่ต้องพึ่ง prefix condition ภายใน bucket เดียว; operator มี Object Creator บน input bucket เพื่อเพิ่ม source objects แบบ append-only และมี Object Viewer บน published-manifest bucket เพื่อยืนยัน manifest/กรณีไม่มี manifestได้; ตามนิยาม role นี้ operator ไม่สามารถอ่าน ลบ หรือเขียนทับ object ที่สร้างไว้แล้ว; ส่วน worker ต้องได้ผล 403 เมื่อ probe การสร้าง object แบบสุ่มใน input และ published-manifest buckets; runtime ยังต้องอ่าน image จาก Artifact Registry จึงได้ Artifact Registry Reader เฉพาะ repository ส่วน build identity ได้ Writer เฉพาะ repository การตั้งค่า Terraform ต้องพิสูจน์ขอบเขตด้วย negative access check จริงใน Lab ส่วนการ grant role ที่จำเป็นต่อ service agent ให้เป็นไปตามขั้นตอน enable service/API ของ Google Cloud; ห้ามสร้าง key ให้ service account
 
 ชื่อ role/permission, API, quota, Batch machine configuration, region support และราคาจะทวนกับเอกสารทางการอีกครั้งก่อนเขียนขั้นตอนละเอียด เพราะเปลี่ยนตามบริการและ project policy ได้
 
@@ -135,7 +135,7 @@ Guide-ready version จะวางช่องบันทึกไว้ติ
 - [Cloud Batch: specify job network](https://docs.cloud.google.com/batch/docs/specify-job-network)
 - [Cloud Batch locations](https://docs.cloud.google.com/batch/docs/locations)
 - [Private Google Access](https://docs.cloud.google.com/vpc/docs/private-google-access)
-- [Cloud Storage IAM roles and permissions](https://docs.cloud.google.com/iam/docs/roles-permissions/storage)
+- [Cloud Storage IAM roles and permissions](https://docs.cloud.google.com/storage/docs/access-control/iam-roles)
 - [Cloud Batch pricing](https://cloud.google.com/batch/pricing)
 - [Google Cloud icons](https://cloud.google.com/icons)
 
