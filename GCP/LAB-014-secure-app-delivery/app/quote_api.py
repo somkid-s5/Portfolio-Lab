@@ -62,7 +62,7 @@ def create_app(price_factor: str | None = None) -> Flask:
             app="shipping-quote-api",
             app_version=os.getenv("APP_VERSION", "local"),
             commit_sha=os.getenv("COMMIT_SHA", "unknown"),
-            image_digest=os.getenv("IMAGE_DIGEST", "unknown"),
+            cloud_run_revision=os.getenv("K_REVISION", "local"),
         ), 200
 
     @app.get("/api/v1/quote")
@@ -70,11 +70,9 @@ def create_app(price_factor: str | None = None) -> Flask:
         origin = request.args.get("origin", "").strip().upper()
         destination = request.args.get("destination", "").strip().upper()
         weight_raw = request.args.get("weight_kg", "")
-
         route = ROUTES.get((origin, destination))
         if route is None:
             return jsonify(error="unsupported_route", message="Use BKK-CNX or BKK-HKT."), 400
-
         try:
             weight = Decimal(weight_raw)
         except (InvalidOperation, TypeError):
@@ -83,7 +81,6 @@ def create_app(price_factor: str | None = None) -> Flask:
             return jsonify(error="invalid_weight", message="weight_kg must be between 0.10 and 1000.00."), 400
         if max(0, -weight.as_tuple().exponent) > 3:
             return jsonify(error="invalid_weight_precision", message="weight_kg supports at most 3 decimal places."), 400
-
         total = (
             route["base_thb"]
             + route["distance_km"] * RATE_PER_KG_KM * weight * app.config["QUOTE_PRICE_FACTOR"]
@@ -96,7 +93,7 @@ def create_app(price_factor: str | None = None) -> Flask:
             weight_kg=format(weight, "f"),
             amount_thb=format(total, ".2f"),
             commit_sha=os.getenv("COMMIT_SHA", "unknown"),
-            image_digest=os.getenv("IMAGE_DIGEST", "unknown"),
+            cloud_run_revision=os.getenv("K_REVISION", "local"),
         )
         return jsonify(
             request_id=request_id,

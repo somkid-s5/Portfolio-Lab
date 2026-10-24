@@ -58,8 +58,7 @@ class QuoteApiTests(unittest.TestCase):
 
     def test_rejects_missing_or_malformed_weight(self):
         for query in ("", "?origin=BKK&destination=CNX", "?origin=BKK&destination=CNX&weight_kg=heavy"):
-            response = self.client.get("/api/v1/quote" + query)
-            self.assertEqual(response.status_code, 400)
+            self.assertEqual(self.client.get("/api/v1/quote" + query).status_code, 400)
 
     def test_rejects_non_finite_and_out_of_range_weight(self):
         for value in ("NaN", "Infinity", "0", "1000.01", "-1"):
@@ -83,12 +82,11 @@ class QuoteApiTests(unittest.TestCase):
         )
         self.assertEqual(Decimal(response.get_json()["total_thb"]), Decimal("497.00"))
 
-    def test_version_exposes_build_provenance_without_secrets(self):
-        with patch.dict(os.environ, {"COMMIT_SHA": "abc123", "IMAGE_DIGEST": "sha256:" + "a" * 64}):
-            response = self.client.get("/version")
-        body = response.get_json()
+    def test_version_exposes_commit_and_runtime_revision(self):
+        with patch.dict(os.environ, {"COMMIT_SHA": "abc123", "K_REVISION": "quote-api-00004-xyz"}):
+            body = self.client.get("/version").get_json()
         self.assertEqual(body["commit_sha"], "abc123")
-        self.assertTrue(body["image_digest"].startswith("sha256:"))
+        self.assertEqual(body["cloud_run_revision"], "quote-api-00004-xyz")
         self.assertNotIn("token", json.dumps(body).lower())
 
     def test_invalid_request_id_is_replaced(self):

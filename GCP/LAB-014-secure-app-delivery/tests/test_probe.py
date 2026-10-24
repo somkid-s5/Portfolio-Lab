@@ -21,7 +21,11 @@ class QuoteProbeTests(unittest.TestCase):
                 module.parse_args(args)
 
     def test_probe_checks_health_quote_and_expected_version(self):
-        responses = [(200, {"status": "ok"}), (200, {"currency": "THB", "total_thb": "455.00"}), (200, {"commit_sha": "abc123"})]
+        responses = [
+            (200, {"status": "ok"}),
+            (200, {"currency": "THB", "total_thb": "455.00"}),
+            (200, {"commit_sha": "abc123"}),
+        ]
         with patch.object(module, "fetch_json", side_effect=responses) as fetch:
             module.verify_once("https://example.test", Decimal("455.00"), 3, "abc123")
         self.assertEqual(fetch.call_count, 3)
@@ -33,10 +37,36 @@ class QuoteProbeTests(unittest.TestCase):
                 module.verify_once("https://example.test", Decimal("455.00"), 3)
 
     def test_probe_rejects_wrong_expected_commit(self):
-        responses = [(200, {"status": "ok"}), (200, {"currency": "THB", "total_thb": "455.00"}), (200, {"commit_sha": "other"})]
+        responses = [
+            (200, {"status": "ok"}),
+            (200, {"currency": "THB", "total_thb": "455.00"}),
+            (200, {"commit_sha": "other"}),
+        ]
         with patch.object(module, "fetch_json", side_effect=responses):
             with self.assertRaisesRegex(RuntimeError, "commit"):
                 module.verify_once("https://example.test", Decimal("455.00"), 3, "abc123")
+
+    def test_selects_exact_candidate_revision_and_tag(self):
+        statuses = [
+            {"revision": "quote-api-00003-old", "tag": "prior", "percent": 90, "uri": "https://prior.example"},
+            {"revision": "projects/p/locations/r/services/s/revisions/quote-api-00004-new", "tag": "lab014-candidate", "percent": 100, "uri": "https://candidate.example"},
+        ]
+        self.assertEqual(
+            module.select_revision_url(statuses, "quote-api-00004-new", "lab014-candidate"),
+            "https://candidate.example",
+        )
+
+    def test_revision_selection_fails_closed_if_candidate_tag_missing(self):
+        statuses = [
+            {"revision": "quote-api-00004-new", "tag": "prior", "percent": 100, "uri": "https://wrong.example"},
+        ]
+        with self.assertRaisesRegex(RuntimeError, "exactly one matching"):
+            module.select_revision_url(statuses, "quote-api-00004-new", "lab014-candidate")
+
+    def test_revision_selection_requires_100_percent_tag_route(self):
+        statuses = [{"revision": "quote-api-00004-new", "tag": None, "percent": 10, "uri": "https://service.example"}]
+        with self.assertRaisesRegex(RuntimeError, "exactly 100 percent"):
+            module.select_revision_url(statuses, "quote-api-00004-new", None)
 
     def test_external_http_is_rejected_even_with_allow_flag(self):
         with patch.dict("os.environ", {}, clear=True):

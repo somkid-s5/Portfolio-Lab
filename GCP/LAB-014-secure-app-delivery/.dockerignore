@@ -4,7 +4,6 @@ infra/
 evidence/
 work/
 tests/
-tools/
 assets/
 README.md
 *.tfstate
