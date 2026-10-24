@@ -25,7 +25,7 @@
     },
     "cloud_sql.svg": {
       "path": "assets/icons/cloud_sql.svg",
-      "git_blob_sha": "9f29818450998825fd6fcca0a5f7621da2d811ee9",
+      "git_blob_sha": "9f29818450998825fd6fcca0a5f7621da2d811ee",
       "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
       "source_path": "docs/images/cloud_sql.svg"
     },

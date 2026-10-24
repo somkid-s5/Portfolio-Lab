@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 import os
+from datetime import datetime
 import threading
 import unittest
 from http.server import ThreadingHTTPServer
@@ -34,7 +35,7 @@ class OrdersHTTPTests(unittest.TestCase):
   with psycopg.connect(os.environ["PG_DSN"]) as conn:
    conn.execute("TRUNCATE public.orders RESTART IDENTITY")
    for row in BASE_ROWS:
-    conn.execute("INSERT INTO public.orders(id,order_ref,customer_name,amount_cents,status,created_at) VALUES (%s,%s,%s,%s,%s,%s)",row)
+    conn.execute("INSERT INTO public.orders(id,order_ref,customer_name,amount_cents,status,created_at) VALUES (%s,%s,%s,%s,%s,%s)", (*row[:5], datetime.fromisoformat(row[5].replace("Z","+00:00"))))
    conn.execute("SELECT setval(pg_get_serial_sequence('public.orders','id'),1005,true)")
  def request(self,path,method="GET",payload=None):
   data=None if payload is None else json.dumps(payload).encode()
