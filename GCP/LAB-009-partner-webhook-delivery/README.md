@@ -1,14 +1,14 @@
 ---
 lab: LAB-009
 platform: GCP
-phase: design
-guide_status: design
+phase: build-materials
+guide_status: authoring
 cloud_verification: not-run
 last_verified: null
 ---
 # Lab 09 — ระบบส่ง Webhook ให้ระบบคู่ค้า
 
-**สถานะ:** Design complete — ปิด architecture, data contract, state machine, retry/recovery, IAM boundary, region, limits และ diagrams แล้ว. ขั้นถัดไปคือ Build materials; ยังไม่มี App, Terraform หรือ Tasks, ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
+**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว และเริ่มทำ pure domain contract/tests ก่อนเชื่อม GCP adapters. App, Terraform, Tasks และ Guide ยังไม่ครบ; ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
 
 ## สถานการณ์
 
