@@ -515,3 +515,36 @@ jobs:
       - name: Verify nonroot imports static assets and private-bundle exclusions
         run: |
           docker run --rm --entrypoint python lab007-orders:ci -c "import os,pathlib,portal_runtime,queue_runtime; assert os.getuid()==10001; assert pathlib.Path('/srv/app/static/index.html').is_file(); assert not pathlib.Path('/srv/app/secrets').exists(); assert not pathlib.Path('/srv/sql').exists(); assert not pathlib.Path('/srv/tests').exists(); assert not pathlib.Path('/srv/scripts/create-secrets.py').exists()"
+
+  lab007-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: lab007_bootstrap_ci
+          POSTGRES_USER: lab007_ci_admin
+          POSTGRES_PASSWORD: disposable-bootstrap-admin-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lab007_ci_admin -d lab007_bootstrap_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGDATABASE: lab007_bootstrap_ci
+      PGUSER: lab007_ci_admin
+      PGPASSWORD: disposable-bootstrap-admin-ci
+      LAB007_BOOTSTRAP_DISPOSABLE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned driver for isolated bootstrap checks
+        run: |
+          python3 -m venv .ci-lab007-bootstrap
+          .ci-lab007-bootstrap/bin/pip install -r GCP/LAB-007-queued-order-processing/requirements.txt
+      - name: Verify first-install rollback no-reset and real runtime SCRAM logins without superuser
+        run: timeout 180s .ci-lab007-bootstrap/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_bootstrap.py -v
