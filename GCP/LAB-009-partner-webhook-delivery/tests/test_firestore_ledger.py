@@ -175,6 +175,7 @@ class FirestoreLedgerTests(unittest.TestCase):
         self.assertEqual(record["status"], "enqueue_pending")
         self.assertEqual(record["enqueue_attempts"], 1)
         self.assertEqual(record["last_enqueue_error"], "DeadlineExceeded")
+        self.assertEqual(record["enqueue_pending_since"], NOW)
         self.assertFalse(self.ledger.record_enqueue_error(
             result.delivery_id, generation=2, error_code="DeadlineExceeded", now=NOW
         ))
