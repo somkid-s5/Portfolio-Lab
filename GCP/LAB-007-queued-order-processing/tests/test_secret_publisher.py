@@ -80,7 +80,7 @@ class FakeAPI:
                     }
                 },
             }
-        if "/projects/lab-project/secrets/" in url:
+        if "https://secretmanager.googleapis.com/v1/projects/" in url and "/secrets/" in url:
             secret_id = url.split("/secrets/")[1].split("/")[0].split(":")[0]
             if url.endswith("/versions/latest:access"):
                 version = self.versions.get(secret_id)
