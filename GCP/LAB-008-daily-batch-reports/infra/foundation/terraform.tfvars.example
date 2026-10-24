@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars and replace every example value before planning.
+project_id   = "REPLACE_WITH_DEDICATED_PROJECT_ID"
+region       = "asia-southeast1"
+bucket_suffix = "replace-me"
+
+# Optional: grant this principal Artifact Registry Writer on the Lab 08 image repository.
+# Example: "user:operator@example.com"
+artifact_publisher_member = ""
