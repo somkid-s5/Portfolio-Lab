@@ -1526,5 +1526,7 @@ jobs:
           terraform fmt -check -diff -recursive
           terraform init -backend=false -input=false
           terraform validate -no-color
+      - name: Check source bootstrap shell syntax
+        run: bash -n GCP/LAB-016-legacy-migration/scripts/*.sh
       - name: Check private network, IAM, source bootstrap and cleanup contracts
         run: python3 -m unittest discover -s GCP/LAB-016-legacy-migration/tests -p 'test_infra_contract.py' -v
