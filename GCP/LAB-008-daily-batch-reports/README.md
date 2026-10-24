@@ -33,7 +33,7 @@ Solution นี้ชื่อ **Daily Sales Close** ใช้ข้อมูล
 | R5 | ตรวจพบ source ที่มาช้า, scheduled run ที่ไม่มีรายงาน และ job failure; watchdog ส่ง alert เมื่อสถานะยังไม่สำเร็จ และ Operator ทำ backfill วันที่เดิมได้ | watchdog log/alert, ledger/status, execution/log IDs, late-source recovery และการตรวจ output ก่อน/หลัง backfill |
 | R6 | ส่ง report-ready event หลัง report ถูกจัดเก็บ; event ที่ตอบรับไม่แน่นอนต้อง recover ได้โดยใช้ event identity เดิม | topic/message attributes, report ID, notification state และ duplicate-consumer scenario |
 | R7 | จำกัด IAM ตาม role: Scheduler เรียก coordinator; coordinator สั่งรันเฉพาะ Job; Job อ่าน input/เขียน output/ledger/notification เท่าที่ต้องใช้ | principal/role matrix, unauthorized/authorized calls, bucket/database scope |
-| R8 | จำกัด rows, bytes, execution time, retry และจำนวน backfill ที่สั่งพร้อมกันตาม policy ก่อนทดสอบ | configured limits, expected upper bounds, billing/cost notes และ backout |
+| R8 | จำกัด rows, bytes, เวลา/จำนวน retry ต่อ execution และกำหนดวิธีควบคุมการสั่ง backfill ก่อนทดสอบ | configured limits, expected upper bounds, billing/cost notes และ backout |
 | R9 | ส่งมอบ runbook, case-study evidence และ cleanup/rebuild ที่ไม่อ้างผล Cloud หากไม่ได้รัน | sanitized logs/evidence, known limitations, cleanup inventory และ Not run fields |
 
 ## ขอบเขตตั้งต้น
@@ -70,7 +70,7 @@ Report สรุปจำนวนรายการ, จำนวนสิน�
 |---|---|
 | Coordinator `lab008-coordinator` | Cloud Run service ต้องผ่าน IAM authentication; Terraform ใช้ ingress `all` จึงไม่เรียกบริการนี้ว่า network-private. Route `/schedule` เริ่ม Job และ `/watchdog` ตรวจ ledger/output. Watchdog อ่าน Firestore กับ report bucket ได้เท่านั้นและ log ผลแบบ structured |
 | Source bucket | รับไฟล์ CSV สังเคราะห์ที่ object หลัก `incoming/business_date=YYYY-MM-DD/transactions.csv` และ input correction แบบใหม่ใต้ `incoming/business_date=YYYY-MM-DD/corrections/<source-id>.csv`; ทุก object upload แบบ create-only. เพดาน 5 MiB/5,000 data rows; อ่าน generation ที่ pin ไว้ ไม่ตาม latest หากไฟล์เปลี่ยนระหว่างอ่าน |
-| Cloud Run Job `lab008-daily-report` | หนึ่ง task / parallelism 1 ต่อ business date; task timeout 10 นาที, max retries 1. ใช้ execution/task-attempt variables ของ Cloud Run สำหรับ owner และ fault test; ไม่เปิด HTTP endpoint |
+| Cloud Run Job `lab008-daily-report` | หนึ่ง task / parallelism 1 ต่อ business date; task timeout 10 นาที, max retries 1. ใช้ execution/task-attempt variables ของ Cloud Run สำหรับ owner และ attempt identity; fault-after-write recovery ทดสอบใน CI worker tests เท่านั้น และ Job ไม่เปิด HTTP endpoint |
 | Firestore `lab008-reports` | document ต่อ business date เก็บ status, owner execution, lease/fence, attempts, input generation/hash, output generation/hash และ notification state. Transaction เป็นจุด claim/transition; Project เฉพาะ Lab เป็น IAM boundary |
 | Report bucket | สร้าง `reports/business_date=YYYY-MM-DD/summary.json` ด้วย generation precondition `ifGenerationMatch=0`; ถ้ามี object ให้ตรวจ source binding และ hash ก่อน reuse, ถ้าไม่ตรงให้ block ไม่ overwrite |
 | Pub/Sub topic `lab008-report-ready` | หลัง output ถูกตรวจแล้ว Job บันทึก `notification_pending` และ publish event ที่มี stable `report_id`, business date, object generation/hash และสรุปสังเคราะห์เท่านั้น; ไม่ส่ง CSV หรือ credentials |
@@ -80,7 +80,7 @@ State path: `not_started → running → report_written → notification_pending
 
 Firestore transaction เป็นจุด claim/transition; lease ตั้งต้น 15 นาทีและทุก reclaim เพิ่ม fencing token. Job task retry ใช้ `CLOUD_RUN_EXECUTION` เป็น owner และ `CLOUD_RUN_TASK_ATTEMPT` แยก attempt; attempt ถัดไปใน execution เดิมรับ lease ต่อได้ทันที แต่ execution ใหม่ต้องรอ lease หมด. Task timeout 10 นาทีทำให้ lease ยาวกว่า attempt สูงสุด. CI worker tests จำลองการหยุดหลังเขียน report เพื่อยืนยัน recovery ด้วย generation/hash เดิม; deployment จริงไม่มี fault-injection switch และคู่มือนี้ไม่สั่งฆ่า production execution เพื่อสร้างเหตุการณ์ดังกล่าว. Execution อื่นที่ชนวันที่เดียวกันขณะ lease ยัง valid จะไม่มี side effect; ทุก transition และ publish ตรวจ fence ล่าสุด.
 
-ถ้า Pub/Sub ตอบกลับไม่แน่นอน คงสถานะ `notification_pending` แล้ว retry event ด้วย `report_id` เดิม. Consumer อาจได้รับซ้ำแม้ acknowledgement สำเร็จ จึงต้อง deduplicate; ไม่มี exactly-once claim. ถ้า source มาช้าหรือ schedule ไม่มี report ให้ตรวจ เปิด Firestore Console: database `lab008-reports` → collection `daily_runs` → document ID เป็น business date เทียบ expected business date แล้วสั่ง backfill วันเดิมด้วย Job argument เดิมอย่างชัดเจน; ไม่อ้างว่า Scheduler catch-up แทน operator run ได้.
+ถ้า Pub/Sub ตอบกลับไม่แน่นอน คงสถานะ `notification_pending` แล้ว retry event ด้วย `report_id` เดิม. Consumer อาจได้รับซ้ำแม้ acknowledgement สำเร็จ จึงต้อง deduplicate; ไม่มี exactly-once claim. ถ้า source มาช้าหรือ schedule ไม่มี report ให้เปิด Firestore Console: database `lab008-reports` → collection `daily_runs` → document ID เป็น business date เทียบ expected business date แล้วสั่ง backfill วันเดิมด้วย Job argument เดิมอย่างชัดเจน; ไม่อ้างว่า Scheduler catch-up แทน operator run ได้.
 
 ### Identity และ IAM boundary
 
@@ -134,7 +134,7 @@ Cloud Logging เก็บ structured watchdog event; สร้าง log-based 
 
 ผู้เรียนจะบันทึก timezone/cron และเหตุผล, service identity matrix, input fixture/hash, run ID และ business date, output generation/hash และ reconciliation, ledger transitions, retry/overlap/fault/backfill outcomes, notification event identity, metric/log windows, ค่าใช้จ่ายโดยประมาณและข้อจำกัด. ห้ามบันทึก credentials, access tokens หรือข้อมูลผู้ใช้จริง.
 
-## Design decisions — ปิดก่อนเริ่ม Materials
+## Design decisions ที่ใช้กับระบบ
 
 1. เวลา 01:15 `Asia/Bangkok` สร้างรายงานของวันปฏิทินก่อนหน้าโดยใช้ Scheduler schedule-time header; manual backfill เรียก Job ด้วยวันที่ explicit ไม่จำลอง Scheduler header.
 2. Coordinator ตอบเมื่อ `jobs:run` คืน operation name; Scheduler retry เพิ่ม 2 ครั้ง/600 วินาที ส่วน Job retry task ได้ 1 ครั้ง/10 นาที. Duplicate execution ถูกกันด้วย Firestore lease/fence, ไม่อ้าง exactly-once.
@@ -409,7 +409,7 @@ gcloud run jobs execute lab008-daily-report --region="$REGION" --project="$PROJE
 
 ทำ change note สั้น ๆ ก่อนอนุมัติการขยาย: ระบุจำนวนวันที่ต้องการ, global semaphore/queue, per-date partial success, การ retry เฉพาะวันที่ค้าง, ค่าใช้จ่ายสูงสุด, monitoring และ rollback. จนกว่าจะ implement/test control เหล่านั้น ให้ operator เรียกทีละวันและรอ execution จบก่อนวันถัดไป. ค่า task_count=1 ไม่ได้ควบคุมจำนวน Job executions ที่คนสั่งซ้อน.
 
-**Expected:** Change note แยกสิ่งที่ baseline ทำได้จริงออกจากสิ่งที่ยังเป็น proposal; ไม่มีการอ้าง concurrency 2 หรือ global cap ที่ยังไม่ implement.
+**Expected:** Change note แยกสิ่งที่ baseline ทำได้จริงออกจาก proposal; ไม่มีการอ้าง global cap ที่ยังไม่ได้ implement.
 
 **Actual / Evidence:** บันทึกคำขอ, การตัดสินใจ (ทำ/เลื่อน/ปฏิเสธ), control ที่ยังขาดและผู้อนุมัติ: ________________________________.
 
