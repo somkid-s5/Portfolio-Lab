@@ -1,0 +1,59 @@
+{
+  "diagram_sources": [
+    "assets/solution.svg",
+    "assets/solution.html"
+  ],
+  "icon_source": {
+    "official_entry_point": "https://cloud.google.com/icons",
+    "mirror": "https://github.com/AwesomeLogos/google-cloud-icons",
+    "pinned_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+    "files": [
+      {
+        "service": "Google Kubernetes Engine",
+        "repository_path": "docs/images/google_kubernetes_engine.svg",
+        "sha256": "5f44dce3df0483bd0b1a344be07129e054f61cb5fa947aea022db3441c25db5e"
+      },
+      {
+        "service": "Cloud Load Balancing",
+        "repository_path": "docs/images/cloud_load_balancing.svg",
+        "sha256": "ea8974dc8766309a616bc10c09c0f630c0ff6a5bb1e9664cc17c4fb1ec29ef11"
+      },
+      {
+        "service": "Cloud Build",
+        "repository_path": "docs/images/cloud_build.svg",
+        "sha256": "2fbd6afc341de33de94ae428b4e50690c959f9ec57d29dafcc6c03eaa260c3e8"
+      },
+      {
+        "service": "Artifact Registry",
+        "repository_path": "docs/images/artifact_registry.svg",
+        "sha256": "f12916d3a2b3fcab588c475f35200a4f9db6cdde421e7dacac8ce7c4c55a72f1"
+      },
+      {
+        "service": "Secret Manager",
+        "repository_path": "docs/images/secret_manager.svg",
+        "sha256": "194b0f81870b265064680007e472d011797d01fbdede0bb4ade28e025a22e7b6"
+      },
+      {
+        "service": "Cloud Logging",
+        "repository_path": "docs/images/cloud_logging.svg",
+        "sha256": "f7fdd93a1847fdebf174c78cce418fac52198be72893116e7787ca3e1659cf38"
+      },
+      {
+        "service": "Cloud Monitoring",
+        "repository_path": "docs/images/cloud_monitoring.svg",
+        "sha256": "804f66b773fcc5cd59a3fb8e0da9ff3de9b69efa99c23f8e1797943647a8e79e"
+      }
+    ]
+  },
+  "style_attribution": {
+    "name": "Diagram Design",
+    "upstream": "https://github.com/cathrynlavery/diagram-design",
+    "license": "MIT",
+    "note": "Visual conventions adapted; diagram independently authored and does not copy upstream examples."
+  },
+  "layout_decision": "Client enters from the left through regional Gateway to API; quote-api and quote-worker are stacked vertically so the internal request is a short direct edge. Build/image delivery is a separate top lane. Per-KSA secret access and operations telemetry use dedicated right-side lanes to avoid perimeter detours.",
+  "verification": {
+    "diagram_render": "Awaiting 960px render in repository CI",
+    "cloud_deployment": "not-run"
+  }
+}

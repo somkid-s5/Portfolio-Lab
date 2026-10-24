@@ -14,7 +14,7 @@
 | 08 | [ระบบรายงานยอดขายรายวันและ Batch ที่รันย้อนหลังได้](LAB-008-daily-batch-reports/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 09 | [ระบบส่ง Webhook ให้ระบบคู่ค้า](LAB-009-partner-webhook-delivery/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 10 | [ระบบ Catalog ที่ใช้ Cache ลดภาระ Database](LAB-010-catalog-cache/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 11 | ระบบบริการบน GKE ที่ Deploy และขยายได้ | Planned | Not run | — |
+| 11 | [ระบบคำนวณราคาเสนอค่าขนส่งบน GKE](LAB-011-gke-quote-engine/README.md) | Brief/Design | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 12 | ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้ | Planned | Not run | — |
 | 13 | ระบบประมวลผลข้อมูลนำเข้าแบบขนาน | Planned | Not run | — |
 | 14 | แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา | Planned | Not run | — |
@@ -367,3 +367,6 @@ Lab10 / Full authoring CI passed: [run #309](https://github.com/somkid-s5/Portfo
 
 
 Lab10 / Guide-ready (2026-10-24): [CI #310](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40088902566), commit `da89c46eb94c379cc3cdf9d9f3399027c19a6fd4`, ผ่านครบ 35/35 jobs. Lab10 app integration, read-only TTL diagnostic, 15 Tasks พร้อม Expected/Actual/Evidence, Bash parsing/local links, troubleshooting/clean rebuild tests, diagram/accessibility/icon provenance/render และ Terraform fmt/init/validate ผ่าน. คู่มือแยก Expected ออกจากผลที่ผู้เรียนต้องบันทึกจริง; ไม่มี GCP apply/provisioning และ Cloud verification ยังคง Not run.
+
+
+Lab11 / Brief and Design checkpoint: สรุป Quote Engine บน regional GKE Autopilot สำหรับ synthetic logistics quotes พร้อม R1–R10, architecture/request/identity flows, acceptance evidence, cost/access boundaries, operations scenarios, cleanup/evidence plan และ official Google Cloud references. เพิ่ม accessible standalone SVG/HTML พร้อม embedded official service icons, pinned-source provenance/hash tests, และ orthogonal Gateway→API connector ที่ไม่ทับ NetworkPolicy label. ปรับ control-plane design เป็น DNS endpoint + IAM-authenticated Cloud Shell (`get-credentials --dns-endpoint`) แทนการผูกกับ dynamic egress IP. Design CI pending; no Tasks authored, no GCP provisioning; Cloud verification Not run.

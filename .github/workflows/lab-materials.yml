@@ -1033,3 +1033,30 @@ jobs:
             GCP/LAB-010-catalog-cache/assets/diagram-provenance.json
           if-no-files-found: error
           retention-days: 14
+
+  lab011-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 11 brief, diagram and pinned icon provenance
+        run: python3 -m unittest discover -s GCP/LAB-011-gke-quote-engine/tests -p test_design.py -v
+      - name: Install SVG renderer
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+      - name: Render Lab 11 solution diagram at guide width
+        run: |
+          mkdir -p lab011-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-011-gke-quote-engine/assets/solution.svg -o lab011-diagram-previews/solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab011-design-preview
+          path: |
+            lab011-diagram-previews/solution.png
+            GCP/LAB-011-gke-quote-engine/assets/solution.svg
+            GCP/LAB-011-gke-quote-engine/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
