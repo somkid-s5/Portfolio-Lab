@@ -161,6 +161,21 @@ resource "google_secret_manager_secret_iam_member" "source_reads_target_db_passw
   role      = "roles/secretmanager.secretAccessor"
   member    = format("serviceAccount:%s", google_service_account.source_vm.email)
 }
+
+resource "google_secret_manager_secret" "target_admin_password" {
+  secret_id = "lab016-target-admin-password"
+  labels    = local.labels
+  replication {
+    auto {}
+  }
+  depends_on = [google_project_service.enabled]
+}
+resource "google_secret_manager_secret_iam_member" "source_reads_target_admin_password" {
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.target_admin_password.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = format("serviceAccount:%s", google_service_account.source_vm.email)
+}
 resource "google_sql_database_instance" "target" {
   name                = "lab016-target-pg"
   database_version    = "POSTGRES_16"
