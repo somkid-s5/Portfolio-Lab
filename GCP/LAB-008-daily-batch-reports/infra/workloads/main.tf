@@ -21,6 +21,12 @@ resource "google_project_service_identity" "scheduler" {
   service  = "cloudscheduler.googleapis.com"
 }
 
+resource "google_service_account_iam_member" "operator_scheduler_act_as" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${var.scheduler_service_account}"
+  role               = "roles/iam.serviceAccountUser"
+  member             = var.operator_member
+}
+
 resource "google_cloud_run_v2_service" "coordinator" {
   project             = var.project_id
   name                = local.service_name
@@ -223,7 +229,7 @@ resource "google_cloud_scheduler_job" "watchdog" {
     headers     = { "Content-Type" = "application/json" }
     oidc_token {
       service_account_email = var.scheduler_service_account
-      audience               = google_cloud_run_v2_service.coordinator.uri
+      audience              = google_cloud_run_v2_service.coordinator.uri
     }
   }
 
