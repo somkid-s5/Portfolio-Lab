@@ -1,7 +1,7 @@
 locals {
-  job_name = "lab008-daily-report"
-  service_name = "lab008-coordinator"
-  report_scheduler_name = "lab008-report-schedule"
+  job_name                = "lab008-daily-report"
+  service_name            = "lab008-coordinator"
+  report_scheduler_name   = "lab008-report-schedule"
   watchdog_scheduler_name = "lab008-watchdog"
   common_environment = {
     GOOGLE_CLOUD_PROJECT = var.project_id
@@ -58,8 +58,8 @@ resource "google_cloud_run_v2_service" "coordinator" {
       }
       dynamic "env" {
         for_each = merge(local.common_environment, {
-          RUN_REGION                    = var.region
-          RUN_JOB_NAME                  = local.job_name
+          RUN_REGION                  = var.region
+          RUN_JOB_NAME                = local.job_name
           REPORT_SCHEDULER_JOB_NAME   = local.report_scheduler_resource
           WATCHDOG_SCHEDULER_JOB_NAME = local.watchdog_scheduler_resource
         })
@@ -188,7 +188,7 @@ resource "google_cloud_scheduler_job" "report" {
     headers     = { "Content-Type" = "application/json" }
     oidc_token {
       service_account_email = var.scheduler_service_account
-      audience               = google_cloud_run_v2_service.coordinator.uri
+      audience              = google_cloud_run_v2_service.coordinator.uri
     }
   }
 
