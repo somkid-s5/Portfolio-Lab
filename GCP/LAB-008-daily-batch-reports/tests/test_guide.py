@@ -41,7 +41,7 @@ class GuideTests(unittest.TestCase):
                 self.assertTrue((LAB / target).resolve().is_file(), target)
 
     def test_cloud_verification_is_not_claimed(self):
-        self.assertIn("guide_status: authoring", self.readme)
+        self.assertIn("guide_status: guide-ready", self.readme)
         self.assertIn("cloud_verification: not-run", self.readme)
         self.assertNotIn("reportctl status", self.readme)
         self.assertNotIn("concurrency 2", self.readme)
