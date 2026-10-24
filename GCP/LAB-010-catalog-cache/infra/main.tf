@@ -135,16 +135,16 @@ resource "google_sql_database" "catalog" {
 }
 
 resource "google_redis_instance" "catalog" {
-  project                     = var.project_id
-  name                        = "lab010-catalog-cache"
-  region                      = var.region
-  tier                        = "BASIC"
-  memory_size_gb              = 1
-  redis_version               = "REDIS_7_0"
-  connect_mode                = "PRIVATE_SERVICE_ACCESS"
-  authorized_network          = google_compute_network.lab.id
-  auth_enabled                = true
-  transit_encryption_mode     = "SERVER_AUTHENTICATION"
+  project                 = var.project_id
+  name                    = "lab010-catalog-cache"
+  region                  = var.region
+  tier                    = "BASIC"
+  memory_size_gb          = 1
+  redis_version           = "REDIS_7_0"
+  connect_mode            = "PRIVATE_SERVICE_ACCESS"
+  authorized_network      = google_compute_network.lab.id
+  auth_enabled            = true
+  transit_encryption_mode = "SERVER_AUTHENTICATION"
   lifecycle {
     prevent_destroy = true
   }
@@ -219,10 +219,10 @@ resource "google_project_iam_member" "sql_instance_user" {
 }
 
 resource "google_sql_user" "iam" {
-  for_each       = local.database_accounts
-  project        = var.project_id
-  instance       = google_sql_database_instance.catalog.name
-  name           = local.sql_db_usernames[each.key]
+  for_each        = local.database_accounts
+  project         = var.project_id
+  instance        = google_sql_database_instance.catalog.name
+  name            = local.sql_db_usernames[each.key]
   type            = "CLOUD_IAM_SERVICE_ACCOUNT"
   deletion_policy = "ABANDON"
 }

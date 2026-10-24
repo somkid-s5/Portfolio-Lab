@@ -349,3 +349,6 @@ Lab10 / Infrastructure draft: เพิ่ม Terraform root แบบ gate เ�
 
 
 Lab10 / Infra schema correction: CI run 40086910075 (source 53370fa) ผ่าน terraform fmt แต่ validate พบว่า Google provider 6.50 ไม่รองรับ google_redis_instance.deletion_protection_enabled และ google_sql_user.database_roles; design test ยังจับ pattern .tfstate* ที่ไม่ตรง .dockerignore. ตรวจ provider 6.50 docs แล้วแก้ Redis เป็น lifecycle.prevent_destroy, IAM cloudsqlsuperuser สำหรับ migrator จะ assign ผ่าน gcloud sql users assign-roles หลัง user ถูกสร้าง และเพิ่ม deletion_policy=ABANDON สำหรับ SQL IAM users. แก้ design assertion ให้ตรวจ patterns ที่มีจริง. รอ CI rerun; ไม่มี GCP apply.
+
+
+Lab10 / Infra CI format correction: CI run 40087072059 stopped at terraform fmt after provider-schema edits; diff identified only attribute alignment in the Redis and SQL-user blocks, so formatting has been corrected before validation. This run did not reach terraform validate; corrected provider schema remains unverified until next CI. No GCP apply.
