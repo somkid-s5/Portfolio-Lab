@@ -180,6 +180,8 @@ class LedgerStateTests(unittest.TestCase):
 
     def test_history_is_bounded_and_contains_no_fence_token(self):
         record, _, token = claim_first()
+        record = release_attempt(record, token, now=NOW,
+                                 reason="dependency_failure")
         for i in range(120):
             now = NOW + timedelta(seconds=i)
             record, _, token = claim(record, business_date=DAY, now=now,

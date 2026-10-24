@@ -41,14 +41,21 @@ class FirestoreLedger:
 
     def claim(self, *, business_date, execution, task_attempt, source_object,
               source_generation, operator_backfill=False):
-        return self._change(business_date, lambda previous, now: state.claim(
-            previous, business_date=business_date, now=now, execution=execution,
-            task_attempt=task_attempt, source_object=source_object,
-            source_generation=source_generation, operator_backfill=operator_backfill))
+        def transition(previous, now):
+            updated, disposition, token = state.claim(
+                previous, business_date=business_date, now=now, execution=execution,
+                task_attempt=task_attempt, source_object=source_object,
+                source_generation=source_generation,
+                operator_backfill=operator_backfill)
+            return updated, (updated, disposition, token)
+        return self._change(business_date, transition)
 
     def mark_missing_input(self, business_date):
-        return self._change(business_date, lambda previous, now: state.mark_missing_input(
-            previous, business_date=business_date, now=now))
+        def transition(previous, now):
+            updated, disposition = state.mark_missing_input(
+                previous, business_date=business_date, now=now)
+            return updated, (updated, disposition)
+        return self._change(business_date, transition)
 
     def _apply(self, business_date, transition):
         def apply(previous, now):
