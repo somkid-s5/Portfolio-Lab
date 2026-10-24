@@ -23,7 +23,7 @@ class DesignCheckpointTests(unittest.TestCase):
         self.assertIn("Artifact Registry Reader", README)
         self.assertIn("roles/artifactregistry.reader", README)
         self.assertIn("Operator", README)
-        self.assertIn("Object Viewer เฉพาะ input, attempt-output และ published buckets", README)
+        self.assertIn("Storage Object Viewer (roles/storage.objectViewer) เฉพาะ input, attempt-output และ published buckets", README)
         self.assertIn("Object Creator เฉพาะ input (append source objects) และ published", README)
         self.assertIn("roles/serviceusage.serviceUsageConsumer", README)
         self.assertIn("soft delete เป็น 0", README)
