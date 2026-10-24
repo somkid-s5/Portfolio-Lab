@@ -1,6 +1,10 @@
 """Pure transition tests for the Firestore daily-run ledger."""
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+import sys
 import unittest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.ledger_state import (LEASE, StateConflict, block_invalid_source, claim,
                               mark_missing_input, mark_notification_pending,
