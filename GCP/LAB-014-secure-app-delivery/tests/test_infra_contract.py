@@ -58,6 +58,10 @@ class InfrastructureContractTests(unittest.TestCase):
         self.assertIn('.github/workflows/release.yml', source)
         self.assertIn('filename        = "GCP/LAB-014-secure-app-delivery/cloudbuild.yaml"', source)
 
+    def test_kms_key_has_recovery_window_not_provider_default(self):
+        source = (INFRA / "main.tf").read_text(encoding="utf-8")
+        self.assertIn('destroy_scheduled_duration = "2592000s"', source)
+
 
 if __name__ == "__main__":
     unittest.main()

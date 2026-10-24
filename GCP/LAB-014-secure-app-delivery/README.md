@@ -1,26 +1,42 @@
 ---
 lab: LAB-014
 platform: GCP
-phase: design
-guide_status: design
+phase: authoring
+guide_status: authoring
 cloud_verification: not-run
 last_verified: null
 ---
 
-# Lab 14 — แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา
+# Lab 14 — แพลตฟอร์มส่งมอบ App แบบตรวจสอบย้อนกลับได้
 
-> **สถานะเอกสาร:** Design checkpoint — architecture/trust boundary และแผนภาพผ่าน repository CI #346; ยังไม่มี Task Guide, App, Terraform หรือ deploy files
-> **สถานะ Cloud:** Not run — เป็นแผนและแบบฝึกหัด ยังไม่มีการสร้างทรัพยากรหรือผลทดสอบ GCP จริง
+> **สถานะเอกสาร:** คู่มือกำลังจัดทำและตรวจด้วย repository CI; ใช้ทำตามได้เมื่อโค้ดชุดนี้อยู่บน `main` และเตรียม project ตามข้อกำหนดแล้ว
+> **สถานะ Cloud:** Not run — ไม่มีการสร้างหรือทดสอบทรัพยากร GCP ในการจัดทำเอกสารนี้
 
-## สถานการณ์
+## โจทย์
 
-ทีมพัฒนามีบริการคำนวณค่าจัดส่ง และต้องการปล่อยการเปลี่ยนแปลงจาก GitHub ไปยัง staging และ production อย่างมีหลักฐาน ตรวจสอบย้อนหลังได้ และกู้กลับได้ ทีมไม่ต้องการเก็บ Service Account key ใน GitHub และไม่ต้องการให้ทุก workflow deploy เข้า production ได้โดยตรง
+ทีมพัฒนาต้องส่ง Shipping Quote API จาก GitHub ไป staging และ production โดยต้องตอบได้ว่า image ที่ deploy มาจาก commit และ build ใด ใครรับรอง ใครอนุมัติ และจะหยุดหรือกู้ระบบอย่างไรเมื่อ business check ไม่ผ่าน ทีมไม่ต้องเก็บ Service Account key ใน GitHub และไม่ควรให้ release workflow deploy เข้า Cloud Run หรืออนุมัติ production ได้เอง
 
-ให้วาง delivery path ที่แยกหน้าที่ระหว่างการทดสอบ การสร้าง artifact การรับรอง artifact และการ deploy ใช้ image แบบ immutable digest, ป้องกัน Cloud Run รับ image ที่ไม่มี attestation, ตรวจ staging ก่อน production, กำหนดผู้อนุมัติ production และใช้ canary พร้อม verification ก่อนเลื่อน traffic เต็มระบบ
+ให้สร้าง delivery path ที่ทดสอบและ build image ใน Cloud Build, ใช้ Workload Identity Federation (WIF) ให้ GitHub Actions ขอ credential อายุสั้น, ลงนาม attestation ให้ image digest ที่ผ่าน build เท่านั้น, บังคับ Binary Authorization ก่อนสร้าง Cloud Run revision และใช้ Cloud Deploy คุม staging, production approval, canary และ rollback
 
-## ขอบเขตบริการตัวอย่าง
+App ใช้ข้อมูลสังเคราะห์ ไม่ต่อฐานข้อมูลหรือระบบภายนอก โจทย์หลักคือความปลอดภัยและการปฏิบัติการของ software delivery ไม่ใช่การเขียน App
 
-App เป็น Shipping Quote API แบบ stateless ใช้ข้อมูลจำลองและไม่เก็บข้อมูลลูกค้าจริง มี endpoint สำหรับ health, version และคำนวณ quote พร้อม structured logs ที่เชื่อม request กับ image digest/commit ได้ เนื้อหา App ทำหน้าที่ให้ทีมมี business path ที่ทดสอบจาก CI, staging และ production ไม่ใช่หัวข้อหลักที่ต้องใช้เวลาเขียน App ใหม่
+## ผลลัพธ์ที่ต้องพิสูจน์
+
+| รหัส | สิ่งที่ต้องพิสูจน์ | หลักฐานที่ต้องเก็บ |
+|---|---|---|
+| R1 | Pull request ตรวจ app/config ได้โดยไม่รับ GCP credential; release trust จำกัด repository, main branch, workflow และ Environment | CI run, branch/ref และผลทดสอบ WIF จาก ref ที่ไม่เชื่อถือ |
+| R2 | ไม่มี long-lived Service Account key ใน GitHub และแบ่งสิทธิ์ builder, signer, releaser, deployer, verifier, approver และ runtime | WIF condition, IAM role/scope และ negative authorization result |
+| R3 | build image ครั้งเดียวและ Cloud Deploy ใช้ image แบบ digest เดียวกัน ไม่ใช้ tag ตัดสิน release | commit SHA, build ID, image digest, attestation และ digest ใน Cloud Deploy release |
+| R4 | Cloud Run ปฏิเสธ image ที่ไม่มี attestation จาก attestor นี้ | image digest ที่ไม่มี attestation, deploy error และ revision/traffic ก่อน–หลัง |
+| R5 | staging ผ่าน health และ business verification ก่อน promotion | staging rollout, verify job และ quote response |
+| R6 | Production ต้องผ่าน Cloud Deploy approval จาก human identity ที่แยกจาก release caller | rollout approval, approver principal และเวลา |
+| R7 | Canary เพิ่ม traffic 10% → 50% → 100%; verification ทำงานในแต่ละ phase | phase, traffic split, verify output และ revision ที่รับ traffic |
+| R8 | business regression ที่ health ยังผ่านต้องหยุด canary ก่อนเลื่อน traffic ต่อ | failed verify, quote mismatch และ traffic ที่คงอยู่ |
+| R9 | rollback กลับ release ที่รู้ว่าดีและตรวจ health/business/traffic ซ้ำ | rollback rollout, revision, traffic และ probe output |
+| R10 | Change Request มี owner, reason, scope, digest, approver และวันหมดอายุ; checker ปฏิเสธ record ที่ไม่ครบ/หมดอายุ | JSON record ที่ sanitize แล้วและผล checker |
+| R11 | cleanup ทำตาม inventory และไม่ลบ workload อื่นหรือหลักฐานก่อนบันทึก | inventory ก่อน/หลัง, คำสั่งและผล cleanup |
+
+ตัวเลข canary เป็นขั้นของแบบฝึกหัดเพื่อให้เห็นการหยุดและเลื่อน phase ไม่ใช่สัดส่วนที่เหมาะกับ production ทุกระบบ
 
 ## Solution diagram
 
@@ -28,150 +44,490 @@ App เป็น Shipping Quote API แบบ stateless ใช้ข้อมู
 
 [เปิดแผนภาพ HTML แบบ standalone](assets/solution.html) · [ดูที่มาของไอคอนและ layout](assets/diagram-provenance.json)
 
-แผนภาพแยก GitHub ออกจากขอบเขต Google Cloud, แสดง WIF และ Binary Authorization เป็น project-level controls และวาง Cloud Run staging/production ซ้อนแนวตั้งใต้ Cloud Deploy เพื่อให้เส้น promotion/approval สั้นและไม่ตัดผ่าน service labels. สัญลักษณ์ของ Cloud Deploy, Binary Authorization และ Cloud KMS เป็น generic symbols พร้อมป้ายชื่อ ไม่ใช่ไอคอนผู้ให้บริการ
+GitHub PR checks ไม่มี Cloud credential. เมื่อ trusted commit เข้า main, Cloud Build trigger ใช้ builder identity สร้าง image; GitHub Actions ใช้ WIF แยก attestor กับ releaser; Cloud Deploy ใช้ execution identity ต่อหน้าที่ และ Cloud Run ใช้ runtime identity ที่ไม่มี permission เพิ่ม. Binary Authorization policy ใน Lab นี้เป็น **ระดับ project** ไม่ใช่เฉพาะ Cloud Run service สองตัว
 
-## Requirements และเกณฑ์ยอมรับ
+## บริการตัวอย่างและสัญญา API
 
-| ID | Requirement | หลักฐานที่ต้องบันทึก |
+Shipping Quote API มี endpoint:
+
+| Method / path | ใช้ทำอะไร | Expected |
 |---|---|---|
-| R1 | Pull request รัน unit/contract tests โดยไม่ออก GCP credential; workflow ที่ publish ได้จำกัดเฉพาะ repository และ branch ที่เชื่อถือผ่าน GitHub OIDC + Workload Identity Federation | run URL, branch/ref, test summary และผลทดลอง workflow จาก branch ที่ไม่อยู่ใน trust condition |
-| R2 | ไม่มี long-lived service-account key ใน GitHub Secrets; token เป็น short-lived และ IAM ให้สิทธิ์ตามหน้าที่ | GitHub workflow permissions, WIF provider condition, IAM matrix และ secret scan |
-| R3 | สร้าง container image หนึ่งครั้ง, push ไป Artifact Registry และ deploy ด้วย digest เดียวกันทุก environment; ไม่ใช้ mutable tag เป็นตัวตัดสินปล่อย | build ID, repository path, image digest และ digest ใน Cloud Deploy release |
-| R4 | Build ทำ tests ที่กำหนดและสร้างหลักฐาน provenance; image ที่ไม่มี attestation จาก attestor ที่เชื่อถือถูก Binary Authorization ปฏิเสธก่อนสร้าง Cloud Run revision | build result/provenance, attestation ของ digest ที่อนุมัติ และ error/audit event จากการ deploy digest ที่ไม่มี attestation |
-| R5 | Staging deploy และ verification ผ่านก่อนจึงขอเลื่อน release; verifier ตรวจทั้ง health และ business quote path | rollout state, verification result, HTTP status และ response ที่ sanitize แล้ว |
-| R6 | Production rollout ต้องมี approval จาก identity ที่แยกจาก release caller; GitHub publisher ไม่มีสิทธิ์ approve หรือ deploy Cloud Run โดยตรง | principal ผู้สร้าง release, principal ผู้อนุมัติ และ IAM deny/permission checks |
-| R7 | Production ใช้ Cloud Deploy canary ตามลำดับ 10% → 50% → 100%; แต่ละ canary phase รัน verification และหยุดเมื่อผลไม่ผ่าน | rollout phases, traffic split, verify job logs และ revision/traffic ก่อน–หลัง |
-| R8 | จำลอง application regression ที่ health ยังตอบได้แต่ business path ผิด; canary verification ต้อง fail และ traffic ต้องไม่เลื่อนไป 100% | release/rollout ที่ fail, business probe output และ traffic split ที่คงเหลือ |
-| R9 | Recovery ทำได้ด้วย Cloud Deploy rollback ไป revision/release ที่รู้ว่าดี แล้วพิสูจน์ health, business path และ traffic กลับสภาพปกติ | rollback rollout, stable revision, traffic state, probe output และ audit logs |
-| R10 | Change Request เพิ่ม approval/exception record ที่ระบุ owner, เหตุผล, ขอบเขต และวันหมดอายุ; งานตรวจต้องปฏิเสธ exception ที่หมดอายุหรือไม่มี owner | record ก่อน–หลัง, CI/policy result และการอนุมัติ/หมดอายุ |
-| R11 | Cleanup inventory ระบุ Cloud Run revisions/services, Cloud Deploy resources, Artifact Registry images, KMS key/attestor, IAM bindings และ build artifacts; ลบเฉพาะ resource ของ Lab | inventory ก่อนลบ, command/result และตรวจซ้ำหลัง cleanup |
+| GET `/healthz` | ตรวจว่า process ตอบสนอง | HTTP 200, `{"status":"ok"}` |
+| GET `/version` | ดู app, commit และ Cloud Run revision | HTTP 200; commit เป็น SHA ของ build และ revision เป็นชื่อ revision จริง |
+| GET `/api/v1/quote?origin=BKK&destination=CNX&weight_kg=5` | ทดสอบ business path | HTTP 200, `total_thb` เป็น `455.00` เมื่อ factor เป็น 1.00 |
+| GET `/api/v1/quote?origin=XXX&destination=CNX&weight_kg=5` | ทดสอบ input ที่ไม่รองรับ | HTTP 400, `error=unsupported_route` |
 
-ตัวเลข canary เป็น progression ของแบบฝึกหัด ไม่ใช่คำแนะนำสัดส่วนที่เหมาะกับ production ทุกระบบ; จะบันทึกเหตุผลและผลจริงใน environment ของผู้เรียน
+สูตรสำหรับ route BKK-CNX คือ base 35.00 + ระยะทาง 700 km × 0.12 บาท/kg/km × 5 kg × factor 1.00 = 455.00 บาท; factor 1.20 จะได้ 539.00 บาท. API สร้าง request ID และเขียน structured log แต่ไม่รับ/เก็บข้อมูลลูกค้าจริง และไม่บันทึก bearer token
 
-## สถาปัตยกรรมตั้งต้น
+## ขอบเขต identity
 
-เส้นทางที่ต้องพิสูจน์เรียงตามเหตุการณ์จริง:
-
-1. **Pull request:** GitHub Actions รัน unit/contract tests, lint และ manifest checks โดยมี permission เท่าที่จำเป็น และไม่มี `id-token: write` จึงขอ Google Cloud credential ไม่ได้
-2. **Merge เข้า main:** GitHub App ที่เชื่อมกับ Cloud Build ส่ง commit event ให้ repository trigger ซึ่งจำกัด branch เป็น `main` และใช้ build config กับ builder service account ที่กำหนดไว้ล่วงหน้า
-3. **Build:** Cloud Build รัน tests, สร้าง container และ push ไป Artifact Registry ใน project/region นี้; ผลต้องมี build ID, commit SHA และ image digest ที่ไม่ใช่ tag แบบ mutable
-4. **Release workflow:** GitHub Actions บน commit เดียวกันเริ่มพร้อม Cloud Build; ใช้ WIF แบบ short-lived credentials เพื่อรอผล build แบบมี timeout และจับคู่ trigger ID, commit SHA, builder identity, สถานะ SUCCESS และ digest ให้ครบ หากหาไม่พบ/ไม่ตรง/หมดเวลา ให้หยุดโดยไม่ sign และไม่ deploy
-5. **Attestation:** job แยกใน GitHub Environment `gcp-attest` ใช้ attestor service account ตรวจ metadata ของ build ที่สำเร็จ แล้วใช้ Cloud KMS key ลงนาม attestation ให้ digest นั้น; signer ไม่มีสิทธิ์สร้าง build หรือปล่อย Cloud Deploy
-6. **Release:** job ใน Environment `gcp-release` ใช้ releaser service account สร้าง Cloud Deploy release จาก digest ที่ตรวจและ attest แล้วเท่านั้น; ไม่มีสิทธิ์ sign, deploy ด้วยตนเอง หรือ approve production
-7. **Staging:** Cloud Deploy สร้าง release และ deploy ไป Cloud Run staging; verification ตรวจ health และ quote contract ผ่าน HTTPS แบบ bounded
-8. **Production gate:** หลัง staging ผ่าน Cloud Deploy สร้าง production rollout ที่ต้อง manual approval; approver ตรวจ digest, commit, staging evidence และ change record ก่อน approve/reject
-9. **Canary/recovery:** Cloud Deploy ค่อยเพิ่ม traffic 10% → 50% → 100% พร้อม verification ทุก phase; หาก business check ล้มเหลว rollout ต้องไม่เป็น stable 100% และผู้เรียน rollback ไป release ที่รู้ว่าดี แล้วตรวจ traffic/revision/quote response ซ้ำ
-10. **Audit:** เชื่อม GitHub commit, Cloud Build ID, digest, attestation, Cloud Deploy release/rollout, approval principal และ Cloud Run revision จาก logs/evidence โดยไม่บันทึก credential หรือข้อมูลส่วนบุคคล
-
-Release workflow และ Cloud Build trigger เริ่มจาก push เดียวกัน จึงมี race ได้โดยธรรมชาติ: polling ต้องผูกกับ commit SHA และ trigger ID ที่แน่นอน มี timeout/retry สูงสุด และห้ามเลือก “build ล่าสุด” โดยไม่เทียบ SHA. การ fail closed เมื่อไม่พบ build คือ acceptance criterion ไม่ใช่สัญญาณให้ใช้ digest เก่าแทน.
-
-## Identity boundary ที่ต้องรักษา
-
-### GitHub OIDC trust
-
-GitHub Environment ของ release workflow จำกัดให้ deploy จาก branch `main`; WIF provider ตรวจ immutable repository ID `1428247317`, ref `refs/heads/main` และ workflow ref `somkid-s5/Portfolio-Lab/.github/workflows/release.yml@refs/heads/main`. Map claim `environment` เพิ่มด้วย แล้ว bind principal ของแต่ละ Environment ให้ service account แยกกัน:
-
-- `gcp-attest` → `lab014-attestor`
-- `gcp-release` → `lab014-releaser`
-
-GitHub PR workflow ไม่มี OIDC permission. ห้ามใช้ service-account JSON key, broad repository-wide cloud credential หรือ environment ที่เปิดให้ branch อื่น deploy ได้. ในคู่มือจะมี negative test ที่ลอง ref/environment ผิดและต้องได้ credential exchange denied.
-
-ตัวอย่าง claim contract ที่ต้องแสดงและทดสอบในคู่มือ (เปลี่ยน project/pool/provider เป็นค่าที่ผู้เรียนสร้าง):
-
-```text
-google.subject=assertion.sub
-attribute.repository_id=assertion.repository_id
-attribute.ref=assertion.ref
-attribute.workflow_ref=assertion.workflow_ref
-attribute.environment=assertion.environment
-
-attribute.repository_id == "1428247317" &&
-attribute.ref == "refs/heads/main" &&
-attribute.workflow_ref == "somkid-s5/Portfolio-Lab/.github/workflows/release.yml@refs/heads/main"
-```
-
-สิทธิ์ WIF `roles/iam.workloadIdentityUser` bind กับ principalSet ของ environment ที่ตรงกันบน service account แต่ละตัว; condition ตรวจ repository/ref/workflow และ workflow job ต้องระบุ GitHub Environment ก่อนขอ token.
-
-### IAM role และขอบเขต
-
-| Principal | Role / scope ใน baseline | ห้ามมี |
+| Identity | สิทธิ์ที่ตั้งใจให้มี | สิ่งที่ไม่มี |
 |---|---|---|
-| GitHub PR workflow | ไม่มี GCP role และไม่มี OIDC token permission | service-account key หรือ cloud token |
-| Cloud Build builder SA | `roles/artifactregistry.writer` เฉพาะ Artifact Registry repo; `roles/logging.logWriter` ใน disposable project | KMS signing, Binary Authorization policy edit, Cloud Deploy หรือ IAM admin |
-| `lab014-attestor` (WIF: `gcp-attest`) | `roles/cloudbuild.builds.viewer` ใน project; `roles/cloudkms.signerVerifier` บน attestation key เดียว; `roles/containeranalysis.notes.attacher` บน attestor note; `roles/containeranalysis.occurrences.editor` ใน project | สร้าง/แก้ build, deploy/approve Cloud Deploy, แก้ IAM |
-| Binary Authorization attestor service agent | `roles/containeranalysis.notes.occurrences.viewer` บน Container Analysis note ที่ attestor อ้างถึง เพื่ออ่าน occurrence ตอนตรวจ image | สร้าง attestation หรือแก้ note/policy |
-| `lab014-releaser` (WIF: `gcp-release`) | `roles/clouddeploy.releaser` ใน project; `roles/iam.serviceAccountUser` เฉพาะ `lab014-renderer` และ `lab014-deployer` เพื่อให้ Cloud Deploy ใช้ execution identities ตาม target | KMS signing/attestation, Cloud Run deploy โดยตรง, production approval |
-| `lab014-renderer` (Cloud Deploy RENDER) | `roles/clouddeploy.jobRunner` ใน project สำหรับ render และ Cloud Deploy storage/log operations | deploy ไป Cloud Run, sign image, เปลี่ยน policy |
-| `lab014-deployer` (Cloud Deploy DEPLOY/VERIFY) | `roles/clouddeploy.jobRunner` และ `roles/run.developer` ใน disposable project; `roles/iam.serviceAccountUser` เฉพาะ runtime SA | sign image, เปลี่ยน Binary Authorization policy, IAM admin |
-| Production approver (คน/กลุ่ม) | `roles/clouddeploy.approver` ใน disposable project | build, sign, deploy หรือแก้ policy |
-| Cloud Run runtime SA | ไม่มี role เพิ่ม เพราะ Quote API ไม่เรียก Google APIs | build, registry write, sign, deploy |
+| GitHub PR workflow | repository tests เท่านั้น | GCP role, OIDC permission หรือ key |
+| Cloud Build builder | เขียน image ใน Artifact Registry repo ของ Lab และเขียน build log | sign, deploy, approve หรือแก้ IAM/policy |
+| `lab014-attestor` | อ่านผล Cloud Build, ลงนาม KMS key เดียว, attach occurrence ให้ attestor note | สร้าง build, release, deploy, approve หรือแก้ policy |
+| `lab014-releaser` | สร้าง Cloud Deploy release; actAs เฉพาะ execution identities | sign, deploy Cloud Run โดยตรง หรือ approve production |
+| `lab014-renderer` | Cloud Deploy RENDER job | deploy service หรือ sign |
+| `lab014-staging-deployer` / `lab014-production-deployer` | Cloud Deploy DEPLOY job และ Cloud Run update ใน disposable project; actAs runtime SA | sign, แก้ policy หรือ IAM admin |
+| `lab014-verifier` | Cloud Deploy VERIFY job, อ่าน Cloud Run service/revision และ invoke service แบบ authenticated | deploy, sign หรือแก้ policy |
+| `lab014-runtime` | ไม่มี role เพิ่มสำหรับ App นี้ | build, registry write, sign, deploy |
+| ผู้อนุมัติ Production | Cloud Deploy approver role ใน disposable project | build, sign, deploy หรือแก้ policy |
 
-Cloud Build GitHub trigger ผูก builder SA ไว้ใน trigger config; GitHub WIF ไม่มีสิทธิ์ `cloudbuild.builds.create`. Cloud Build-managed service agent คง role ที่ Google จัดการให้ ไม่ย้าย role นี้ไป builder SA. Role ที่ต้อง project-level อยู่ใน disposable project เดียว เพราะ Cloud Build metadata, attestation occurrences และ Cloud Deploy predefined roles มีขอบเขตดังกล่าว; repo/key/note/runtime-SA binding แคบลงถึง resource เมื่อ API รองรับ. ก่อนเขียน commands จะยืนยัน role ID, permission และ Terraform schema กับเอกสารปัจจุบันอีกครั้ง.
+Terraform ให้บาง role ระดับ project เพราะ Cloud Deploy/Cloud Build metadata APIs เป็น project-scoped; Artifact Registry write/read, KMS signing, note attachment และ actAs ถูกจำกัดลงถึง resource เท่าที่ API รองรับ. Cloud Build และ Cloud Deploy service agents ที่ Google สร้าง/จัดการไม่ใช่ builder/deployer identities ของ Lab
 
-## Fault และ Change Request
+## ก่อนเริ่ม: ค่าใช้จ่ายและ safety gate
 
-- **Untrusted identity:** รัน release workflow จาก branch ที่ไม่ใช่ `main`, repository อื่น หรือ workflow path อื่น; WIF exchange ต้องถูกปฏิเสธก่อนเรียก GCP API
-- **Build failure/race:** ทำให้ test/build ล้มเหลว หรือให้ release poll ก่อน build จบ; release ต้องรอเฉพาะ build ของ commit SHA เดียวกันภายใน timeout แล้วหยุดโดยไม่สร้าง attestation/release ถ้า build ไม่สำเร็จหรือข้อมูลไม่ตรง
-- **Unapproved image:** สร้าง Cloud Deploy release ไปยัง digest ที่ไม่มี attestation; Binary Authorization ต้องปฏิเสธ revision admission และ revision เดิมยังคงรับ traffic
-- **Canary regression:** สร้าง image ที่ health endpoint ยังผ่านแต่ quote contract ผิด; verification ของ canary phase ต้อง fail และ rollout ต้องไม่เลื่อนเป็น stable 100%
-- **Rollback:** deploy release ล่าสุดที่รู้ว่าดีด้วย Cloud Deploy แล้วตรวจ traffic, revision, health และ quote response; ห้ามถือว่าการกด rollback อย่างเดียวเป็นหลักฐาน recovery
-- **Change Request:** เพิ่ม exception-request record ที่มี owner, reason, digest/scope, approver และ expires_at; CI ปฏิเสธข้อมูลขาด/หมดอายุ และ record นี้ไม่ bypass Binary Authorization. Break-glass deployment อยู่นอก baseline ต้องมีการอนุมัติ/บันทึกเฉพาะและไม่ใช้เป็นทางลัดใน Lab
-- **First release caveat:** Cloud Deploy canary ไม่มี revision เดิมให้แบ่ง traffic ในการ deploy ครั้งแรก จึงอาจข้าม canary phases; ต้องสร้าง baseline revision ให้สำเร็จก่อน แล้วจึงทดสอบ canary ใน release ถัดไป.
+- ใช้ **project ใหม่แบบ disposable และไม่มี Cloud Run workload อื่น** เท่านั้น. Terraform อาจจัดการ Binary Authorization default policy ที่ครอบคลุมทั้ง project; ห้ามใช้ project ที่มี service/job อื่นหรือ policy/exception ที่ต้องเก็บ
+- ต้องมี Billing link, quota และสิทธิ์เปิด API, จัดการ IAM/WIF/KMS/Binary Authorization/Cloud Build/Artifact Registry/Cloud Deploy/Cloud Run. เตรียม GitHub repository connection และ human approver แยกจาก GitHub release identity
+- Cloud Build, Artifact Registry storage, Cloud Run, Cloud Logging, Cloud Deploy และ Cloud KMS อาจมีค่าใช้จ่าย. ตรวจราคาและ quota ปัจจุบันของ region ก่อนลงมือ; ใน Lab จำกัด build timeout 15 นาที, Cloud Run max instances 2 และ probes มีขอบเขต
+- ตั้ง budget alert ได้ แต่ให้ตรวจการใช้งานจริงและลบ resource ที่ไม่ใช้ด้วย; อย่าถือว่า alert เป็นวงเงินตัดค่าใช้จ่าย
+- ไม่ใช้ production/customer traffic, ไม่เปิด unauthenticated access, ไม่ใช้ load test ยิงไม่จำกัด และไม่ใช้ breakglass เพื่อทำให้ acceptance test ผ่าน
+- PR #1 ใน repository เป็น Draft และไม่ได้ถูกรวมโดยคู่มือนี้. เริ่มขั้นที่สร้าง resource หรือ release ได้เมื่อผู้ใช้ review และนำ Lab materials ไปไว้บน `main` เองแล้วเท่านั้น; ห้ามคาดหวังว่า branch ของ PR จะ trigger trusted release
+- Cloud Build trigger และ Release workflow ทำงานคู่กันบน push main. ตั้ง project/policy/pipeline/GitHub variables ให้เสร็จก่อนการเปลี่ยนแปลงที่เข้า release path; workflow รอ build ของ SHA เดียวกันและหยุดเมื่อหา build ที่ตรงกันไม่ได้
 
-## สมมติฐาน ค่าใช้จ่าย และความเสี่ยง
+## เตรียม Cloud Shell
 
-- ใช้ **disposable Google Cloud project ที่ไม่มี Cloud Run workload อื่น** เท่านั้น: Binary Authorization default policy เป็นระดับ project และมีผลกับ Cloud Run services/jobs ใน project ไม่ใช่เฉพาะ Lab. ก่อน apply ต้อง export/ตรวจ policy เดิมและหยุดหากมี rule/custom policy ที่ต้องเก็บ; ห้ามใช้ project ที่มี workload สำคัญ
-- ผู้เรียนมี Billing project และสิทธิ์เชื่อม GitHub App, เปิด APIs, จัดการ IAM/WIF/KMS/Binary Authorization/Cloud Build/Artifact Registry/Cloud Deploy/Cloud Run ได้; การสร้าง GitHub App connection ครั้งแรกทำผ่าน Cloud Build Repositories UI และติดตั้งเฉพาะ repository นี้
-- Cloud Build trigger จำกัด main และใช้ user-managed builder service account; ก่อนให้สิทธิ์ `cloudbuild.builds.create` กับ trigger/operator ตรวจ default/legacy Cloud Build service account ว่าไม่มีสิทธิ์เกินจำเป็น เพราะ permission นี้อาจอนุญาตให้เริ่ม build ด้วย identity เริ่มต้นได้. Lab ไม่มอบสิทธิ์สร้าง build ให้ GitHub WIF
-- Cloud Build, Cloud Run, Artifact Registry storage, Cloud Logging, Cloud KMS key และ Cloud Deploy อาจคิดค่าใช้จ่าย; ก่อน run จริงต้องตรวจราคา/quota/region ปัจจุบัน, จำกัด build concurrency/timeout, Cloud Run min instances เป็นศูนย์และ max instances ต่ำ, และมี cleanup checklist
-- ไม่ใช้ production traffic, customer data หรือ load test ที่ยิงไม่จำกัด; probes มีจำนวน/timeout ตายตัวและ app ใช้ข้อมูลสังเคราะห์
-- WIF trusts protected main workflow; ผู้ที่แก้/merge release workflow บน main อยู่ใน trust boundary. Stronger organization-level separation (reviewer-protected environments, separate projects/attestor owners) เป็น extension และต้องระบุว่าไม่ได้ตั้งค่าใน baseline หากผู้เรียนไม่ทำ
-- Cloud Run Binary Authorization ใช้ default policy; Cloud Run service-specific rules แบบ GKE ใช้ไม่ได้ใน baseline. Policy changes ไม่ retroactively apply ต่อ revision เดิม; ต้องพิสูจน์ reject ด้วย revision ใหม่ที่ไม่มี attestation
-- เอกสาร Cloud Run ระบุ built-by-cloud-build attestor เป็น Preview จึง baseline ใช้ custom attestor + Cloud KMS; ตรวจสถานะบริการและ CLI/API ก่อนทำจริง.
+### Task 00 — ตรวจ project และความเสี่ยงก่อนสร้าง
 
-## หลักฐานสำหรับ Case Study
+1. เปิด Google Cloud Console แล้วเลือก project สำหรับ Lab 14 โดยตรวจ project ID ให้ตรงกับ project ที่อนุมัติใช้เป็น disposable
+2. ไปที่ **Billing** ตรวจว่า project เชื่อม Billing account แล้ว อย่าใช้ project ที่ยังมี application หรือ workload ที่ต้องคงอยู่
+3. เปิด **Binary Authorization** และตรวจ/ส่งออก policy ปัจจุบันก่อนเริ่ม. หากมี policy, attestor, allowlist หรือ workload ที่ไม่เข้าใจ ให้หยุดและใช้ project ใหม่
+4. เปิด **Cloud Run** และตรวจว่าไม่มี service/job ที่ต้องเก็บ. อย่าทดลองกับ project ที่ใช้ร่วมกับ Lab อื่น
+5. ยืนยันว่า human approver เป็นคน/กลุ่มคนละ identity กับ GitHub releaser และตัวเองมีสิทธิ์ขอให้เพิ่ม role ตามที่องค์กรอนุญาต
 
-เมื่อทำ Guide เสร็จ แต่ละ Task จะมีช่อง Actual/Evidence ติดกับจุดตรวจ ให้บันทึกอย่างน้อย:
+**Expected:** project ว่างสำหรับ Lab, Billing พร้อม, ไม่มี policy/workload เดิมที่ต้องปกป้อง และมีผู้อนุมัติ Production ที่ระบุตัวได้
 
-- release ID, commit SHA, image digest, build ID และ attestation/attestor
-- WIF subject/claims ที่ sanitize แล้ว, identity ที่ใช้งาน, และผล negative authorization
-- staging/production rollout IDs, approval principal, canary percentages และ verification output
-- regression ที่ใช้, จุดที่ rollout หยุด, rollback ID และ traffic/revision หลัง recovery
-- exception owner/reason/scope/expiry พร้อม policy-test result
-- เวลาเริ่ม–จบเฉพาะที่วัดจริง, ค่าใช้จ่ายจาก Billing ที่มีช่วงเวลา/ขอบเขตชัด และ cleanup inventory
-- สิ่งที่ไม่สำเร็จ, สิ่งที่ยังไม่ได้ตรวจ และสิ่งที่ต้องปรับก่อนใช้กับ production จริง
+**Actual (กรอกหลังทำ):** Project ID: ______ · Billing ตรวจเมื่อ: ______ · policy/workloads ก่อนเริ่ม: ______
 
-ไม่กรอก Expected ลงช่อง Actual และไม่ใช้ผล CI แทนผล Cloud
+**Evidence:** บันทึกเฉพาะ project ID, หน้าจอ/URL ที่ไม่เปิดเผยข้อมูล billing และผล inventory ก่อนสร้าง: ______
 
-## แหล่งอ้างอิงทางการสำหรับช่วง Design
+### Task 01 — เปิด Cloud Shell และตรวจตัวตน
 
-- [Workload Identity Federation สำหรับ deployment pipelines](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines) — GitHub OIDC claims, immutable repository ID, attribute mapping/condition และ short-lived credentials
-- [Cloud Build repositories](https://docs.cloud.google.com/build/docs/repositories) — GitHub App connection และ repository integration
-- [Cloud Build triggers](https://docs.cloud.google.com/build/docs/triggers) — trigger ตาม branch/commit และ build configuration
-- [Cloud Build IAM roles and permissions](https://docs.cloud.google.com/build/docs/iam-roles-permissions) — `builds.create`, trigger permissions และข้อควรระวังของ Cloud Build Editor
-- [Cloud Build user-managed service accounts](https://docs.cloud.google.com/build/docs/securing-builds/configure-user-specified-service-accounts) — กำหนด SA ประจำ trigger และ log writer
-- [Cloud Deploy targets สำหรับ Cloud Run](https://docs.cloud.google.com/deploy/docs/run-targets) — target, Skaffold, Cloud Run service และข้อจำกัด canary สำหรับ jobs
-- [Cloud Deploy pipeline และ targets](https://docs.cloud.google.com/deploy/docs/create-pipeline-targets) — requireApproval และการจัด target
-- [Cloud Deploy canary สำหรับ Cloud Run](https://docs.cloud.google.com/deploy/docs/deployment-strategies/canary/cloud-run) — traffic progression และ verify ต่อ phase
-- [Cloud Deploy deployment verification](https://docs.cloud.google.com/deploy/docs/verify-deployment) — verification task result และ rollout failure
-- [Cloud Deploy service accounts](https://docs.cloud.google.com/deploy/docs/cloud-deploy-service-account) — per-target execution identities, jobRunner, runtime roles และ caller `actAs`
-- [Binary Authorization REST: Attestors](https://docs.cloud.google.com/binary-authorization/docs/reference/rest/v1/projects.attestors) — attestor delegation SA ต้องอ่าน occurrences บน note
-- [Cloud Deploy IAM roles and permissions](https://docs.cloud.google.com/deploy/docs/iam-roles-permissions) — Releaser/Approver/Runner roles
-- [Binary Authorization สำหรับ Cloud Run](https://docs.cloud.google.com/binary-authorization/docs/run/overview) — policy scope, enforcement และข้อจำกัด Cloud Run
-- [สร้าง Binary Authorization attestation ด้วย Cloud KMS](https://docs.cloud.google.com/binary-authorization/docs/making-attestations) — payload, signing key และ roles สำหรับ attestation
-- [Artifact Registry IAM](https://docs.cloud.google.com/artifact-registry/docs/access-control) — scope ของ writer/reader บน repository
+เปิด Cloud Shell จาก Console แล้วตรวจ active account และ project:
 
-## Design decisions
+~~~bash
+gcloud auth list
+gcloud config get-value project
+gcloud version
+terraform version
+~~~
 
-- **Build event:** Cloud Build GitHub App repository trigger รับเฉพาะ push ที่ `main`, ใช้ config/trigger ที่ล็อกไว้ และ builder service account แยก. PR checks ไม่ได้รับ cloud identity และ GitHub WIF ไม่มี `cloudbuild.builds.create`.
-- **Release race:** push เดียวกันเริ่ม build trigger และ release workflow พร้อมกัน; workflow poll แบบ bounded และยืนยัน build ID/trigger ID/commit SHA/status/builder identity/image digest ก่อนส่งต่อ. ไม่มี fallback ไป build ล่าสุดหรือ tag mutable
-- **Workload Identity Federation:** provider ใช้ immutable `repository_id` ร่วมกับ `ref`, `workflow_ref` และ GitHub Environment claims; map environment เพื่อ bind `gcp-attest` และ `gcp-release` ไปคนละ service account. ไม่มี long-lived key
-- **IAM:** builder เขียนได้เฉพาะ Artifact Registry repository และเขียน build logs; attestor อ่าน build results + sign/attach attestation; releaser สร้าง release เท่านั้น; Cloud Deploy execution service account deploys/verifies และ runtime service account ไม่มี permission เพิ่ม; production approver เป็น human identity แยก
-- **Image admission:** ใช้ custom Binary Authorization attestor ที่รับ KMS-signed attestation; default project policy ครอบคลุม Cloud Run ทั้ง project จึงบังคับใช้กับ disposable project ที่ว่างเท่านั้น
-- **Deployment:** Cloud Deploy targets เป็น Cloud Run services; production target บังคับ approval และ canary verification. Deploy baseline ก่อนเพื่อให้มี revision เดิมที่จะแบ่ง traffic
-- **App/verification:** Quote API deterministic, no database/external dependency; `/healthz` แยกจาก business quote route. Canary verifier ตรวจ expected quote response จึงจับ regression ที่ health check ตรวจไม่พบ; ทุก probe มี timeout/count limit
-- **Evidence:** ทุก Task มีช่อง Expected/Actual/Evidence อยู่ติด checkpoint; CI ตรวจไฟล์และ render ได้แต่ไม่แทนผล Cloud. บันทึก build/deploy IDs, commit/digest, sanitized identity/approval, canary outcome, rollback และ cleanup inventory โดยไม่แนบ secrets.
+อย่าคัดลอก access token, credential file หรือข้อมูล Billing ลงหลักฐาน. ถ้า Cloud Shell ไม่มี Terraform ให้ติดตั้ง/เปิดใช้ตามคู่มือทางการของ Terraform ที่องค์กรอนุมัติ; อย่าดาวน์โหลด binary จากแหล่งที่ไม่รู้จัก
 
-## ขั้นถัดไป
+**Expected:** active account เป็นผู้เรียน, Cloud SDK ใช้งานได้ และ Terraform เป็นรุ่นที่รองรับไฟล์ Lab
 
-Design checkpoint ปิดแล้วด้วย architecture contract CI #346 และทบทวน role/scope: แยก renderer/deployer identities และเพิ่ม note-occurrence viewer ให้ Binary Authorization attestor delegation SA. ขั้นถัดไปเริ่ม Materials: Quote API ที่รันทดสอบได้, Cloud Build config, WIF release workflow, Cloud Deploy/Skaffold manifests, Terraform และ offline integration tests. เมื่อ materials ผ่าน CI แล้วจึงเขียน Task Guide แบบคลิก/คำสั่ง/ผลคาดหวัง/วิธีแก้ failure และช่อง Actual/Evidence ให้ครบ; ไม่มีการสร้าง GCP resources ระหว่างจัดทำเอกสาร.
+**Actual:** account ที่ sanitize แล้ว: ______ · Terraform version: ______
+
+**Evidence:** command output ที่ตัด token/account-sensitive fields แล้ว: ______
+
+### Task 02 — ดึง source ที่ผ่าน review และกำหนดตัวแปร
+
+ทำขั้นนี้เมื่อ Lab materials อยู่บน `main`. ถ้ายังไม่อยู่ ให้หยุดที่การอ่านคู่มือ/ตรวจ source; อย่าใช้ branch feature เพื่อทดลอง trusted release.
+
+~~~bash
+git clone --branch main https://github.com/somkid-s5/Portfolio-Lab.git
+cd Portfolio-Lab
+git status --short
+cd GCP/LAB-014-secure-app-delivery
+export PROJECT_ID="ใส่-project-id-ที่อนุมัติ"
+export REGION="asia-southeast1"
+export LAB_DIR="$PWD"
+gcloud config set project "$PROJECT_ID"
+gcloud config set run/region "$REGION"
+~~~
+
+แทนค่าตัวอย่าง project ID ด้วยค่าจริงที่ได้รับอนุมัติ. ตรวจว่า `git status --short` ว่างก่อนเริ่ม และอย่าพิมพ์ command พร้อม credential ลงหลักฐาน
+
+**Expected:** source มาจาก main, project/region ตรงกับ preflight และไม่มี local modification
+
+**Actual:** commit SHA: ______ · project/region: ______
+
+**Evidence:** commit URL และ output ของ `gcloud config list` ที่ sanitize แล้ว: ______
+
+## สร้าง Foundation
+
+### Task 03 — สร้าง Cloud Build GitHub connection
+
+Terraform จะสร้าง repository binding และ trigger แต่ GitHub App connection ต้องสร้างครั้งแรกใน Console:
+
+1. ยืนยันว่าเปิด Cloud Build API ใน project นี้แล้ว; ถ้ายังไม่เปิด ให้เปิดเฉพาะ API นี้ก่อน เพราะยังต้องใช้ Console เชื่อม repository
+2. ไปที่ **Cloud Build → Repositories** (หรือ **Repositories → Manage connections** ตามหน้า Console ปัจจุบัน) แล้วเลือกสร้าง connection แบบ GitHub / 2nd gen
+3. เลือก region `asia-southeast1` เดียวกับ Terraform; ตั้งชื่อ connection เช่น `lab014-github`
+4. กด **Connect** เพื่อไป GitHub และ authorize Google Cloud Build GitHub App. ติดตั้ง App กับ repository `somkid-s5/Portfolio-Lab` นี้เท่านั้น ไม่เลือก all repositories
+5. กลับ Console แล้วตรวจ connection เป็น **Available/Connected**; จด full resource name รูปแบบ `projects/PROJECT_ID/locations/REGION/connections/CONNECTION_ID`
+
+อย่าใส่ personal access token หรือ GitHub credential ลง Terraform. หากองค์กรไม่อนุญาตให้ติดตั้ง GitHub App ให้หยุดและขอผู้ดูแล ไม่ใช้ PAT เป็นทางลัด
+
+**Expected:** Cloud Build connection อยู่ใน project/region ที่ตั้งใจและมองเห็น repository นี้เท่านั้น
+
+**Actual:** Connection name/status: ______
+
+**Evidence:** connection resource name และสถานะจาก Console (ไม่แนบ secret): ______
+
+### Task 04 — ตั้งค่าและตรวจ Terraform plan
+
+ใน Cloud Shell จากโฟลเดอร์ Lab สร้างไฟล์ `infra/terraform.tfvars` ที่ไม่ commit. ใส่ค่าจริงของ project, connection และคนอนุมัติ; ตัวอย่างต่อไปนี้เป็นรูปแบบ ไม่ใช่ค่าที่นำไปใช้ได้ทันที:
+
+~~~hcl
+project_id = "ใส่-project-id"
+region = "asia-southeast1"
+cloudbuild_connection_id = "projects/ใส่-project-id/locations/asia-southeast1/connections/lab014-github"
+github_repository_uri = "https://github.com/somkid-s5/Portfolio-Lab.git"
+approver_principal = "user:อีเมลองค์กรผู้อนุมัติ"
+manage_project_binary_authorization_policy = true
+~~~
+
+ใช้ `user:email` หรือ `group:email` จริง และอย่าเลือกตัวเองเป็น approver ถ้าตัวเองเป็น owner ของการเปลี่ยนแปลง. ค่า `manage_project_binary_authorization_policy = true` จะเขียน default policy ระดับ project เพื่อบังคับ attestation; ตั้งค่านี้ได้ **ต่อเมื่อ** Task 00 ยืนยัน project ใหม่และ policy เดิมไม่มีสิ่งที่ต้องเก็บ. หากมี policy เดิม ให้หยุด ไม่ตั้ง false แล้วทำเหมือนได้พิสูจน์ Binary Authorization
+
+ตรวจว่าไฟล์ถูก ignore แล้ว จากโฟลเดอร์ `infra`:
+
+~~~bash
+cd "$LAB_DIR/infra"
+terraform fmt -check -recursive
+terraform init
+terraform validate
+terraform plan -var-file=terraform.tfvars -out=tfplan
+~~~
+
+อ่าน plan ทั้งหมดก่อน apply. ต้องเห็นเฉพาะ API, service accounts, WIF, KMS/attestor, Artifact Registry, IAM bindings, Cloud Build connection/trigger และ policy ที่เป็นของ Lab. หยุดถ้า plan จะลบ/เปลี่ยน resource ที่ไม่ใช่ Lab, ไป project ผิด, bind approver ผิด หรือจัดการ policy ที่ไม่รู้จัก
+
+**Expected:** fmt/init/validate ผ่าน; plan ไม่มี destroy/change ของ resource ที่อยู่นอก Lab และมี policy project-level ที่ตั้งใจสร้าง
+
+**Actual:** plan result: ______ · resource add/change/destroy: ______
+
+**Evidence:** commit SHA, สรุป plan ที่ตัดค่าลับออก และยืนยันว่าไม่ commit tfvars/state/plan: ______
+
+### Task 05 — สร้าง Foundation และยืนยัน trust boundary
+
+รัน apply เฉพาะ plan ที่อ่านแล้วใน Task 04:
+
+~~~bash
+terraform apply tfplan
+terraform output
+~~~
+
+บันทึกค่าจาก output สำหรับ GitHub variables ใน Task 07. `cloudbuild_trigger` ต้องไม่เป็น null; ถ้าเป็น null แปลว่า connection ID ไม่ได้ถูกตั้ง/อ่าน ให้หยุดก่อน release. ตรวจเพิ่ม:
+
+~~~bash
+gcloud builds triggers list --region="$REGION" --project="$PROJECT_ID"
+gcloud iam workload-identity-pools describe lab014-github --location=global --project="$PROJECT_ID"
+gcloud iam workload-identity-pools providers describe portfolio-lab-main --location=global --workload-identity-pool=lab014-github --project="$PROJECT_ID"
+gcloud artifacts repositories describe lab014-apps --location="$REGION" --project="$PROJECT_ID"
+gcloud iam service-accounts list --project="$PROJECT_ID" --filter="email~lab014-"
+~~~
+
+ใน Binary Authorization Console ตรวจว่า policy default rule ต้อง require attestation จาก `lab014-release-attestor`; ห้ามตั้ง allow-all, เพิ่ม allowlist หรือใช้ breakglass เพื่อให้ deploy ผ่าน. WIF condition ต้องชี้ repository ID `1428247317`, ref `refs/heads/main`, workflow ref `somkid-s5/Portfolio-Lab/.github/workflows/release.yml@refs/heads/main` และ Environment `gcp-attest`/`gcp-release`.
+
+**Expected:** trigger ใช้ builder SA เฉพาะ, WIF condition แคบตาม repository/ref/workflow/environment, service accounts แยกตามตาราง และ policy ผูก attestor ที่ถูกต้อง
+
+**Actual:** builder/attestor/releaser SA: ______ · trigger ID: ______ · WIF provider: ______ · policy: ______
+
+**Evidence:** Terraform outputs, trigger description, provider condition และ policy/attestor ที่ sanitize แล้ว: ______
+
+### Task 06 — ลงทะเบียน Cloud Deploy pipeline และ targets
+
+ไฟล์ `infra/clouddeploy.yaml` มี project/region placeholders สำหรับ target และ default service account ที่ manifest จะแทนด้วย deploy parameter. สร้าง temporary rendered file โดยแทนเฉพาะ project/region; อย่าใช้ `envsubst` เพราะอาจกิน parameter ของ Cloud Deploy:
+
+~~~bash
+export RENDERED_YAML="$(mktemp)"
+sed -e 's|[$]PROJECT_ID|'"$PROJECT_ID"'|g' -e 's|[$]REGION|'"$REGION"'|g' "$LAB_DIR/infra/clouddeploy.yaml" > "$RENDERED_YAML"
+grep -nE 'projects/|location:|name: (staging|production|lab014-quote-delivery)' "$RENDERED_YAML"
+gcloud deploy apply --file="$RENDERED_YAML" --region="$REGION" --project="$PROJECT_ID"
+gcloud deploy delivery-pipelines describe lab014-quote-delivery --region="$REGION" --project="$PROJECT_ID"
+gcloud deploy targets list --region="$REGION" --project="$PROJECT_ID"
+~~~
+
+ก่อน apply ตรวจไฟล์ที่ render แล้วว่าไม่มี `$PROJECT_ID`/`$REGION` ค้างอยู่; มี pipeline `lab014-quote-delivery`, target `staging` ที่ไม่ require approval และ `production` ที่ require approval. ตรวจ execution config ของแต่ละ target ให้ RENDER, DEPLOY, VERIFY ชี้ไปคนละ SA ตามชื่อใน Terraform outputs
+
+**Expected:** Cloud Deploy แสดง pipeline และ targets ใน project/region ที่เลือก; production gate เปิดอยู่
+
+**Actual:** pipeline/target IDs และ approval setting: ______
+
+**Evidence:** YAML ที่ render แล้วโดยลบ project-sensitive line หากจำเป็น, command output และ pipeline URL: ______
+
+## เชื่อม GitHub โดยไม่เก็บ key
+
+### Task 07 — ตั้ง GitHub Environments และตัวแปร non-secret
+
+ก่อน run release workflow ให้ตรวจ repository default branch เป็น `main` และ workflow file `.github/workflows/release.yml` อยู่บน main. ที่ GitHub repository ไป **Settings → Environments** แล้วสร้าง:
+
+- `gcp-attest`: จำกัด deployment branches เป็น `main`
+- `gcp-release`: จำกัด deployment branches เป็น `main`; เพิ่ม required reviewer ได้ตามนโยบายทีม
+
+GitHub Environment approval เป็น gate ก่อน release job ขอ credential; **ไม่ใช่** Cloud Deploy production approval. Production rollout ยังต้องผ่าน `roles/clouddeploy.approver` จาก human identity แยกต่างหาก
+
+ไปที่ **Settings → Secrets and variables → Actions → Variables** แล้วเพิ่ม Repository variables ต่อไปนี้ (ข้อมูลเหล่านี้เป็น resource identifiers ไม่ใช่ secret). อย่าสร้าง Service Account JSON key หรือใส่ credential ใน Secrets:
+
+| Variable | ค่า |
+|---|---|
+| `LAB014_PROJECT_ID` | project ID ของ disposable project |
+| `LAB014_REGION` | `asia-southeast1` |
+| `LAB014_WIF_PROVIDER` | ค่า Terraform output `github_wif_provider` |
+| `LAB014_ATTESTOR_SA` | ค่า Terraform output `attestor_service_account` |
+| `LAB014_RELEASER_SA` | ค่า Terraform output `releaser_service_account` |
+| `LAB014_CLOUDBUILD_TRIGGER_ID` | ค่า Terraform output `cloudbuild_trigger` (trigger UUID ไม่ใช่ full resource path) |
+| `LAB014_BUILDER_SA` | ค่า Terraform output `builder_service_account` |
+
+ตรวจ workflow permissions, commit pin ของ Actions, path filters และ Environment names จากหน้า Code. Pull request CI ไม่มี `id-token: write`; release workflow ขอ OIDC เฉพาะ job ที่มี Environment. อย่าเพิ่ม secret ที่เป็น key เพื่อแก้ WIF error
+
+**Expected:** Environment จำกัด branch main, ตัวแปรทั้ง 7 ชื่อตรง workflow, ไม่มี GCP key ใน Secrets
+
+**Actual:** Environment protection และ variable names ที่ตั้งแล้ว: ______
+
+**Evidence:** Settings screenshot ที่ไม่แสดงค่า secret, workflow run URL และผลตรวจ PR permissions: ______
+
+## Release และตรวจบริการ
+
+### Task 08 — รัน baseline จาก trusted commit และตรวจ staging
+
+ทำเมื่อ code/terraform/pipeline พร้อมทั้งหมด และการนำ PR ขึ้น main ผ่าน review/อนุมัติของผู้ใช้แล้ว. push ที่แตะ path ใน Lab จะทำให้ Cloud Build trigger และ release workflow ทำงานคู่กัน:
+
+1. ใน GitHub ไป **Actions → Lab 14 trusted release** แล้วตรวจ run จาก `refs/heads/main`. Pull request หรือ feature branch ต้องไม่สร้าง Cloud credential หรือ release
+2. เปิด Cloud Build → History เลือก build ของ commit เดียวกัน. ตรวจ status SUCCESS, trigger ID, builder SA, source SHA และ image digest
+3. รอ job `attest` ให้สำเร็จ; release workflow ต้องจับคู่ trigger, commit, builder, build status และ digest ก่อน sign. หาก timeout/mismatch/fail ให้หยุด ห้ามนำ digest เก่ามาแทน
+4. รอ job `release` ให้สำเร็จและสร้าง Cloud Deploy release ที่อ้าง image ด้วย `@sha256:...`. ไม่มี tag mutable เป็น deployment input
+
+ตรวจจาก Cloud Shell:
+
+~~~bash
+gcloud builds list --project="$PROJECT_ID" --region="$REGION" --filter="trigger_id=TRIGGER_UUID" --sort-by="~create_time" --limit=10
+gcloud deploy releases list --delivery-pipeline=lab014-quote-delivery --region="$REGION" --project="$PROJECT_ID"
+~~~
+
+แทน `TRIGGER_UUID` ด้วยค่า output จริง. เปิด release แล้วเทียบ source SHA, build ID และ image digest กับ GitHub/Cloud Build; staging rollout ต้องรัน verifier ผ่าน `/healthz` และ quote 455.00 ก่อน promotion
+
+**Expected:** Cloud Build, attestation และ GitHub release jobs สำเร็จบน SHA เดียว; Cloud Deploy ใช้ digest ตรงกันและ staging verification ผ่าน
+
+**Actual:** GitHub run: ______ · build ID: ______ · commit SHA: ______ · digest: ______ · staging rollout/verify: ______
+
+**Evidence:** links/IDs จาก GitHub Actions, Cloud Build, attestation และ Cloud Deploy release/rollout; ห้ามกรอกผลคาดหวังแทนผลจริง: ______
+
+### Task 09 — Promote staging ไป Production และอนุมัติ baseline
+
+การสร้าง release จะสร้าง rollout ไป target แรกคือ staging; ไม่ได้ข้ามไป production อัตโนมัติ. หลัง staging rollout สำเร็จและตรวจ digest/quote แล้ว ให้ promote release เดิม:
+
+~~~bash
+gcloud deploy releases promote --release="RELEASE_ID" --delivery-pipeline=lab014-quote-delivery --region="$REGION" --project="$PROJECT_ID"
+gcloud deploy rollouts list --delivery-pipeline=lab014-quote-delivery --release="RELEASE_ID" --region="$REGION" --project="$PROJECT_ID"
+~~~
+
+แทน `RELEASE_ID` ด้วย release ที่ตรวจแล้ว. เปิด production rollout ใน Cloud Deploy Console, เลือก **Review**, ตรวจ manifest diff, image digest, staging verification และ change record แล้วให้ผู้มี role `roles/clouddeploy.approver` กด **Approve**. หรือให้ approver รัน:
+
+~~~bash
+gcloud deploy rollouts approve "ROLLOUT_ID" --delivery-pipeline=lab014-quote-delivery --release="RELEASE_ID" --region="$REGION" --project="$PROJECT_ID"
+~~~
+
+ครั้งแรกของ target production อาจไม่มี revision เดิมให้แบ่ง traffic. Cloud Deploy จึงอาจแสดง canary phase เป็น SKIPPED และ deploy stable 100%; นี่เป็น bootstrap baseline ไม่ใช่หลักฐานว่าได้ทดสอบ canary. เก็บ phase state ตามที่เกิดจริง ห้ามเปลี่ยนให้รายงาน 10%/50% ถ้าไม่มี
+
+**Expected:** principal ผู้อนุมัติเป็น human identity ที่ได้รับ role; baseline revision ใช้ digest เดียวกับ staging; สถานะ canary รอบแรกบันทึกตามจริง
+
+**Actual:** approver: ______ · production rollout: ______ · phase/traffic จริง: ______
+
+**Evidence:** approval event, rollout state, rendered manifest diff, image digest และ audit log: ______
+
+### Task 10 — ตรวจ private access, API contract และ logs
+
+ดึง canonical service URL จาก Cloud Run; ทำซ้ำกับ staging และ production ตามเวลาที่ service พร้อม:
+
+~~~bash
+export SERVICE_URL="$(gcloud run services describe quote-api-staging --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)')"
+export TOKEN="$(gcloud auth print-identity-token --audiences="$SERVICE_URL")"
+curl --fail-with-body --silent --show-error -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/healthz"
+curl --fail-with-body --silent --show-error -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/version"
+curl --fail-with-body --silent --show-error -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/api/v1/quote?origin=BKK&destination=CNX&weight_kg=5"
+unset TOKEN
+~~~
+
+คาดว่า health เป็น 200/ok, version แสดง commit SHA/revision จริง, quote เป็น 455.00 THB. สำหรับ negative access ให้เรียก `curl -i "$SERVICE_URL/healthz"` โดยไม่มี Authorization; คาดว่า request ถูกปฏิเสธ (โดยทั่วไป HTTP 401/403). ถ้าได้ 200 ให้หยุดและตรวจ Invoker IAM/public access ก่อนทำต่อ
+
+ตรวจ request ID จาก response header และ structured log:
+
+~~~bash
+gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="quote-api-staging" AND jsonPayload.event="quote.created"' --project="$PROJECT_ID" --limit=5 --format="table(timestamp,jsonPayload.request_id,jsonPayload.commit_sha,jsonPayload.cloud_run_revision,jsonPayload.amount_thb)"
+~~~
+
+Log ต้องเชื่อม request ID, commit และ revision ได้; ไม่คาดหวัง image digest ใน app log เพราะ digest เก็บจาก Cloud Build/Cloud Deploy metadata. ห้ามนำ token หรือ full Authorization header เข้า evidence
+
+**Expected:** ไม่มี auth แล้วเข้าไม่ได้; authenticated request ผ่าน health/business path; log ระบุ request/commit/revision โดยไม่เปิดเผย token
+
+**Actual:** service URL (เก็บใน private evidence หากจำเป็น): ______ · status/quote: ______ · request ID: ______
+
+**Evidence:** HTTP output ที่ไม่ติด token, version, log query และ Cloud Run revision/digest metadata: ______
+
+### Task 11 — ปฏิเสธ image ที่ไม่มี attestation
+
+ทำเฉพาะ disposable project. สร้าง image ทดสอบด้วย manual Cloud Build ที่ใช้ builder identity แต่ **ไม่ใช่ GitHub trigger** จึงไม่ผ่าน release workflow และไม่มี Lab attestation. สร้าง temporary context จาก app files ใน Cloud Shell:
+
+~~~bash
+export TEST_DIR="$(mktemp -d)"
+export TEST_TAG="untrusted-$(date -u +%Y%m%d%H%M%S)"
+mkdir -p "$TEST_DIR/app" "$TEST_DIR/tools"
+cp "$LAB_DIR/app/Dockerfile" "$TEST_DIR/Dockerfile"
+cp "$LAB_DIR/app/quote_api.py" "$TEST_DIR/app/quote_api.py"
+cp "$LAB_DIR/app/requirements.txt" "$TEST_DIR/app/requirements.txt"
+cp "$LAB_DIR/tools/verify_quote.py" "$TEST_DIR/tools/verify_quote.py"
+gcloud builds submit "$TEST_DIR" --project="$PROJECT_ID" --region="$REGION" --service-account="projects/$PROJECT_ID/serviceAccounts/lab014-builder@$PROJECT_ID.iam.gserviceaccount.com" --tag="$REGION-docker.pkg.dev/$PROJECT_ID/lab014-apps/untrusted-quote-api:$TEST_TAG"
+~~~
+
+ถ้าผู้ใช้ไม่มี `cloudbuild.builds.create` หรือ `iam.serviceAccounts.actAs` บน builder SA ให้หยุดและขอสิทธิ์ตามนโยบาย; อย่าเพิ่ม project-wide Editor เพื่อข้ามปัญหา. ตรวจว่า manual build ไม่มี trigger ID และ digest นี้ไม่มี occurrence จาก attestor `lab014-release-attestor`.
+
+จาก Cloud Run Console เปิด `quote-api-staging` → **Edit and deploy new revision** → เปลี่ยน image เป็น tag `untrusted-quote-api` ที่เพิ่งสร้าง → Deploy. คาดว่า Binary Authorization ปฏิเสธการสร้าง revision เพราะ digest ไม่มี attestation; ห้ามกด breakglass. หลัง rejection ตรวจว่า revision และ traffic เดิมยังอยู่และ request ที่ผ่านการยืนยันยังได้ 455.00. ถ้า deploy ผ่าน ให้หยุดทันทีและตรวจ policy/attestor; อย่ารายงาน PASS
+
+**Expected:** image มี digest จริงแต่ไม่มี Lab attestation; Cloud Run admission ปฏิเสธ revision ใหม่และไม่ย้าย traffic
+
+**Actual:** untrusted build ID/digest: ______ · denial result: ______ · revision/traffic ก่อน–หลัง: ______
+
+**Evidence:** build record, attestation lookup, sanitized denial event และ probe ของ revision เดิม: ______
+
+### Task 12 — ทำ regression, หยุด canary และ rollback
+
+ขั้นนี้เปลี่ยน production config จริงใน disposable project. รอให้ baseline production มี revision สำเร็จก่อน; ใช้ PR/review ตาม branch protection อย่าแก้ production จริง. ใน branch สำหรับ change request แก้เฉพาะ `deploy/service-production.yaml` จาก `QUOTE_PRICE_FACTOR=1.00` เป็น `1.20`, ตรวจ diff และส่งผ่าน review. หลังการเปลี่ยนแปลงที่อนุมัติเข้า main:
+
+1. Cloud Build สร้าง/ทดสอบ image ใหม่และ workflow รับรอง digest ของ commit ใหม่; ตรวจ staging ก่อน
+2. Promote release ไป production และให้ human approver ตรวจเหตุผล/manifest diff แล้ว approve
+3. ตรวจ rollout phase `canary-10` และ traffic split จริง. Verifier เรียก business endpoint; health ยังผ่านแต่ราคาเป็น 539.00 แทน 455.00 จึงควร fail ที่ verification
+4. **อย่ากด Advance rollout** เมื่อ verify fail. เก็บ rollout/job log และยืนยัน traffic ยังไม่เป็น stable 100%; หาก Cloud Deploy แสดง traffic แตกต่างจากที่คาด ให้หยุดและตรวจ revision/phase แทนการเดาต่อ
+
+เมื่อบันทึก failure แล้ว rollback target production ไป baseline release ที่รู้ว่าดี:
+
+~~~bash
+gcloud deploy targets rollback production --delivery-pipeline=lab014-quote-delivery --release="BASELINE_RELEASE_ID" --region="$REGION" --project="$PROJECT_ID"
+gcloud deploy rollouts list --delivery-pipeline=lab014-quote-delivery --region="$REGION" --project="$PROJECT_ID"
+~~~
+
+ถ้ามี approval pending สำหรับ rollback ให้ผู้อนุมัติพิจารณาตามขั้นตอนปกติ; ห้าม bypass. หลัง rollback ตรวจ private health, version, quote 455.00 และ traffic/revision. จากนั้น revert production manifest กลับ factor 1.00 ด้วย PR/review เพื่อให้ source กลับตรงกับ baseline; การ revert บน main อาจสร้าง build/release ใหม่ตาม path filter ให้ดำเนิน promotion/approval ตาม pipeline ไม่สร้าง manual release จาก tag
+
+**Expected:** release regression fail ที่ quote verification ใน canary phase; traffic ไม่เลื่อนไป stable; rollback และตรวจซ้ำยืนยัน baseline
+
+**Actual:** change commit: ______ · release/digest: ______ · failing phase/job: ______ · traffic ก่อน rollback: ______ · rollback rollout: ______ · quote/traffic หลัง rollback: ______
+
+**Evidence:** PR/diff, build/attestation, approval, Cloud Deploy phase/job output, audit logs, revision/traffic และ successful post-rollback probe: ______
+
+### Task 13 — ตรวจ Change Request record
+
+Checker ใน `tools/check_change_request.py` ตรวจรูปแบบ record เท่านั้น ไม่แก้ Binary Authorization policy, ไม่อนุมัติ deployment และไม่สร้าง breakglass path. ทดสอบ suite ที่มี pending/expired/missing owner/self-approval/invalid digest cases:
+
+~~~bash
+cd "$LAB_DIR"
+python3 -m unittest discover -s tests -p 'test_change_request.py' -v
+~~~
+
+จากนั้นสร้าง JSON สำหรับ change จริงโดยใส่ field ครบตามตาราง. ใช้เวลาปัจจุบัน UTC ใน RFC 3339, expiry หลัง created_at และไม่เกิน 30 วัน, owner กับ approver ต้องคนละ identity, digest ต้องเป็น SHA-256 จริง และ scope ต้องระบุ resource ใน project:
+
+| Field | สิ่งที่ใส่ |
+|---|---|
+| `request_id` | รูปแบบเช่น CR-2026-01; ใช้ ID ไม่ซ้ำ |
+| `owner`, `approver` | `user:...` หรือ `group:...`; ต้องไม่ใช่ identity เดียวกัน |
+| `reason` | เหตุผล 20–500 ตัวอักษร |
+| `resource_scope` | resource path ที่เริ่ม `projects/...` |
+| `digest` | `sha256:` ตามด้วย hex lowercase 64 ตัว |
+| `approval_status` | PENDING, APPROVED หรือ REJECTED |
+| `approval_reference` | ว่างเมื่อยังไม่ APPROVED; ถ้า APPROVED ต้องชี้หลักฐานจริง |
+| `created_at`, `expires_at` | RFC 3339 พร้อม UTC offset; อายุไม่เกิน 30 วันและยังไม่หมดอายุ |
+
+รัน `python3 tools/check_change_request.py /path/to/change-request.json`. ผล valid หมายถึง record ผ่านรูปแบบ/เวลาที่ checker กำหนดเท่านั้น ไม่ได้แปลว่า approver อนุมัติ Cloud Deploy หรือ policy ยอมรับ exception. อย่าใช้ record นี้แทนการตรวจ attestation หรือเป็นเหตุให้ข้าม Binauth
+
+**Expected:** unit tests ผ่าน; valid record แสดง `"result":"valid"`; เปลี่ยน expiry เป็นอดีตหรือเอา owner ออกแล้ว checker จบ non-zero พร้อม result invalid
+
+**Actual:** request ID/digest (ถ้าแชร์ได้): ______ · valid result: ______ · negative result: ______
+
+**Evidence:** record ที่ลบข้อมูลส่วนบุคคลตามต้องการ, checker output และ approval reference จริงหรือสถานะ pending: ______
+
+### Task 14 — Operations, audit และ inventory ก่อน cleanup
+
+ก่อนลบ ให้เก็บหลักฐาน R1–R10 และ inventory resource IDs/region/owner. ตรวจ release/rollout ที่ pending; อย่าลบ pipeline ที่ยังมี rollout ทำงาน. เก็บเฉพาะ metadata ที่จำเป็น เช่น GitHub run URL, build ID, digest, attestation/attestor, release/rollout ID, approver, revision, traffic, probes, timestamps และปัญหาที่พบ. ห้ามเก็บ access token, credential file, private key หรือข้อมูล Billing
+
+| สิ่งที่ตรวจ | วิธีดู |
+|---|---|
+| Cloud Run revisions/traffic | Cloud Run → service → Revisions/Traffic; จด service, revision และ percent จริง |
+| Cloud Deploy phases/jobs | Delivery pipelines → pipeline → release/rollout → phase/job; เก็บ failed verify ก่อน rollback |
+| Build/digest | Cloud Build → History → build ของ commit; เชื่อมกับ Artifact Registry digest |
+| Attestation | Binary Authorization → Attestors/Occurrences; ตรวจชื่อ attestor และ image digest |
+| Security/audit | Logs Explorer: Cloud Run request logs, Cloud Build, Cloud Deploy approval/deploy events, Binary Authorization denial |
+| Resource inventory | Cloud Run services, Cloud Deploy pipeline/targets/releases, Artifact Registry packages/images, Cloud Build trigger/repository connection, WIF pool/provider, service accounts/IAM, KMS key/version, policy, Cloud Deploy storage buckets |
+
+**Expected:** หลักฐานเชื่อมเหตุการณ์ commit → build → digest → attestation → staging → approval → canary/rollback ได้โดยไม่เปิดเผย secret; inventory ระบุ resource ของ Lab ชัดเจน
+
+**Actual:** สิ่งที่ตรวจครบ/ขาดและเหตุผล: ______
+
+**Evidence:** inventory พร้อม timestamp/region และลิงก์ log/query ที่ sanitize แล้ว: ______
+
+### Task 15 — Cleanup อย่างระวังและตรวจซ้ำ
+
+Cleanup เป็น destructive. เก็บ/export evidence ก่อน แล้วตรวจ project ID และ resource names ซ้ำทุกครั้ง. อย่าลบ project, policy, key หรือ connection ที่มี resource ร่วมโดยอัตโนมัติ
+
+1. ปฏิเสธ approval ที่ไม่ต้องการและยุติ rollout ที่ยังค้างตาม Cloud Deploy workflow; ตรวจว่าไม่มี rollout ที่กำลังทำงาน
+2. ลบ Cloud Run services ของ Lab เท่านั้น:
+   
+   ~~~bash
+   gcloud run services delete quote-api-staging --region="$REGION" --project="$PROJECT_ID"
+   gcloud run services delete quote-api-production --region="$REGION" --project="$PROJECT_ID"
+   ~~~
+
+3. ลบ Cloud Deploy pipeline/release/rollout หลัง export evidence; `--force` จะลบ release/rollout ย่อยของ pipeline ด้วย ตรวจชื่อก่อนยืนยัน:
+   
+   ~~~bash
+   gcloud deploy delivery-pipelines delete lab014-quote-delivery --region="$REGION" --project="$PROJECT_ID" --force
+   gcloud deploy targets delete staging --region="$REGION" --project="$PROJECT_ID"
+   gcloud deploy targets delete production --region="$REGION" --project="$PROJECT_ID"
+   ~~~
+
+4. ตรวจ Artifact Registry package/image list และลบ image ของ Lab ทีละ digest/tag ที่บันทึกไว้ รวม untrusted test image; อย่าลบ repository ถ้ายังมี image หรือไม่ตรง Lab
+5. กลับ `infra` แล้วตรวจ `terraform plan -destroy -var-file=terraform.tfvars`; plan อาจลบ project-wide Binary Authorization policy, IAM, APIs bindings, WIF, trigger, repository, attestor และ KMS resources. ตรวจอีกครั้งว่า project ไม่มี workload อื่นก่อนยืนยัน `terraform destroy -var-file=terraform.tfvars`
+6. Cloud KMS key version มีช่วง scheduled destruction (ค่า default ของ Cloud KMS ปัจจุบัน 30 วัน); การตั้ง destruction เป็นการกระทำถาวรหลังพ้นช่วงกู้คืน. อ่านสถานะ key version และคำเตือนใน plan/Console ก่อนยืนยัน. ถ้าไม่ตั้งใจ schedule key destruction ให้หยุดก่อน Terraform destroy และทำ cleanup แบบเก็บ KMS/state ที่เหลือไว้หรือให้ผู้ดูแลวางแผนเฉพาะ
+7. Cloud Build GitHub connection สร้างด้วยมือและอาจมีการใช้งานอื่น; ลบ connection/GitHub App installation เฉพาะเมื่อยืนยันว่าไม่มี trigger/repository อื่นใช้อยู่
+8. หลัง cleanup ตรวจ Cloud Run services, Cloud Deploy targets/pipeline, Artifact Registry packages, Cloud Build triggers, WIF, IAM bindings และ Binary Authorization policy ซ้ำ. เก็บ timestamp/result; ไม่รายงาน “ลบหมด” ถ้ายังมี KMS key/version, bucket, image หรือ API ที่คงอยู่
+
+**Expected:** ลบเฉพาะ resource ของ Lab หลังหลักฐานครบ; บันทึก key/policy/connection ที่ตั้งใจเก็บและ resource ที่ยังคงอยู่
+
+**Actual:** เริ่ม/จบ cleanup: ______ · deleted: ______ · retained: ______ · blockers: ______
+
+**Evidence:** destroy plan ที่ review แล้ว, command result และ inventory หลัง cleanup: ______
+
+## Troubleshooting
+
+| อาการ | ตรวจอะไร | วิธีทำต่ออย่างปลอดภัย |
+|---|---|---|
+| Terraform plan แสดง policy/resource ที่ไม่คาดคิด | project ID, state, policy เดิม, tfvars | หยุด apply; ใช้ dedicated project ใหม่หรือให้ policy owner review |
+| GitHub connection ใช้ไม่ได้/trigger null | API, region, repository installation, full connection resource name | แก้ connection input แล้ว plan ใหม่; อย่าสร้าง trigger ด้วย PAT |
+| GitHub auth action ปฏิเสธ WIF | repo ID, branch/ref, workflow path/ref, Environment name, provider output, branch protection | ตรวจ provider condition และ vars; ห้ามแก้ condition ให้กว้างหรือเพิ่ม key |
+| Release รอ build แล้ว timeout | trigger ID, region, commit SHA, trigger filters, Cloud Build history | ตรวจว่ามี build ของ SHA เดียวกันและ trigger จริง; ห้ามเลือก build ล่าสุด/digest เก่า |
+| Attestation ไม่ผ่าน | digest, KMS key version/state, attestor public key/note, attestor SA roles | เทียบ digest จาก build, ตรวจ KMS และ note IAM; ห้ามลด Binary Authorization |
+| Deploy ปฏิเสธ image ที่คิดว่าลงนามแล้ว | Cloud Deploy digest, attestation occurrence/attestor, Binauth error | ยืนยันว่าเป็น digest เดียวกันและ policy ใช้ attestor นี้; ห้าม breakglass |
+| Cloud Deploy render บอก service account ผิด | release มี deploy parameter `runtime-service-account` หรือไม่ และชื่อ SA อยู่ project ถูกต้องหรือไม่ | สร้าง release ใหม่จาก digest ที่ตรวจแล้วพร้อม parameter ถูกต้อง; อย่าแก้ live service ด้วย default identity |
+| Staging verifier ได้ 401/403 | service Invoker IAM, verifier identity, token audience canonical service URI, ingress | ตรวจ verifier SA มี run.invoker และ audience เป็น canonical Cloud Run URI; อย่าเปิด unauthenticated |
+| Verifier บอกไม่พบ revision/tag/traffic | rollout phase, Cloud Run trafficStatuses, tag, percent | เก็บ API/output จริงและหยุด; อย่าฝืน advance โดยสมมติ phase |
+| Canary verify fail | quote response, expected factor, verify job logs, request ID | คง traffic ไว้, อย่า advance, เก็บ failed rollout แล้ว rollback release ที่รู้ว่าดี |
+| Rollback ไม่ผ่าน | release/rollout ที่เลือก, approval, attestation, policy, current pipeline version | ตรวจ diff และ approval ตามปกติ; ไม่ใช้ bypass policy |
+| ลบ Cloud Deploy ไม่ได้ | rollout ยัง active/pending หรือ resource names ไม่ตรง | ปิด/ยุติ rollout ตามสถานะและ export evidence ก่อนลองใหม่ |
+| Terraform destroy ติด KMS | key version lifecycle / destruction schedule / key ring | อย่าลบ state หรือใช้ force; ตรวจคำเตือนและเลือกเก็บ key หรือทำขั้นตอน KMS ที่อนุมัติ |
+
+## สรุป Case Study สำหรับ Portfolio
+
+กรอกหลังทำจริงเท่านั้น:
+
+> ออกแบบและทดลอง delivery platform สำหรับ Shipping Quote API บน Google Cloud โดยแยก build, artifact signing, release, deployment และ production approval ออกจากกัน ใช้ GitHub OIDC/WIF โดยไม่มี long-lived key, Cloud Build สร้าง image ที่ผูกกับ commit, Binary Authorization ตรวจ attestation และ Cloud Deploy คุม staging/canary/rollback
+>
+> **ผลที่วัดได้จริง:** [จำนวน run/build/release ที่ทดลอง, digest, canary/rollback outcome และช่วงเวลาที่วัดจริง]
+>
+> **หลักฐาน:** [GitHub Actions URL] · [Cloud Build ID] · [attestation] · [Cloud Deploy release/rollout] · [sanitized probe/log]
+>
+> **ข้อจำกัด/บทเรียน:** [สิ่งที่ fail, สิ่งที่ยังไม่ได้ทดสอบ, ค่าใช้จ่ายที่ตรวจจาก Billing และสิ่งที่ต้องเปลี่ยนก่อนใช้กับ production]
+
+ห้ามนำตัวเลข Expected, repository CI หรือแผนการทดลองมาเขียนเป็นผล Cloud จริง. ผลการทำ repository CI ไม่ใช่ Cloud-verified.
+
+## แหล่งอ้างอิงทางการ
+
+- [Workload Identity Federation สำหรับ deployment pipelines](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines) — claim, attribute condition และ short-lived credential
+- [เชื่อม Cloud Build กับ repositories](https://docs.cloud.google.com/build/docs/repositories) และ [Cloud Build triggers](https://docs.cloud.google.com/build/docs/triggers) — GitHub connection และ trigger
+- [Cloud Build user-managed service account](https://docs.cloud.google.com/build/docs/securing-builds/configure-user-specified-service-accounts) — service account และ logging
+- [Cloud Run authentication สำหรับ developer](https://docs.cloud.google.com/run/docs/authenticating/developers) — proxy, ID token, audience และ Invoker
+- [Binary Authorization บน Cloud Run](https://docs.cloud.google.com/binary-authorization/docs/run/overview) และ [สร้าง attestation](https://docs.cloud.google.com/binary-authorization/docs/making-attestations) — policy enforcement, attestor และ signing
+- [Cloud Deploy pipeline/targets](https://docs.cloud.google.com/deploy/docs/create-pipeline-targets) และ [deploy parameters](https://docs.cloud.google.com/deploy/docs/parameters) — register pipeline, target approval และ manifest parameters
+- [Cloud Deploy canary บน Cloud Run](https://docs.cloud.google.com/deploy/docs/deployment-strategies/canary/cloud-run) และ [จัดการ rollout](https://docs.cloud.google.com/deploy/docs/deployment-strategies/manage-rollout) — phase, verification และ first deployment
+- [Approve/reject rollout](https://docs.cloud.google.com/deploy/docs/promote-release) · [rollback target](https://docs.cloud.google.com/deploy/docs/roll-back) · [ลบ Cloud Deploy resources](https://docs.cloud.google.com/deploy/docs/delete-pipeline)
+- [ทำลายและกู้คืน Cloud KMS key versions](https://docs.cloud.google.com/kms/docs/destroy-restore) — scheduled destruction และระยะกู้คืน
+
+## Diagram attribution
+
+ดู [diagram provenance](assets/diagram-provenance.json). ไอคอน Google Cloud ใช้ตาม source/license ที่บันทึกไว้; สัญลักษณ์ generic ระบุชื่อ service โดยไม่อ้างว่าเป็น official icon
