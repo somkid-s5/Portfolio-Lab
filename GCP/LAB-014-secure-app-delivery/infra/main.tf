@@ -134,6 +134,7 @@ resource "google_artifact_registry_repository_iam_member" "execution_reader" {
   member     = each.value
 }
 resource "google_project_service_identity" "cloudbuild" {
+  provider   = google-beta
   project    = var.project_id
   service    = "cloudbuild.googleapis.com"
   depends_on = [google_project_service.enabled["cloudbuild.googleapis.com"]]
@@ -296,6 +297,7 @@ resource "google_binary_authorization_policy" "project" {
   ]
 }
 resource "google_project_service_identity" "clouddeploy" {
+  provider   = google-beta
   project    = var.project_id
   service    = "clouddeploy.googleapis.com"
   depends_on = [google_project_service.enabled["clouddeploy.googleapis.com"]]

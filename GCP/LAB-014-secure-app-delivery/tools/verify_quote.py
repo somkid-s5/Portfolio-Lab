@@ -64,7 +64,7 @@ def select_revision_url(
     return url.rstrip("/")
 
 
-def _cloud_run_target_url(timeout: int) -> str:
+def _cloud_run_target_url(timeout: int) -> tuple[str, dict[str, str]]:
     project = os.environ.get("CLOUD_RUN_PROJECT", "").strip()
     location = os.environ.get("CLOUD_RUN_LOCATION", "").strip()
     service = os.environ.get("CLOUD_RUN_SERVICE", "").strip()
@@ -92,9 +92,15 @@ def _cloud_run_target_url(timeout: int) -> str:
 
     from google.auth import default
     from google.auth.transport.requests import Request
+    from google.oauth2 import id_token
 
-    credentials, _ = default(scopes=[RUN_SCOPE])
-    credentials.refresh(Request())
+    request = Request()
+    try:
+        credentials, _ = default(scopes=[RUN_SCOPE])
+        credentials.refresh(request)
+    except Exception as exc:
+        raise RuntimeError(f"Cloud Run service lookup credentials failed: {type(exc).__name__}") from exc
+
     service_id = service.rsplit("/services/", 1)[-1]
     api_url = (
         f"{RUN_API}/projects/{urllib.parse.quote(project, safe='')}"
@@ -107,7 +113,17 @@ def _cloud_run_target_url(timeout: int) -> str:
     statuses = resource.get("trafficStatuses")
     if not isinstance(statuses, list):
         raise RuntimeError("Cloud Run service response omitted trafficStatuses")
-    return select_revision_url(statuses, revision, tag, expected_percent)
+
+    target_url = select_revision_url(statuses, revision, tag, expected_percent)
+    service_uri = resource.get("uri")
+    parsed_service_uri = urllib.parse.urlparse(service_uri or "")
+    if parsed_service_uri.scheme != "https" or not parsed_service_uri.hostname:
+        raise RuntimeError("Cloud Run service response omitted a valid canonical URI for the identity-token audience")
+    try:
+        identity_token = id_token.fetch_id_token(request, service_uri.rstrip("/"))
+    except Exception as exc:
+        raise RuntimeError(f"Cloud Run invocation identity token failed: {type(exc).__name__}") from exc
+    return target_url, {"Authorization": f"Bearer {identity_token}"}
 
 
 def verify_once(
@@ -116,6 +132,7 @@ def verify_once(
     timeout: int,
     expected_commit: str | None = None,
     deadline: float | None = None,
+    headers: dict[str, str] | None = None,
 ) -> None:
     def request_timeout() -> float:
         if deadline is None:
@@ -125,13 +142,13 @@ def verify_once(
             raise RuntimeError("overall 45-second verification limit reached")
         return min(float(timeout), remaining)
 
-    health_status, health = fetch_json(base_url + "/healthz", request_timeout())
+    health_status, health = fetch_json(base_url + "/healthz", request_timeout(), headers)
     if health_status != 200 or health.get("status") != "ok":
         raise RuntimeError("health check did not return status=ok")
     quote_url = base_url + "/api/v1/quote?" + urllib.parse.urlencode(
         {"origin": "BKK", "destination": "CNX", "weight_kg": "5"}
     )
-    quote_status, quote = fetch_json(quote_url, request_timeout())
+    quote_status, quote = fetch_json(quote_url, request_timeout(), headers)
     if quote_status != 200 or quote.get("currency") != "THB":
         raise RuntimeError("quote endpoint returned an invalid response")
     try:
@@ -141,7 +158,7 @@ def verify_once(
     if actual != expected_total:
         raise RuntimeError(f"business quote mismatch: expected {expected_total:.2f}, got {actual:.2f}")
     if expected_commit:
-        version_status, version = fetch_json(base_url + "/version", request_timeout())
+        version_status, version = fetch_json(base_url + "/version", request_timeout(), headers)
         if version_status != 200 or version.get("commit_sha") != expected_commit:
             raise RuntimeError("deployed commit does not match the expected commit")
 
@@ -177,9 +194,10 @@ def run(argv: list[str] | None = None) -> int:
     started = time.monotonic()
     deadline = started + 45
     cloud_deploy = not args.url and bool(os.environ.get("CLOUD_RUN_REVISION"))
+    target_headers = None
     if cloud_deploy:
         try:
-            target_url = _cloud_run_target_url(args.timeout_seconds)
+            target_url, target_headers = _cloud_run_target_url(args.timeout_seconds)
         except RuntimeError as exc:
             print(json.dumps({"result": "fail", "reason": str(exc)}), file=sys.stderr)
             return 1
@@ -204,7 +222,7 @@ def run(argv: list[str] | None = None) -> int:
     for attempt in range(1, args.attempts + 1):
         try:
             expected_commit = args.expected_commit or os.environ.get("COMMIT_SHA")
-            verify_once(target_url.rstrip("/"), args.expected, args.timeout_seconds, expected_commit, deadline)
+            verify_once(target_url.rstrip("/"), args.expected, args.timeout_seconds, expected_commit, deadline, target_headers)
             print(json.dumps({"result": "pass", "attempt": attempt, "checks": ["revision-routing", "healthz", "quote", "commit"]}))
             return 0
         except RuntimeError as exc:

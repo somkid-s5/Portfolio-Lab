@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -43,7 +44,7 @@ class InfrastructureContractTests(unittest.TestCase):
             '"roles/run.invoker"',
         ):
             self.assertIn(value, source)
-        self.assertIn('"runtime             = "Lab 14 Cloud Run runtime identity"', source)
+        self.assertRegex(source, r'runtime\s*=\s*"Lab 14 Cloud Run runtime identity"')
 
     def test_trigger_is_optional_and_pins_main_and_lab14_path(self):
         source = (INFRA / "main.tf").read_text(encoding="utf-8")

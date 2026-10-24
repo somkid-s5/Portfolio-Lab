@@ -56,6 +56,57 @@ class QuoteProbeTests(unittest.TestCase):
             "https://candidate.example",
         )
 
+    def test_cloud_deploy_private_probe_mints_token_for_service_uri(self):
+        from unittest.mock import Mock
+
+        credentials = Mock(token="cloud-api-access-token")
+        service = {
+            "uri": "https://quote-api-abc-uc.a.run.app",
+            "trafficStatuses": [{
+                "revision": "projects/project/locations/asia-southeast1/services/quote-api/revisions/quote-api-00004",
+                "tag": "lab014-candidate",
+                "percent": 10,
+                "uri": "https://lab014-candidate---quote-api-abc-uc.a.run.app",
+            }],
+        }
+        env = {
+            "CLOUD_RUN_PROJECT": "project",
+            "CLOUD_RUN_LOCATION": "asia-southeast1",
+            "CLOUD_RUN_SERVICE": "projects/project/locations/asia-southeast1/services/quote-api",
+            "CLOUD_RUN_REVISION": "quote-api-00004",
+            "CLOUD_DEPLOY_TARGET": "production",
+            "CLOUD_DEPLOY_PHASE": "canary-10",
+        }
+        with (
+            patch.dict("os.environ", env, clear=True),
+            patch("google.auth.default", return_value=(credentials, None)),
+            patch("google.oauth2.id_token.fetch_id_token", return_value="private-run-id-token") as mint,
+            patch.object(module, "fetch_json", return_value=(200, service)) as fetch,
+        ):
+            url, headers = module._cloud_run_target_url(3)
+
+        self.assertEqual(url, "https://lab014-candidate---quote-api-abc-uc.a.run.app")
+        self.assertEqual(headers, {"Authorization": "Bearer private-run-id-token"})
+        self.assertEqual(mint.call_args.args[1], "https://quote-api-abc-uc.a.run.app")
+        self.assertIn("Bearer cloud-api-access-token", fetch.call_args.args[2]["Authorization"])
+        credentials.refresh.assert_called_once()
+
+    def test_private_target_headers_are_used_for_every_probe_request(self):
+        responses = [
+            (200, {"status": "ok"}),
+            (200, {"currency": "THB", "total_thb": "455.00"}),
+            (200, {"commit_sha": "abc123"}),
+        ]
+        with patch.object(module, "fetch_json", side_effect=responses) as fetch:
+            module.verify_once(
+                "https://candidate.example",
+                Decimal("455.00"),
+                3,
+                "abc123",
+                headers={"Authorization": "Bearer private-run-id-token"},
+            )
+        self.assertTrue(all(call.args[2]["Authorization"] == "Bearer private-run-id-token" for call in fetch.call_args_list))
+
     def test_revision_selection_fails_closed_if_candidate_tag_missing(self):
         statuses = [
             {"revision": "quote-api-00004-new", "tag": "prior", "percent": 10, "uri": "https://wrong.example"},
