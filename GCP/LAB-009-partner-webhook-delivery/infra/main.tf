@@ -36,13 +36,13 @@ locals {
 
   queue_runtime_config = var.enable_workloads ? [
     for partner_id, _ in var.partners : {
-      project_id          = var.project_id
-      location_id         = var.region
-      queue_id            = partner_id
-      partner_id          = partner_id
-      worker_url          = "${google_cloud_run_v2_service.worker[0].uri}/internal/deliver"
+      project_id           = var.project_id
+      location_id          = var.region
+      queue_id             = partner_id
+      partner_id           = partner_id
+      worker_url           = "${google_cloud_run_v2_service.worker[0].uri}/internal/deliver"
       task_service_account = google_service_account.runtime["task_oidc"].email
-      oidc_audience        = google_cloud_run_v2_service.worker[0].uri
+      oidc_audience         = google_cloud_run_v2_service.worker[0].uri
     }
   ] : []
 

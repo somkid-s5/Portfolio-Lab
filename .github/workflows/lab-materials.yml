@@ -836,10 +836,11 @@ jobs:
       - name: Build the shared non-root Lab 09 image without cloud credentials
         working-directory: GCP/LAB-009-partner-webhook-delivery
         run: docker build --tag lab009:ci .
-      - name: Verify image user, imports and build-context exclusions
+      - name: Verify image user, source compilation and build-context exclusions
         run: |
           test "$(docker image inspect --format '{{.Config.User}}' lab009:ci)" = "10001:10001"
-          docker run --rm --entrypoint python lab009:ci -c "import os; import app.api, app.domain, app.entrypoint, app.event_service, app.ledger, app.operator_cli, app.receipt_store, app.reconciler, app.reconciler_api, app.reconciler_service, app.runtime_config, app.secret_manager, app.simulator, app.simulator_api, app.simulator_service, app.task_queue, app.worker, app.worker_api, app.worker_service; assert not os.path.exists('/app/tests'); assert not os.path.exists('/app/infra')"
+          docker run --rm --entrypoint python lab009:ci -m compileall -q /app/app
+          docker run --rm --entrypoint python lab009:ci -c "import os; import app.api, app.domain, app.entrypoint, app.ledger, app.operator_cli, app.receipt_store, app.reconciler, app.reconciler_api, app.runtime_config, app.secret_manager, app.simulator, app.simulator_api, app.task_queue, app.worker, app.worker_api; assert not os.path.exists('/app/tests'); assert not os.path.exists('/app/infra')"
 
   lab009-infra:
     runs-on: ubuntu-latest

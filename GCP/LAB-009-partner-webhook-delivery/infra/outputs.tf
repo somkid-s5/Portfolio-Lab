@@ -42,3 +42,18 @@ output "workload_urls" {
     simulators = { for partner_id, service in google_cloud_run_v2_service.simulator : partner_id => service.uri }
   }
 }
+
+output "event_api_url" {
+  description = "Event API URL; null while the workload phase is disabled."
+  value       = try(google_cloud_run_v2_service.event_api[0].uri, null)
+}
+
+output "worker_url" {
+  description = "Delivery Worker URL; null while the workload phase is disabled."
+  value       = try(google_cloud_run_v2_service.worker[0].uri, null)
+}
+
+output "reconciler_url" {
+  description = "Outbox Reconciler URL; null while the workload phase is disabled."
+  value       = try(google_cloud_run_v2_service.reconciler[0].uri, null)
+}
