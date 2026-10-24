@@ -37,7 +37,7 @@ def make_bundle(path, bootstrap_password=PASSWORD):
         "auth.json": auth,
         "demo-logins.json": demo,
         "db-portal.json": {"user": "order_api", "password": "A" * 43, "database": "order_queue"},
-        "db-worker.json": {"user": "queue_worker", "password": "B" * 43, "database": "order_queue"},
+        "db-worker.json": {"user": "order_worker", "password": "B" * 43, "database": "order_queue"},
         "db-dispatcher.json": {"user": "outbox_dispatcher", "password": "C" * 43, "database": "order_queue"},
         "db-bootstrap.json": {"user": "postgres", "password": bootstrap_password, "database": "order_queue"},
     }
@@ -191,6 +191,11 @@ class SecretPublisherTests(unittest.TestCase):
         target.symlink_to(self.directory / "db-bootstrap.json")
         with self.assertRaisesRegex(module.SafeFailure, "private_bundle_invalid"):
             module.validate_bundle(self.directory)
+
+    def test_runtime_database_user_names_match_application_contract(self):
+        self.assertEqual(module.DB_USERS["db-worker.json"], "order_worker")
+        self.assertEqual(module.DB_USERS["db-portal.json"], "order_api")
+        self.assertEqual(module.DB_USERS["db-dispatcher.json"], "outbox_dispatcher")
 
     def test_wrong_cloud_instance_is_refused(self):
         self.api.wrong_instance = True

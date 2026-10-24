@@ -557,3 +557,27 @@ jobs:
       - name: Check bootstrap image imports and excludes serving code private bundles and tests
         run: |
           docker run --rm --entrypoint python lab007-bootstrap:ci -c "import os,pathlib,installer,run; assert os.getuid()==10001; assert pathlib.Path('/srv/sql/schema.sql').is_file(); assert pathlib.Path('/srv/app/order_domain.py').is_file(); assert not pathlib.Path('/srv/app/portal_runtime.py').exists(); assert not pathlib.Path('/srv/secrets').exists(); assert not pathlib.Path('/srv/tests').exists()"
+
+  lab007-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate private SQL and Secret foundation without credentials or provisioning
+        working-directory: GCP/LAB-007-queued-order-processing/infra/foundation
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+      - name: Validate pinned-image workload roots without credentials or provisioning
+        working-directory: GCP/LAB-007-queued-order-processing/infra/workloads
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color

@@ -34,7 +34,7 @@ SECRET_FILES = {
 }
 DB_USERS = {
     "db-portal.json": "order_api",
-    "db-worker.json": "queue_worker",
+    "db-worker.json": "order_worker",
     "db-dispatcher.json": "outbox_dispatcher",
     "db-bootstrap.json": "postgres",
 }

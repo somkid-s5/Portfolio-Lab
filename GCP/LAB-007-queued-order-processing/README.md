@@ -13,7 +13,7 @@ last_verified: null
 
 Solution นี้ชื่อ **Order Queue Desk** ผลสำเร็จทางธุรกิจคือจองสต็อกและเปลี่ยนคำสั่งซื้อเป็น confirmed ไม่ใช่การตัดเงิน ส่งสินค้า หรือรับประกัน exactly-once ของบริการภายนอก
 
-**สถานะ:** กำลังสร้าง Materials — มี Portal/Queue worker/dispatcher, PostgreSQL transactions และ serving image ที่ตรวจใน CI แล้ว แต่ยังขาดขั้นจัดเตรียม Secret บน Cloud, infrastructure, เครื่องมือทดสอบ fault/load, Diagram และคู่มือครบทุก Task จึงยังไม่ Guide-ready และไม่มีผลทดสอบ GCP จริง
+**สถานะ:** กำลังสร้าง Materials — มี Portal/Queue worker/dispatcher, PostgreSQL transactions และ serving image ที่ตรวจใน CI แล้ว พร้อม Secret publisher และ Terraform foundation/workloads roots ที่กำลังรอ CI ตรวจ ยังขาดเครื่องมือทดสอบ fault/load, Diagram และคู่มือครบทุก Task จึงยังไม่ Guide-ready และไม่มีผลทดสอบ GCP จริง
 
 ## ผู้ใช้และงานที่ต้องทำได้
 
@@ -512,6 +512,48 @@ Expected เมื่อ RPC ตอบรับ: ack_request=accepted และ 
 [CI40014805061](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40014805061) / source08a64c0153b77b59645fd648f349218e13a760ec: jobs ของ Lab07 ผ่าน **139 tests** (34pure/client +105SDK/HTTP/runtime/auth/PG/browser) รวม SQL43/API17/DLQ15 ภายใน [browser/HTTPS journey](tests/test_browser_journey.py) ตัว operator client อ่าน terminal proof และบันทึก audit ผ่าน Portal/PostgreSQL จริงก่อน ack ไปยัง Pub/Sub double ตรวจ audit เพิ่มเฉพาะ approval ที่ตั้งใจ และ order/stock/processed ledger ไม่เปลี่ยนเพิ่ม
 
 อีก3 CLI tests สำหรับ inspect/private receipts, ack workflow/journal และ lost-audit-response เพิ่มภายหลัง source นี้ ผ่านแล้วใน [CI40015022666](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40015022666) / source34b0e1b9781ee829560e1b5d8ec67b775a9f69e5 รวม Lab07 เป็น142tests (34pure+108SDK/HTTP/runtime/auth/PG/browser); jobs120626108734/120626108421/120626108328 completed success ตัวอย่าง forwarded metadata/poison ใน CI เป็น fixture ตาม contract ไม่ใช่ broker-forwarded message จริง จึงยังต้องกรอกผล source IAM/forwarding/dead-letter/ack บน GCP ในขั้นลงมือ
+
+## สร้าง private credential bundle และเตรียม Secret versions
+
+ทำขั้นนี้ใน Cloud Shell หลัง Foundation สร้าง Cloud SQL instance กับ Secret Manager secrets แล้ว และก่อน Execute bootstrap Job ครั้งแรก บัญชี Cloud Shell ต้องเข้าถึง project และมีสิทธิ์ตรวจ/อัปเดต Cloud SQL user กับเพิ่มและอ่าน Secret versions: `cloudsql.instances.get`, `cloudsql.users.list`, `cloudsql.users.update`, `cloudsql.operations.get`, `secretmanager.secrets.get`, `secretmanager.versions.access` และ `secretmanager.versions.add` ใช้ role ที่องค์กรอนุมัติซึ่งมี permissions เหล่านี้; ใน sandbox ที่ดูแลเองมักใช้ Cloud SQL Admin ร่วมกับ Secret Accessor และ Secret Version Adder เฉพาะ secrets ของ Lab นี้
+
+รหัสทั้งหมดสร้างในเครื่อง Cloud Shell ของผู้เรียน ไม่ใส่ใน Git, Terraform variables, command arguments หรือ output ของ Cloud Run งานนี้ต้องใช้ **project ใหม่สำหรับแล็บ** ที่ยังไม่มีข้อมูลจริง และ instance `lab007-orders` ต้องเป็น instance ที่เพิ่งสร้างตาม Foundation เท่านั้น
+
+จากโฟลเดอร์ `GCP/LAB-007-queued-order-processing` ติดตั้ง dependencies ที่ pin ในไฟล์ `requirements.txt` และสร้างชุดลับครั้งเดียว:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+
+umask 077
+python3 scripts/create-secrets.py --out "$HOME/lab007-private"
+```
+
+Expected: `private_bundle_created` และโฟลเดอร์ `$HOME/lab007-private` สิทธิ์ 700; ไฟล์เป็น 600 ประกอบด้วย `auth.json`, `demo-logins.json`, `db-portal.json`, `db-worker.json`, `db-dispatcher.json` และ `db-bootstrap.json` ห้ามเปิดไฟล์หรือพิมพ์ค่าเพื่อ “เช็กว่ามีรหัสแล้ว” ให้เก็บโฟลเดอร์นี้ไว้ใน Cloud Shell เดิมตลอด Lab เพราะ state สำหรับป้องกันการตั้งรหัสซ้ำอยู่ในโฟลเดอร์เดียวกัน
+
+ตั้ง project ID แล้วเรียก publisher ในครั้งแรกด้วย flag ที่ยืนยันการตั้งรหัสเริ่มต้นของ PostgreSQL `postgres` บน instance ใหม่:
+
+```bash
+export PROJECT_ID="ใส่-project-id-ของ-sandbox"
+gcloud config set project "$PROJECT_ID"
+python3 scripts/publish_secrets.py \
+  --project "$PROJECT_ID" \
+  --bundle "$HOME/lab007-private" \
+  --initialize-postgres-password
+```
+
+Publisher ตรวจชื่อ/region/ชนิด/สถานะของ instance, ตรวจว่า Secret ทั้งห้าถูกสร้างแบบ regional ที่ `asia-southeast1`, ตรวจรูปแบบและ permission ของไฟล์ แล้วอ่าน latest version แบบไม่พิมพ์ payload ถ้า Cloud SQL operation สำเร็จจึงบันทึกสถานะไว้ใน private directory จากนั้นจึงเพิ่ม Secret versions ผ่าน HTTPS โดยส่งข้อมูลจาก memory โดยตรง ไม่ผ่าน shell argument ข้อมูลจะไม่ถูกนำเข้า Terraform state
+
+Expected: JSON มี `event=secret_publish_complete`, `instance=lab007-orders`, `postgres_password=initialized` และเลข version ใน map `versions` สำหรับ auth, portal, worker, dispatcher และ bootstrap จดเฉพาะเลขเหล่านี้ลง `infra/workloads/terraform.tfvars`; ห้ามคัดลอก payload หรือรหัสผ่านลงไฟล์ Terraform
+
+**การรันซ้ำ/ผลลัพธ์ไม่แน่นอน:** ใช้ private bundle เดิมและคำสั่งเดิมแต่เอา `--initialize-postgres-password` ออก หากมี state ว่า password ตั้งสำเร็จแล้ว script จะไม่เปลี่ยนรหัส postgres; Secret ที่ latest payload ตรงกันจะใช้ version เดิม หาก API ยอมรับการเพิ่ม version แล้วคำตอบหาย การรันซ้ำจะอ่าน latest แล้วรู้ว่า version นั้นถูกเพิ่มไปแล้ว
+
+ถ้าครั้งแรกขาดการเชื่อมต่อระหว่างตั้งรหัส API บันทึกสถานะ `pending` ก่อนส่งคำขอ เมื่อรันซ้ำด้วย private bundle เดิม script จะส่งรหัสค่าเดิมเพื่อ resolve operation แล้วบันทึกว่าเสร็จ ห้ามสร้าง bundle ใหม่เพื่อแก้ unknown outcome ถ้า Secret เดิมมีค่าไม่ตรงกับ bundle script จะหยุดโดยไม่ rotate; ตรวจว่าเป็น project/instance และ bundle ชุดเดิม ก่อนเปลี่ยนอะไร
+
+ข้อผิดพลาดเรื่อง permission, region, instance หรือ Secret mismatch ให้หยุดแก้ที่สาเหตุ ห้ามเปลี่ยนเป็น `latest`, ห้ามยก public IP หรือใส่รหัสผ่านใน command line เป็นทางลัด API contract อ้างอิง [Cloud SQL users.update](https://docs.cloud.google.com/sql/docs/postgres/admin-api/rest/v1beta4/users/update), [Secret Manager addVersion](https://docs.cloud.google.com/secret-manager/docs/reference/rest/v1/projects.secrets/addVersion) และ [อ่าน Secret version](https://docs.cloud.google.com/secret-manager/docs/reference/rest/v1/projects.secrets.versions/access)
+
+การตรวจใน CI ใช้ Google API mock เท่านั้น ไม่ได้สร้าง Secret, เปลี่ยนรหัสผ่านบน GCP หรือยืนยัน Cloud SQL login จริง ช่อง Cloud verification จึงคงเป็น **Not run** จนกว่าจะมีหลักฐานจาก sandbox จริง
 
 ## Bootstrap ฐานข้อมูลใหม่โดยไม่ reset ระบบเดิม
 
