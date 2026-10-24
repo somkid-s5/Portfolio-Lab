@@ -8,4 +8,4 @@
 
 ตัวอย่างรูปแบบคู่มือ: [Lab Test 2](../test/lab-test-2/README.md)
 
-สถานะปัจจุบัน: [Lab 01](LAB-001-multi-zone-web/README.md) ถึง [Lab 08 — Daily Sales Close](LAB-008-daily-batch-reports/README.md) พร้อมระดับ Guide-ready; [Lab 09 — ระบบส่ง Webhook ให้ระบบคู่ค้า](LAB-009-partner-webhook-delivery/README.md) อยู่ขั้น Brief; Lab 10–20 ยัง Planned ตาม [Progress](PROGRESS.md). ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานการทดสอบบน GCP จริง.
+สถานะปัจจุบัน: [Lab 01](LAB-001-multi-zone-web/README.md) ถึง [Lab 08 — Daily Sales Close](LAB-008-daily-batch-reports/README.md) พร้อมระดับ Guide-ready; [Lab 09 — ระบบส่ง Webhook ให้ระบบคู่ค้า](LAB-009-partner-webhook-delivery/README.md) ปิด Design แล้วและกำลังเข้าสู่ Build materials; Lab 10–20 ยัง Planned ตาม [Progress](PROGRESS.md). ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานการทดสอบบน GCP จริง.

@@ -732,6 +732,32 @@ jobs:
           terraform validate -no-color
 
 
+  lab009-diagrams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate accessible SVGs, icon hashes and Lab 09 design contracts
+        run: python3 -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_diagrams.py -v
+      - name: Render diagrams at document width for visual review
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          mkdir -p lab009-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-009-partner-webhook-delivery/assets/solution.svg -o lab009-diagram-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-009-partner-webhook-delivery/assets/delivery-flow.svg -o lab009-diagram-previews/delivery-flow.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab009-diagrams
+          path: |
+            lab009-diagram-previews/*.png
+            GCP/LAB-009-partner-webhook-delivery/assets/*.svg
+            GCP/LAB-009-partner-webhook-delivery/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
+
   lab008-guide:
     runs-on: ubuntu-latest
     timeout-minutes: 10

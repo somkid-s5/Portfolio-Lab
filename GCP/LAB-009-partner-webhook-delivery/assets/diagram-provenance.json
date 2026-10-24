@@ -1,0 +1,53 @@
+{
+  "official_entrypoint": "https://cloud.google.com/icons",
+  "pinned_icon_mirror": {
+    "repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+    "commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+    "note": "Pinned mirror of Google Cloud product icons; original Google icon geometry and colors are retained."
+  },
+  "icons": [
+    {
+      "service": "Cloud Run",
+      "path": "docs/images/cloud_run.svg",
+      "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+      "sha256": "97e1db08021eecae2a8c5124f382a9b451dc63deecaa87825dc5b396fab59c37"
+    },
+    {
+      "service": "Cloud Tasks",
+      "path": "docs/images/cloud_tasks.svg",
+      "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+      "sha256": "7e74840375dd10029a99e6ce25e41d38c4caae4f13c7af7a8f54fa699823cfbb"
+    },
+    {
+      "service": "Cloud Scheduler",
+      "path": "docs/images/cloud_scheduler.svg",
+      "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+      "sha256": "f1880ba2be9c1f294af12a7c0594d535f94e860ea9a5262eb94236b133fce5f9"
+    },
+    {
+      "service": "Firestore",
+      "path": "docs/images/firestore.svg",
+      "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+      "sha256": "2452104b804806ec196f0cac9bb1f8c74884fede904f94f2adf8c7df4256c9d1"
+    },
+    {
+      "service": "Secret Manager",
+      "path": "docs/images/secret_manager.svg",
+      "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+      "sha256": "194b0f81870b265064680007e472d011797d01fbdede0bb4ade28e025a22e7b6"
+    },
+    {
+      "service": "Cloud Storage",
+      "path": "docs/images/cloud_storage.svg",
+      "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+      "sha256": "2528d1bf4dce824c66e5a1421e22e1153e0661b296a48d310886d5cd09921fef"
+    }
+  ],
+  "layout_decision": "The primary event-to-partner delivery path is left-to-right. Scheduler and Reconciler occupy a separate support lane; Firestore and Secret Manager are placed beneath their primary consumers. Use short orthogonal segments for control paths and keep partner test/public trust boundary visibly separate. The lower state diagram separates normal, transient, terminal, unknown and manual-redrive paths.",
+  "verification": "Design artifact only. CI validates SVG structure, icon hashes and PNG rendering; no GCP deployment or Cloud verification is implied.",
+  "style_attribution": {
+    "upstream": "https://github.com/cathrynlavery/diagram-design",
+    "license": "MIT",
+    "note": "Diagram Design conventions adapted; official Google Cloud icons retain original colors and geometry."
+  }
+}

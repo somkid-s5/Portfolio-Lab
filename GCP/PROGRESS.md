@@ -11,8 +11,8 @@
 | 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 08 | [ระบบรายงานยอดขายรายวันและ Batch ที่รันย้อนหลังได้](LAB-008-daily-batch-reports/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 09 | ระบบส่ง Webhook ให้ระบบคู่ค้า | Planned | Not run | — |
+| 08 | [ระบบรายงานยอดขายรายวันและ Batch ที่รันย้อนหลังได้](LAB-008-daily-batch-reports/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 09 | [ระบบส่ง Webhook ให้ระบบคู่ค้า](LAB-009-partner-webhook-delivery/README.md) | Design complete | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 10 | ระบบ Catalog ที่ใช้ Cache ลดภาระ Database | Planned | Not run | — |
 | 11 | ระบบบริการบน GKE ที่ Deploy และขยายได้ | Planned | Not run | — |
 | 12 | ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้ | Planned | Not run | — |
@@ -321,3 +321,6 @@ Lab08: Guide-ready — Daily Sales Close README มี Tasks00–12 พร้อ
 
 
 Lab 09 / Brief complete: กำหนด Partner Webhook Relay สำหรับ event สังเคราะห์ order.shipped, Event API + Firestore outbox/ledger, Cloud Tasks queue แยก partner, OIDC-authenticated Cloud Run Worker, HMAC-SHA256 partner simulator, durable receiver receipts, retry/duplicate/unknown outcome/manual redrive และ Change Request เพิ่ม partner ที่มี rate limit/secret แยก. Brief ระบุ requirement/acceptance/evidence, trust boundary, cost/prerequisites และอ้างอิงเอกสาร Google Cloud/RFC; ยังไม่มี Tasks, app, Terraform หรือ diagram assets. ไม่มี GCP provisioning และ Cloud verification Not run. ขั้นถัดไป: Lab09 Design—ปิด state machine, IAM matrix, final-retry/ambiguous-delivery recovery, simulator fault controls, resource map/cost limits และ diagram ก่อนเริ่ม Build materials.
+
+
+Lab09 / Design complete: ปิด region/resource map, API/IAM/ingress boundary, schema/idempotency, Firestore outbox-ledger, generation/task recovery, Cloud Tasks retry policy, HMAC/simulator scenarios, per-partner isolation, operator redrive/audit, cost/test limits และ Build Materials sequence. เพิ่ม accessible topology/state diagrams พร้อม pinned icon provenance และ CI validation/render job. Singapore เป็น common region ตาม availability ของ Cloud Tasks และบริการที่เกี่ยวข้อง ณ วันที่ทำ Design. ยังไม่มี App, Tasks, Terraform หรือ GCP provisioning; Cloud verification Not run. ขั้นถัดไป: Lab09 Build materials.
