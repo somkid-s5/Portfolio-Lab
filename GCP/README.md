@@ -8,4 +8,4 @@
 
 ตัวอย่างรูปแบบคู่มือ: [Lab Test 2](../test/lab-test-2/README.md)
 
-สถานะปัจจุบัน: [Lab 01 — เว็บหลาย Zone หลัง Load Balancer](LAB-001-multi-zone-web/README.md) และ [Lab 02 — Private Inventory](LAB-002-private-inventory/README.md) และ [Lab 03 — Public Docs CDN/HTTPS](LAB-003-public-docs-cdn/README.md) พร้อมระดับ Guide-ready; Lab 04–20 ตาม [Progress](PROGRESS.md) ยังไม่มีผลทดสอบทรัพยากร GCP จริง
+สถานะปัจจุบัน: [Lab 01](LAB-001-multi-zone-web/README.md) ถึง [Lab 08 — Daily Sales Close](LAB-008-daily-batch-reports/README.md) พร้อมระดับ Guide-ready; Lab 09–20 ตาม [Progress](PROGRESS.md) ยังอยู่ระหว่างดำเนินการ. ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานการทดสอบบน GCP จริง.
