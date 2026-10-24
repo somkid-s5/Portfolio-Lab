@@ -146,6 +146,10 @@ class ReportReadyPublisher:
                     for key in ("sha256", "report_id", "source_sha256"))):
             raise ValueError("invalid_report_event")
         business_date = object_match.group(1)
+        try:
+            _business_date(business_date)
+        except ValueError as exc:
+            raise ValueError("invalid_report_event") from exc
         event = {
             "schema_version": 1,
             "event_type": "report.ready",
