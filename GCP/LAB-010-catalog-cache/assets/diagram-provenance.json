@@ -47,7 +47,7 @@
     "note": "Visual conventions adapted; diagrams are independently authored and are not an official copy."
   },
   "verification": {
-    "diagram_render": "pending CI render at 960 px document width",
+    "diagram_render": "Rendered at 960px in GitHub Actions run 40084647364; source commit b9462b43d5444fdcdadc029ec649147831b2a5d8",
     "cloud_deployment": "not-run"
   }
 }

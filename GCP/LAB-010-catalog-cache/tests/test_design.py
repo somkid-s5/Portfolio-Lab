@@ -25,6 +25,9 @@ class DesignTests(unittest.TestCase):
         self.assertIn("guide_status: design", README)
         self.assertIn("cloud_verification: not-run", README)
         self.assertIn("last_verified: null", README)
+        self.assertEqual(PROVENANCE["verification"]["cloud_deployment"], "not-run")
+        self.assertIn("960px", PROVENANCE["verification"]["diagram_render"])
+        self.assertIn("รวมไม่เกิน 2,500 requests", README)
         self.assertRegex(README, r"(?m)^## Design")
         self.assertNotRegex(README, r"(?m)^#{2,4}\s+Task\s+\d+")
         for requirement in range(1, 11):

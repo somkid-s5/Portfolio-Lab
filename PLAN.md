@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–09 Guide-ready; Lab 10 ปิด Brief และกำลังทำ Design; Lab 11–20 ยัง Planned
+**สถานะ:** Lab 01–09 Guide-ready; Lab 10 Design complete (CI-checked), App/infra build next; Lab 11–20 ยัง Planned
 
 ## ผลลัพธ์ปลายทาง
 
@@ -92,4 +92,4 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## สถานะดำเนินงาน
 
-Lab 01–09 Guide-ready; Lab 10 ปิด Brief และกำลังทำ Design; Lab 11–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md; ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานทดสอบบน GCP จริง.
+Lab 01–09 Guide-ready; Lab 10 Design complete (CI-checked), App/infra build next; Lab 11–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md; ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานทดสอบบน GCP จริง.

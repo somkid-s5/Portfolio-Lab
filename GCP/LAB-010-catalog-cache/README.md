@@ -51,7 +51,7 @@ Solution นี้ไม่ใช้ข้อมูลลูกค้า รา�
 5. Product update ปกติทำให้รายละเอียดและ category listing เห็น version ใหม่หลัง invalidation; เมื่อ Redis ขัดข้อง ให้แสดง invalidation status และระบุ stale bound ไม่เกิน TTL ที่ยังเหลือของ entry เดิม.
 6. การเปลี่ยน cache policy ผ่าน change request มีผลทดสอบก่อน/หลังและอธิบายผลต่อ freshness, hit rate และ database load.
 
-Test profile ที่ล็อก: 2,000 products, hot set 20 รายการรับ 80% ของ read requests, fixed-seed 500 requests, concurrency ไม่เกิน 10, Redis connect/command timeout 250 ms, product/list TTL baseline 60 วินาที. Change Request เปลี่ยน category-list TTL เป็น 15 วินาที. ตัวเลขเป็นเพดาน/ค่าตั้งต้นของ Lab ไม่ใช่ performance claim; ผู้เรียนบันทึก p50/p95 และผลจริงตาม resource ที่เลือก.
+Test profile ที่ล็อก: 2,000 products, hot set 20 รายการรับ 80% ของ read requests, fixed-seed ไม่เกิน 500 requests ต่อ profile, concurrency ไม่เกิน 10, Redis connect/command timeout 250 ms, product/list TTL baseline 60 วินาที. ทำได้สูงสุด 5 profiles ต่อ experiment (bypass baseline, cold, warm, Redis failure, หลัง Change Request) รวมไม่เกิน 2,500 requests; load tool ไม่มี automatic retry. Change Request เปลี่ยน category-list TTL เป็น 15 วินาที. ตัวเลขเป็นเพดาน/ค่าตั้งต้นของ Lab ไม่ใช่ performance claim; ผู้เรียนบันทึก p50/p95 และผลจริงตาม resource ที่เลือก.
 
 ## Architecture direction
 
@@ -68,6 +68,8 @@ Test profile ที่ล็อก: 2,000 products, hot set 20 รายกา�
 ### Topology
 
 ![Lab 10 solution topology](assets/solution.svg)
+
+เส้นทางสร้างและเผยแพร่ image แยกจาก request path: Cloud Shell ส่ง source ให้ Cloud Build → เก็บ image ใน Artifact Registry ตำแหน่ง asia-southeast1 → resolve SHA-256 digest แล้ว deploy digest เดียวกันให้ `catalog-public` และ `catalog-admin`. ใน Guide จะสร้าง repository ใน foundation ก่อน build; CI ตรวจ build โดยไม่ push/deploy. ค่าบริการ build และ image storage อยู่ใน cost gate.
 
 - **Region:** asia-southeast1 (Singapore). Cloud SQL for PostgreSQL และ Memorystore for Redis มี region นี้ในรายการรองรับ ณ วันที่จัดทำ Design; ตรวจ availability/quota/ราคาอีกครั้งก่อนเริ่ม Guide.
 - **VPC:** สร้าง catalog-vpc เฉพาะ Lab; ใช้ subnet catalog-run-egress ขนาด /26 สำหรับ Cloud Run Direct VPC egress. จอง IP ranges ที่ไม่ทับกันสำหรับ Private Services Access และสร้าง service networking connection ก่อนสร้าง managed private endpoints.
@@ -102,7 +104,7 @@ Service glyphs are embedded from the pinned Google Cloud icon collection; source
 2. **Cloud SQL — private IP + Python Connector + automatic IAM DB authentication.** ใช้ roles แยก reader/operator/migrator; pool size 3, max overflow 0; runtime max instances รวมกันไม่เกิน 3. Migrator เป็น one-shot Job แยกจาก request path.
 3. **Redis — Memorystore Basic 1 GiB, Redis 7.0, PSA, AUTH และ TLS.** ใช้ TLS endpoint port 6378, Secret Manager pinned secret versions และ connect/command timeout 250 ms. Secret grants จำกัดเฉพาะ runtime identities.
 4. **Data/API/cache contract — bounded metadata only.** ตารางมี version; categories allowlist 4 ค่า; listing limit 50; 2,000 deterministic synthetic products. Product/category keys มี namespace `catalog:v1`; baseline TTL 60 s; invalidate product และ category เก่า/ใหม่หลัง commit.
-5. **Measurement — same workload, explicit counters.** fixed seed 500 requests, hot set 20 รับ 80%, concurrency ≤10; วัด SQL reads, cache status, p50/p95 และ errors จาก app/test outputs. ไม่บังคับ latency threshold และไม่ log payload/secret.
+5. **Measurement — same workload, explicit counters.** fixed seed ≤500 requests ต่อ profile (≤2,500 ต่อ experiment), hot set 20 รับ 80%, concurrency ≤10; วัด SQL reads, cache status, p50/p95 และ errors จาก app/test outputs. ไม่บังคับ latency threshold และไม่ log payload/secret.
 6. **Failure exercise — reversible client-path fault.** Revision ชั่วคราวชี้ Redis ไป private port 6380, พิสูจน์ fallback/bounded wait แล้วคืน 6378. Hard database outage ทดสอบด้วย CI test double; Cloud exercise ใช้เพียง bounded probe ไม่ทำให้ connection pool เต็ม.
 7. **Infrastructure and cleanup — staged, reviewable.** Terraform แยก foundation/workload gates, image อ้าง digest, secret ไม่อยู่ใน state/config output และมี destroy plan ตรวจเฉพาะ Lab resources. คู่มือมี stop/go cost gate ก่อน apply; เอกสารนี้ไม่ได้ provision ให้.
 8. **Region/cost — asia-southeast1, no numeric cost claim.** Region และ service fit อ้าง official documentation; ผู้เรียนต้องคำนวณจากค่าที่เลือกใน Pricing Calculator และตัดสินใจว่าจะคง resources ไว้ช่วงใดก่อน provision. Baseline ไม่ใช้ HA, NAT, public IP, LB หรือ cross-region.
@@ -156,6 +158,9 @@ Service glyphs are embedded from the pinned Google Cloud icon collection; source
 - [Memorystore for Redis networking and Private Service Access](https://docs.cloud.google.com/memorystore/docs/redis/networking)
 - [Memorystore Redis AUTH and TLS](https://docs.cloud.google.com/memorystore/docs/redis/manage-redis-auth)
 - [Cloud Run service secrets](https://docs.cloud.google.com/run/docs/configuring/services/secrets)
+- [Build container images with Cloud Build](https://docs.cloud.google.com/build/docs/building/build-containers)
+- [Deploy container images to Cloud Run](https://docs.cloud.google.com/run/docs/deploying)
+- [Artifact Registry repository locations](https://docs.cloud.google.com/artifact-registry/docs/repositories/repo-locations)
 - [Private services access overview for Cloud SQL](https://docs.cloud.google.com/sql/docs/postgres/about-private-services-access)
 - [Memorystore for Redis Basic and Standard tiers](https://docs.cloud.google.com/memorystore/docs/redis/redis-tiers)
 - [Memorystore for Redis regions](https://docs.cloud.google.com/memorystore/docs/redis/regions)
