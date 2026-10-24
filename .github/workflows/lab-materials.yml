@@ -550,6 +550,8 @@ jobs:
         run: .ci-lab007-bootstrap/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_bootstrap_runtime.py -v
       - name: Verify first-install rollback no-reset and real runtime SCRAM logins without superuser
         run: timeout 180s .ci-lab007-bootstrap/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_bootstrap.py -v
+      - name: Verify private Secret publication and first-run password guards without Google API calls
+        run: python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_secret_publisher.py -v
       - name: Build isolated nonroot bootstrap image without credentials or cloud calls
         run: docker build -f GCP/LAB-007-queued-order-processing/bootstrap/Dockerfile -t lab007-bootstrap:ci GCP/LAB-007-queued-order-processing
       - name: Check bootstrap image imports and excludes serving code private bundles and tests
