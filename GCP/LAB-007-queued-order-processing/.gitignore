@@ -12,3 +12,5 @@ db-*.json
 *.tfstate.*
 *.tfplan
 .terraform/
+*.tfvars
+*.tfvars.json
