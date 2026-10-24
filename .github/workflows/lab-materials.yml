@@ -792,6 +792,10 @@ jobs:
                           "-s", "GCP/LAB-009-partner-webhook-delivery/tests",
                           "-p", "test_api.py", "-v"],
                          check=True, timeout=180)
+          subprocess.run([".ci-lab009/bin/python", "-m", "unittest", "discover",
+                          "-s", "GCP/LAB-009-partner-webhook-delivery/tests",
+                          "-p", "test_reconciler.py", "-v"],
+                         check=True, timeout=180)
           PY
       - name: Show Firestore emulator diagnostics on failure
         if: failure()
