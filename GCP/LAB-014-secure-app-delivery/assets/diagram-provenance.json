@@ -6,7 +6,7 @@
   "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
   "attribution": "Google Cloud icons are original assets from Google's official icon library, retained in original colors and geometry. Cloud Deploy, Binary Authorization, Cloud KMS and GitHub are represented by labeled generic symbols, not claimed as official product glyphs.",
   "render_target_width": 1440,
-  "layout_decision": "The release path reads left-to-right. Cloud Run staging and production targets are stacked vertically below Cloud Deploy so promotion and approval connectors remain short. WIF and the Binary Authorization attestor/policy are project-level controls shown outside the regional frame; regional services are nested inside asia-southeast1. The policy control enters the runtime group through a dedicated gutter.",
+  "layout_decision": "A main-branch push triggers the fixed Cloud Build repository trigger directly; GitHub Actions separately uses WIF for attestation and release operations. Cloud Run staging and production targets are stacked vertically below Cloud Deploy. WIF and the Binary Authorization attestor/policy are project-level controls shown outside the regional frame; regional services are nested inside asia-southeast1. The policy control enters the runtime group through a dedicated gutter.",
   "cloud_verification": "not-run",
   "icons": {
     "cloud_run.svg": {

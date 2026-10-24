@@ -41,7 +41,8 @@
 <circle cx="86" cy="358" r="5" fill="#2563eb"/><circle cx="86" cy="378" r="5" fill="#2563eb"/>
 <text x="102" y="350" class="small">Pull request</text>
 <text x="102" y="371" class="small">CI only • no GCP token</text>
-<text x="44" y="413" class="small">main branch → trusted release workflow</text>
+<text x="44" y="400" class="small">main push → Cloud Build trigger</text>
+<text x="44" y="420" class="small">release workflow → WIF</text>
 
 <!-- Project and regional boundary -->
 <rect id="project-scope" x="320" y="90" width="1120" height="890" rx="7" class="frame"/>
@@ -52,9 +53,8 @@
 
 <!-- Main release flow -->
 <path id="github-to-wif" d="M280 345H350" class="flow"/>
-<text x="287" y="333" class="tiny">OIDC</text>
-<path id="wif-to-build" d="M510 345H585" class="flow"/>
-<text x="518" y="333" class="tiny">short-lived identity</text>
+<text x="287" y="333" class="tiny">OIDC • release only</text>
+<path id="github-push-to-build" d="M280 413H300V230H670V255" class="flow"/>
 <path id="build-to-registry" d="M755 345H810" class="flow"/>
 <text x="760" y="333" class="tiny">tested image</text>
 <path id="registry-to-deploy" d="M990 345H1080" class="flow"/>
@@ -66,14 +66,14 @@
 <text x="430" y="356" text-anchor="middle" class="label">Workload Identity</text>
 <text x="430" y="377" text-anchor="middle" class="label">Federation</text>
 <text x="430" y="402" text-anchor="middle" class="tiny">repo_id 1428247317</text>
-<text x="430" y="420" text-anchor="middle" class="tiny">refs/heads/main only</text>
+<text x="430" y="420" text-anchor="middle" class="tiny">main • release env only</text>
 
 <!-- Cloud Build -->
 <rect id="cloud-build" x="585" y="255" width="170" height="180" rx="6" class="node"/>
 <image x="638" y="270" width="64" height="64" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0Mjg1ZjQ7fS5jbHMtMntmaWxsOiM2NjlkZjY7fS5jbHMtM3tmaWxsOiNhZWNiZmE7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfQ2xvdWRCdWlsZF9Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48ZyA+PGcgPjxnID48cG9seWdvbiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iMTIuMTUgMTYuMjQgMTUuNjcgMTQuMjEgMTUuNjcgMTAuMTUgMTQuNDkgOS40NiAxMC45NyAxNS41NiAxMi4xNSAxNi4yNCIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSI4LjYzIDEwLjE1IDguNjMgMTQuMjEgOS44MSAxNC44OSAxMy4zNCA4LjggMTIuMTUgOC4xMSA4LjYzIDEwLjE1Ii8+PC9nPjwvZz48L2c+PHBvbHlnb24gY2xhc3M9ImNscy0zIiBwb2ludHM9IjExLjQ2IDE3LjQ1IDcuMjQgMTUuMDEgNy4yNCAxMC4xNSAzLjQ5IDcuOTggMy40OSAxNy4xOCAxMS40NiAyMS43OCAxMS40NiAxNy40NSIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSI3LjkzIDguOTUgMTIuMTUgNi41MSAxNi4zNyA4Ljk1IDIwLjEzIDYuNzggMTIuMTUgMi4xNyA0LjE3IDYuNzggNy45MyA4Ljk1Ii8+PHBvbHlnb24gY2xhc3M9ImNscy0zIiBwb2ludHM9IjE3LjA2IDE1LjAxIDEyLjg0IDE3LjQ1IDEyLjg0IDIxLjc4IDIwLjgyIDE3LjE4IDIwLjgyIDcuOTggMTcuMDYgMTAuMTUgMTcuMDYgMTUuMDEiLz48L2c+PC9zdmc+"/>
 <text x="670" y="359" text-anchor="middle" class="label">Cloud Build</text>
-<text x="670" y="382" text-anchor="middle" class="small">unit + image tests</text>
-<text x="670" y="404" text-anchor="middle" class="small">build provenance</text>
+<text x="670" y="382" text-anchor="middle" class="small">GitHub push trigger</text>
+<text x="670" y="404" text-anchor="middle" class="small">tests + image digest</text>
 
 <!-- Artifact Registry -->
 <rect id="artifact-registry" x="810" y="255" width="180" height="180" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
@@ -93,13 +93,13 @@
 
 <!-- KMS sign and project-level attestor/policy -->
 <path d="M670 435V500" class="securityFlow"/>
-<text x="679" y="472" class="tiny">sign digest</text>
+<text x="790" y="472" class="tiny">WIF checks successful build and commit before signing</text>
 <rect id="kms-signer" x="585" y="500" width="170" height="145" rx="6" class="security"/>
 <circle cx="670" cy="532" r="18" fill="none" stroke="#7c3aed" stroke-width="3"/>
 <path d="M686 532h35m-12 0v10m-10-10v8" stroke="#7c3aed" stroke-width="4" stroke-linecap="round"/>
 <text x="670" y="575" text-anchor="middle" class="label">Cloud KMS</text>
-<text x="670" y="598" text-anchor="middle" class="small">dedicated signing key</text>
-<text x="670" y="621" text-anchor="middle" class="tiny">signer cannot deploy</text>
+<text x="670" y="598" text-anchor="middle" class="small">restricted attestation key</text>
+<text x="670" y="621" text-anchor="middle" class="tiny">WIF signer • cannot deploy</text>
 
 <rect id="attestor-policy" x="350" y="500" width="175" height="145" rx="6" class="security"/>
 <path d="M377 526l20-8 20 8v20c0 16-10 27-20 33-10-6-20-17-20-33z" fill="none" stroke="#7c3aed" stroke-width="3"/>
@@ -107,7 +107,7 @@
 <text x="438" y="568" text-anchor="middle" class="label">Binary Authorization</text>
 <text x="438" y="590" text-anchor="middle" class="small">attestor + default policy</text>
 <text x="438" y="614" text-anchor="middle" class="tiny">project-level scope</text>
-<path d="M585 572H525" class="securityFlow"/>
+<path id="kms-to-attestor" d="M585 572H525" class="securityFlow"/>
 
 
 <!-- Runtime panel -->

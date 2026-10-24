@@ -11,8 +11,10 @@ ASSETS = ROOT / "assets"
 SVG_PATH = ASSETS / "solution.svg"
 HTML_PATH = ASSETS / "solution.html"
 PROVENANCE_PATH = ASSETS / "diagram-provenance.json"
+README_PATH = ROOT / "README.md"
 SVG = SVG_PATH.read_text(encoding="utf-8")
 HTML = HTML_PATH.read_text(encoding="utf-8")
+README = README_PATH.read_text(encoding="utf-8")
 PROVENANCE = json.loads(PROVENANCE_PATH.read_text(encoding="utf-8"))
 NS = {"svg": "http://www.w3.org/2000/svg"}
 
@@ -75,13 +77,27 @@ class Lab14DesignTests(unittest.TestCase):
         self.assertEqual(centers, [centers[0]] * len(centers))
         self.assertLess(int(by_id["staging-target"].attrib["y"]),
                         int(by_id["production-target"].attrib["y"]))
-        for path_id in ("github-to-wif", "wif-to-build", "build-to-registry",
+        for path_id in ("github-to-wif", "github-push-to-build", "kms-to-attestor", "build-to-registry",
                         "registry-to-deploy", "deploy-to-staging", "policy-to-runtime-gate"):
             self.assertIn(path_id, by_id)
+        self.assertNotIn("wif-to-build", by_id)
+        self.assertEqual(by_id["github-push-to-build"].attrib["d"], "M280 413H300V230H670V255")
+
+    def test_readme_locks_the_github_build_and_wif_trust_boundary(self):
+        for phrase in (
+            "GitHub WIF ไม่มีสิทธิ์ `cloudbuild.builds.create`",
+            "attribute.repository_id=assertion.repository_id",
+            "attribute.workflow_ref=assertion.workflow_ref",
+            "attribute.environment=assertion.environment",
+            "`gcp-attest`",
+            "`gcp-release`",
+            "trigger ID, commit SHA, builder identity",
+        ):
+            self.assertIn(phrase, README)
 
     def test_trust_and_delivery_labels_are_explicit(self):
         for phrase in (
-            "refs/heads/main only", "repo_id 1428247317", "CI only • no GCP token",
+            "main • release env only", "repo_id 1428247317", "CI only • no GCP token", "GitHub push trigger",
             "same AR digest", "Manual production approval", "10% → 50% → 100%",
             "project-level scope", "required signed attestation before revision admission",
             "Cloud Logging",

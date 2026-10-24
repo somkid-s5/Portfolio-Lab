@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs บน commit `70d1269d854b212d9bb9567e833f932d54ced204`; Lab 14 Design diagram ผ่าน repository CI [#344](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40104864860) ครบ 48/48 jobs. Cloud verification ทุก Lab ยังคง Not run; Lab 15–20 ยัง Planned.
+**สถานะ:** Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs บน commit `70d1269d854b212d9bb9567e833f932d54ced204`; Lab 14 Design diagram ผ่าน repository CI [#344](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40104864860) ครบ 48/48 jobs; ปรับ trust flow หลังทบทวน Cloud Build IAM และรอ CI รอบใหม่. Cloud verification ทุก Lab ยังคง Not run; Lab 15–20 ยัง Planned.
 
 ## ผลลัพธ์ปลายทาง
 
@@ -92,4 +92,4 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## สถานะดำเนินงาน
 
-Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs. Lab 14 diagram ตรวจและ render ผ่าน repository CI [#344](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40104864860) ครบ 48/48 jobs; Lab 14 ยังอยู่ Design และยังไม่ใช่ Guide-ready. CI ตรวจไฟล์/โค้ดใน repo เท่านั้น; ไม่มี GCP provisioning และ Cloud verification ยังคง Not run. Lab 15–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.
+Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs. Lab 14 diagram revision หลังทบทวน Cloud Build IAM กำลังรอ CI; งานนี้ยังอยู่ Design ไม่ใช่ Guide-ready. CI ตรวจไฟล์/โค้ดใน repo เท่านั้น; ไม่มี GCP provisioning และ Cloud verification ยังคง Not run. Lab 15–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.
