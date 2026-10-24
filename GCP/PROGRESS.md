@@ -13,7 +13,7 @@
 | 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 08 | [ระบบรายงานยอดขายรายวันและ Batch ที่รันย้อนหลังได้](LAB-008-daily-batch-reports/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 09 | [ระบบส่ง Webhook ให้ระบบคู่ค้า](LAB-009-partner-webhook-delivery/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 10 | [ระบบ Catalog ที่ใช้ Cache ลดภาระ Database](LAB-010-catalog-cache/README.md) | Design complete | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 10 | [ระบบ Catalog ที่ใช้ Cache ลดภาระ Database](LAB-010-catalog-cache/README.md) | Build materials in progress | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 11 | ระบบบริการบน GKE ที่ Deploy และขยายได้ | Planned | Not run | — |
 | 12 | ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้ | Planned | Not run | — |
 | 13 | ระบบประมวลผลข้อมูลนำเข้าแบบขนาน | Planned | Not run | — |
@@ -337,3 +337,6 @@ Lab10 / Brief: เพิ่ม [README](LAB-010-catalog-cache/README.md) ที�
 
 
 Lab10 / Design complete: ปิด requirements R1–R10, trust/network boundary, Cloud Run แยก public/admin, Cloud SQL PostgreSQL private IP ผ่าน PSA กับ Python Connector automatic IAM DB auth (TCP 3307/Admin API 443), Memorystore Redis Basic 1 GiB AUTH+TLS, schema/API/key/TTL/invalidation/failure semantics, pool/scale caps, bounded measurement และ change request. เพิ่ม topology/cache-flow SVG, official icon hashes/style attribution และ accessible/design-boundary tests; ตรวจภาพที่ขนาดเอกสาร 960px และปรับ typography/connector ให้ตรง topology. พบข้อเท็จจริงเพิ่มก่อนเริ่ม build: provider `google_redis_instance` เปิดเผย AUTH เป็น computed/sensitive แต่ state ยังเก็บค่าได้; แก้ design ให้ป้องกัน Terraform state และส่ง runtime copy เข้า Secret Manager ผ่าน stdin โดยไม่พิมพ์ค่า. CI run 40085006893 ตรวจ `lab010-design` ผ่าน แต่ workflow รวม fail ที่ `lab008-firestore` emulator step จึงยังต้องตรวจ run ใหม่. ไม่มี Cloud provisioning; Cloud verification remains Not run. ยังไม่มี app/infra/Tasks; ขั้นถัดไป build app + local Postgres/Redis tests + Terraform validation ก่อน author คู่มือ.
+
+
+Lab10 / Build materials started: เพิ่ม Flask public catalog/admin API, PostgreSQL schema/idempotent seed, Redis cache-aside + per-process breaker, JSON request logs, static sample UI, non-root Docker image, bounded load tool (≤500/profile, ≤5 profiles, ≤2,500 total) และ integration/unit tests. เพิ่ม CI job ใช้ PostgreSQL 16 + Redis 7 disposable services; job จะตรวจ app tests และ container import/user. CI run 40085309726 พบเพียง assertion ของ regression test ที่ใช้วลีไม่ตรงกับ README; correction และ build materials นี้อยู่ใน commit ถัดไปและยังรอ full CI. ไม่มี GCP provisioning; Cloud verification remains Not run. Terraform foundation/workload และคู่มือ Tasks ยังเป็นงานถัดไป.

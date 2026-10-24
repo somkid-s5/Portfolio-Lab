@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–09 Guide-ready; Lab 10 Design complete (CI-checked), App/infra build next; Lab 11–20 ยัง Planned
+**สถานะ:** Lab 01–09 Guide-ready; Lab 10 Design complete and Build materials in progress (App/CI added; Terraform next); Lab 11–20 ยัง Planned
 
 ## ผลลัพธ์ปลายทาง
 

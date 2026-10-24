@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <title>Catalog / Cache Lab</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Catalog home"><span class="brand-mark">C</span><span>Northstar <small>CATALOG</small></span></a>
+    <div class="service-badge"><span class="pulse"></span> PUBLIC READ SERVICE</div>
+  </header>
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">SYNTHETIC STORE · CLOUD RUN + POSTGRES + REDIS</p>
+        <h1>Find your<br><em>next favorite.</em></h1>
+        <p class="hero-copy">A small catalog with a big job: keep reads quick, keep PostgreSQL authoritative, and make cache behavior visible.</p>
+        <a class="text-link" href="#catalog">Explore the catalog <span>↓</span></a>
+      </div>
+      <div class="hero-art" aria-hidden="true"><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div><div class="orb-core">N</div><div class="spark spark-a">✦</div><div class="spark spark-b">✳</div><div class="art-caption">SOURCE OF TRUTH<br><b>POSTGRESQL</b></div></div>
+    </section>
+    <section class="catalog-section" id="catalog">
+      <div class="section-heading">
+        <div><p class="eyebrow">THE COLLECTION</p><h2>Browse catalog</h2></div>
+        <label class="category-picker">Category
+          <select id="category">
+            <option value="books">Books</option>
+            <option value="electronics">Electronics</option>
+            <option value="home">Home</option>
+            <option value="sports">Sports</option>
+          </select>
+        </label>
+      </div>
+      <div class="cache-strip"><span class="cache-dot"></span><span id="cache-state">Waiting for first request</span><span class="cache-hint">Cache state is returned by the API</span></div>
+      <div id="catalog-grid" class="catalog-grid" aria-live="polite"></div>
+    </section>
+    <section class="lab-note">
+      <span class="note-icon">↗</span>
+      <div><b>Built to be observed</b><p>Open the browser network panel or inspect response headers to compare MISS, HIT, and BYPASS. Product details are synthetic metadata; PostgreSQL remains the source of truth.</p></div>
+      <code>catalog:v1:list:{category}</code>
+    </section>
+  </main>
+  <footer><span>NORTHSTAR CATALOG</span><span>LAB 10 · CACHE-ASIDE</span><span>NO CUSTOMER DATA</span></footer>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

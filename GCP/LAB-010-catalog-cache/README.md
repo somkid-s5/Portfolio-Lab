@@ -1,14 +1,14 @@
 ---
 lab: LAB-010
 platform: GCP
-phase: design
+phase: build
 guide_status: design
 cloud_verification: not-run
 last_verified: null
 ---
 # Lab 10 — ลดภาระอ่าน Catalog ด้วย Cache-aside
 
-**สถานะ:** Design — ปิด business requirements, access boundary, database/cache topology, consistency/failure model, bounded measurement profile และ Change Request แล้ว. ยังไม่มี Task คู่มือ, App, Terraform หรือผลการรัน Cloud.
+**สถานะ:** Build materials — Design และ requirements R1–R10 ปิดแล้ว; มี App/API, synthetic seed, bounded load tool และ CI tests สำหรับ PostgreSQL/Redis. Terraform foundation/workload และ Task Guide ยังไม่พร้อม. ไม่มีผลการรันบน GCP.
 
 ## สถานการณ์
 
@@ -77,7 +77,7 @@ Test profile ที่ล็อก: 2,000 products, hot set 20 รายกา�
 - **Cloud SQL:** PostgreSQL 16, Enterprise, single-zone, db-custom-1-3840 (1 vCPU/3.75 GiB), 10 GiB SSD, private IP ผ่าน PSA, ไม่มี public IP. เลือกขนาดเพื่อทดสอบได้ใน sandbox ไม่อ้าง SLA/HA. Database เป็น source of truth.
 - **Database authentication:** ใช้ Cloud SQL Python Connector กับ private IP และ automatic IAM database authentication; allow connector egress TCP 3307 ไปยัง instance และ TCP 443 ไปยัง Cloud SQL Admin API; ไม่ใส่ database password ใน Terraform, image หรือ environment. แยก reader, operator และ migrator IAM database users กับ PostgreSQL grants. Runtime service accounts ได้เฉพาะ Cloud SQL Client + Cloud SQL Instance User ที่ต้องใช้ใน dedicated Lab project.
 - **Memorystore:** Memorystore for Redis 7.0 Basic Tier, 1 GiB, private connection ผ่าน PSA, AUTH เปิดและ TLS server authentication เปิด. Cache ยอมรับ cold restart/cache flush ได้; ถ้า cache หายให้เติมจาก PostgreSQL. ไม่มี Redis failover/HA ใน baseline.
-- **Redis AUTH และ Terraform state:** `google_redis_instance.auth_string` เป็น computed attribute และมีค่าเมื่อเปิด AUTH; provider ทำเครื่องหมายค่าเป็น sensitive แต่ Terraform ยังบันทึกค่าที่ sensitive ลง state/plan ได้. Secret Manager จึงเป็นสำเนาสำหรับ runtime ไม่ใช่ที่เดียวที่มี AUTH. เก็บ state ในพื้นที่ผู้ใช้ Cloud Shell ที่จำกัดสิทธิ์ไฟล์, ห้าม commit/อัปโหลด/แสดง state หรือ plan JSON และลบ state/backup หลังยืนยัน destroy สำเร็จ. สร้าง Secret Manager version นอก Terraform โดย pipe ผล `gcloud redis instances get-auth-string` เข้า `gcloud secrets versions add --data-file=-` โดยไม่พิมพ์ AUTH ลง terminal; Terraform จัดการเฉพาะ secret container ไม่จัดการ payload/version. Cloud Run revision อ้างเลข secret version แบบ pin และเฉพาะ reader/admin identities อ่านค่าได้. AUTH ต้องใช้พร้อม TLS.
+- **Redis AUTH และ Terraform state:** `google_redis_instance.auth_string` เป็น computed attribute และมีค่าเมื่อเปิด AUTH; provider ทำเครื่องหมายค่าเป็น sensitive แต่ Terraform ยังบันทึกค่าที่ sensitive ลง state/plan ได้. Secret Manager จึงเป็นสำเนาสำหรับ runtime ไม่ใช่ที่เดียวที่มี AUTH. เก็บ state ในพื้นที่ผู้ใช้ Cloud Shell ที่จำกัดสิทธิ์ไฟล์, ห้าม commit/อัปโหลด/แสดง state หรือ plan JSON และลบ state/backup หลังยืนยัน destroy สำเร็จ. สร้าง Secret Manager version นอก Terraform โดย pipe ผล `gcloud redis instances get-auth-string` เข้า `gcloud secrets versions add --data-file=-` โดยไม่พิมพ์ AUTH ลง terminal; Terraform จัดการเฉพาะ secret container ไม่จัดการ payload/version. server CA เป็น trust material สำหรับตรวจ certificate chain ไม่ใช่ credential; จัดให้ runtime อ่าน CA ที่ pin ไว้แยกจาก AUTH. Cloud Run revision อ้างเลข secret version แบบ pin และเฉพาะ reader/admin identities อ่าน AUTH/CA ได้. AUTH ต้องใช้พร้อม TLS.
 - **Run identities:** public service ใช้ reader DB user (SELECT only), admin service ใช้ operator DB user (เฉพาะ SELECT/INSERT/UPDATE บน product table) และ migrator ใช้ schema-owner privileges เฉพาะตอนรัน one-shot Cloud Run Job. Public service ไม่มี write grant; admin service ไม่ให้ allUsers.
 - **Catalog API/UI:** GET / และ GET /api/catalog?category=... สำหรับหน้า/รายการ, GET /api/products/{id} สำหรับรายละเอียด; listing จำกัดผล 50 records. Operator ใช้ PUT /admin/products/{id} พร้อม expected version/If-Match และ POST /admin/cache/clear ที่ล้างได้เฉพาะ namespace catalog:v1 ไม่ใช้ FLUSHDB.
 - **Schema/data:** ตาราง products เก็บ synthetic id, category, name, description, image URL, active flag, version และ updated_at; ไม่มี price, inventory, customer data หรือ PII. Indexes รองรับ active/category/id. Seed 2,000 rows deterministically ในหนึ่ง transaction และเรียกซ้ำได้โดยไม่ duplicate.
@@ -144,7 +144,7 @@ Service glyphs are embedded from the pinned Google Cloud icon collection; source
 - PII, customer account, recommendation engine, CDN, global load balancing
 - Redis เป็นระบบ durable หรือ source of truth; exactly-once invalidation ข้าม database/cache
 - การกล่าวว่า cache ลด latency/ค่าใช้จ่ายได้เท่าใดก่อนมีผลวัดจริง
-- การทดสอบ Redis service-level outage/failover จริงในงานเอกสารที่ยังไม่มี Cloud provisioning
+- การทดสอบ Redis service-level outage/failover จริงในชุด CI; Cloud failure exercise เป็น client-path fault ที่ย้อนกลับได้
 
 ## References used for Design and future Guide
 
@@ -174,3 +174,5 @@ Service glyphs are embedded from the pinned Google Cloud icon collection; source
 - [Terraform: state and sensitive provider values](https://developer.hashicorp.com/terraform/language/expressions/references)
 - [Get Memorystore Redis AUTH string](https://docs.cloud.google.com/memorystore/docs/redis/manage-redis-auth)
 - [Add a Secret Manager version from standard input](https://docs.cloud.google.com/sdk/gcloud/reference/secrets/versions/add)
+- [redis-py 7.4.1 package and release information](https://pypi.org/project/redis/7.4.1/)
+- [Cloud SQL Python Connector](https://github.com/GoogleCloudPlatform/cloud-sql-python-connector)

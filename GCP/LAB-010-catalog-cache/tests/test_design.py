@@ -20,8 +20,8 @@ EXPECTED_SERVICES = {
 
 
 class DesignTests(unittest.TestCase):
-    def test_readme_is_design_not_a_claim_of_cloud_execution(self):
-        self.assertIn("phase: design", README)
+    def test_readme_is_build_not_a_claim_of_cloud_execution(self):
+        self.assertIn("phase: build", README)
         self.assertIn("guide_status: design", README)
         self.assertIn("cloud_verification: not-run", README)
         self.assertIn("last_verified: null", README)
@@ -34,9 +34,9 @@ class DesignTests(unittest.TestCase):
             self.assertIn(f"R{requirement}", README)
 
     def test_auth_secret_handoff_does_not_claim_state_is_secret_free(self):
-        self.assertIn("Terraform state ยังมี AUTH string", README)
-        self.assertIn("sensitive แต่ Terraform ยังบันทึก", README)
-        self.assertIn("pipe ผล", README)
+        self.assertIn("google_redis_instance.auth_string", README)
+        self.assertIn("provider ทำเครื่องหมายค่าเป็น sensitive แต่ Terraform ยังบันทึก", README)
+        self.assertIn("pipe ผล `gcloud redis instances get-auth-string`", README)
         self.assertIn("gcloud secrets versions add --data-file=-", README)
         self.assertIn("ห้าม commit/อัปโหลด/แสดง state", README)
         self.assertNotIn("แยกจาก Terraform state", README)
@@ -48,6 +48,15 @@ class DesignTests(unittest.TestCase):
             "https://docs.cloud.google.com/sdk/gcloud/reference/secrets/versions/add",
             README,
         )
+
+    def test_implementation_keeps_cache_clear_scoped_and_bounded(self):
+        cache_source = (ROOT / "app" / "cache.py").read_text(encoding="utf-8")
+        self.assertIn("MAX_CATALOG_PRODUCTS = 2000", cache_source)
+        self.assertIn("MAX_CATALOG_KEYS = 2104", cache_source)
+        self.assertIn("def clear_catalog(self, product_ids, categories):", cache_source)
+        self.assertNotIn("flushdb", cache_source.lower())
+        self.assertNotIn("scan_iter", cache_source)
+        self.assertNotRegex(cache_source, r"(?i)\.keys\s*\(")
 
     def test_readme_local_links_resolve(self):
         pattern = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")

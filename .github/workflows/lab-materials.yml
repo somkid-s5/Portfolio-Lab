@@ -930,6 +930,53 @@ jobs:
           terraform init -backend=false -input=false
           terraform validate -no-color
 
+  lab010-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: lab010_ci
+          POSTGRES_USER: lab010_ci
+          POSTGRES_PASSWORD: disposable-lab010-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lab010_ci -d lab010_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+pg8000://lab010_ci:disposable-lab010-ci@127.0.0.1:5432/lab010_ci
+      REDIS_URL: redis://127.0.0.1:6379/0
+      CACHE_ENABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Lab 10 dependencies
+        run: |
+          python3 -m venv .ci-lab010
+          .ci-lab010/bin/pip install --disable-pip-version-check -r GCP/LAB-010-catalog-cache/requirements.txt
+      - name: Compile app and scripts
+        run: .ci-lab010/bin/python -m compileall -q GCP/LAB-010-catalog-cache/app GCP/LAB-010-catalog-cache/scripts GCP/LAB-010-catalog-cache/tests
+      - name: Check browser script syntax
+        run: node --check GCP/LAB-010-catalog-cache/app/static/app.js
+      - name: Exercise Catalog, Redis fallback, cache contract and bounded load tooling
+        run: .ci-lab010/bin/python -m unittest discover -s GCP/LAB-010-catalog-cache/tests -v
+      - name: Build non-root Catalog image
+        run: docker build -t lab010-catalog:ci GCP/LAB-010-catalog-cache
+      - name: Verify image runs non-root and imports runtime
+        run: |
+          test "$(docker image inspect lab010-catalog:ci --format '{{.Config.User}}')" = "10010:10010"
+          docker run --rm --entrypoint python lab010-catalog:ci -c "from app.factory import create_app; print('Lab 10 runtime imports successfully')"
+
   lab010-design:
     runs-on: ubuntu-latest
     timeout-minutes: 10
