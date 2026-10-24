@@ -135,7 +135,7 @@ class ReleaseWorkflowTests(unittest.TestCase):
     def test_release_workflow_is_main_only_and_uses_environments_for_wif(self):
         import yaml
 
-        workflow = yaml.load((ROOT.parents[2] / ".github/workflows/release.yml").read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
+        workflow = yaml.load((ROOT.parents[1] / ".github/workflows/release.yml").read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
         self.assertEqual(workflow["on"]["push"]["branches"], ["main"])
         self.assertEqual(workflow["jobs"]["attest"]["environment"], "gcp-attest")
         self.assertEqual(workflow["jobs"]["release"]["environment"], "gcp-release")

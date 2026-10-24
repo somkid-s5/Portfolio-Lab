@@ -83,12 +83,12 @@ def verify_build_record(
     }
 
 
-def _run_gcloud(project_id: str, region: str) -> list[dict[str, Any]]:
+def _run_gcloud(project_id: str, region: str, trigger_id: str) -> list[dict[str, Any]]:
     command = [
         "gcloud", "builds", "list",
         f"--project={project_id}",
         f"--region={region}",
-        "--filter=status!=CANCELLED",
+        f"--filter=trigger_id={trigger_id}",
         "--sort-by=~create_time",
         "--limit=100",
         "--format=json",
@@ -123,7 +123,7 @@ def wait_for_verified_build(
         raise ReleaseError("Cloud Build wait and poll intervals are outside the allowed bounds")
     deadline = time.monotonic() + max_wait_seconds
     while True:
-        builds = _run_gcloud(project_id, region)
+        builds = _run_gcloud(project_id, region, trigger_id)
         matches = [
             item for item in builds
             if _build_trigger_id(item) == trigger_id
