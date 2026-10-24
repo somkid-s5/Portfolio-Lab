@@ -62,7 +62,7 @@ class Lab12InfrastructureTests(unittest.TestCase):
         self.assertEqual(gateway["spec"]["listeners"][0]["protocol"], "HTTPS")
         route = self.by_name["checkout-route"]
         self.assertEqual(route["spec"]["rules"][0]["backendRefs"][0]["name"], "storefront")
-        self.assertNotIn("kind: Secret", MANIFEST.read_text(encoding="utf-8"))
+        self.assertFalse(any(doc and doc.get("kind") == "Secret" for doc in self.docs))
 
     def test_ingress_network_policies_follow_the_service_graph(self):
         policies = {
