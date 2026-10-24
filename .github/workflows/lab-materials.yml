@@ -585,6 +585,8 @@ jobs:
           .ci-lab008/bin/pip install -r GCP/LAB-008-daily-batch-reports/requirements.txt
       - name: Test generation-pinned Cloud Storage adapter without cloud calls
         run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_storage.py -v
+      - name: Test Cloud Run Jobs and Pub/Sub adapters without cloud calls
+        run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_integrations.py -v
       - name: Exercise Firestore transactions against loopback emulator
         shell: bash
         run: |
