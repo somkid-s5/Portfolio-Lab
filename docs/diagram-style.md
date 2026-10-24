@@ -1,57 +1,66 @@
-# Cloud solution diagrams — reference style
+# Cloud solution diagrams — Personal Custom
 
-## Visual target
+This document applies the user's **Diagram Design — Personal Custom** style to Portfolio-Lab diagrams. The ZIP package is the canonical visual reference; the rules below keep lab diagrams consistent while preserving each provider's technical model. The lab brief and official provider documentation remain the source for architecture facts.
 
-Match the user's supplied cloud architecture reference in visual language: a white canvas, recognizable provider service icons as the main visual objects, names directly beneath icons, nested scope frames, pastel tier backgrounds, and clearly routed arrows. Think of a complete solution architecture plate rather than a dashboard of text cards. Apply this style to GCP, AWS or Azure using that provider's actual services and boundaries.
+Style attribution: adapted from Cathryn Lavery / LittleMight, [diagram-design](https://github.com/cathrynlavery/diagram-design) (MIT).
 
-The reference is a style example, not a source of technical requirements. Do not copy its service list, ambiguous labels, layout mistakes or connections into a different solution.
+## Visual target and palette
 
-## Composition
+Use a clean, information-first architecture plate: a very pale paper or white canvas, recognizable official service icons, labels beneath icons, truthful nested scope frames, softly tinted functional tiers, and clearly routed arrows. Use one figure per question, or an overview plus detail when one figure becomes crowded. Never add components just to fill the canvas.
 
-- Place users, clients, on-premises actors and external platforms outside the cloud boundary. Show only actors relevant to the requested system.
-- Draw real containment explicitly: provider/account or project, region where relevant, VPC/VNet, availability zone, subnet and workload group. Nest only where technically true. Global services may sit inside the provider/project frame but outside regional or VPC frames.
-- Follow the provider's model. For example, a GCP regional subnet can serve VMs in multiple zones: do not imply one separate subnet per zone unless that is actually configured. AWS subnets are zonal. External SaaS remains outside the provider boundary.
+Use the following default palette consistently. Select roughly 3–5 meaningful roles for a small solution, and use both labels and visual treatments so meaning never depends on color alone.
+
+| Role | Border / heading | Light background |
+|---|---|---|
+| Canvas / paper | Ink #1F2937 | #F7FAFF |
+| Compute / application | #2563EB | #EFF6FF |
+| Network / VPC | #0F766E | #F0FDFA |
+| Ingress / load balancing | #C2410C | #FFF7ED |
+| Data / storage | #7C3AED | #F5F3FF |
+| Administration / identity | #475569 | #F1F5F9 |
+| Healthy / recovery | #15803D | #F0FDF4 |
+| Failure / blocked path | #B91C1C | #FEF2F2 |
+
+Use status colors only for documented states; a proposed design does not imply that a test passed. Avoid shadows, decorative gradients/glows, and giant rounded pills. Keep borders thin and consistent, use a 4 px spacing grid and modest 4–8 px corners, and maintain readable contrast.
+
+## Composition and boundaries
+
+- Place clients, users, on-premises actors and external platforms outside the cloud boundary. Show only actors relevant to the solution.
+- Draw actual containment: provider/account or project, region where relevant, VPC/VNet, availability zone, subnet and workload group. Nest only where technically true. Global services may sit inside the provider/project frame but outside regional or VPC frames. External SaaS remains outside the provider boundary.
+- Follow the provider's model. For example, a GCP regional subnet can serve VMs in multiple zones; do not imply one subnet per zone unless configured. AWS subnets are zonal.
 - Distinguish frames with thin colored borders, selectively dashed for secondary scopes, and top-left header tabs/icons. Show actual region, zone and subnet labels when supplied.
-- Group application tiers in pale green, blue, teal, orange or lavender panels with colored headings. Use functional names such as Public ingress, Application, Data, Management or Security only when those parts exist.
-- Keep central request flow dominant. Place supporting operations/security groups to a side only when they belong to the solution. Do not add DevOps, AI, databases or observability products merely to fill space.
-- For a small solution keep the same nested/icon-led style with fewer objects and compact dimensions. Do not imitate the reference's enterprise size without need.
+- Group actual application tiers in pale green, blue, teal, orange or lavender panels with functional headings such as Public ingress, Application, Data, Management or Security. Keep the request flow dominant. Do not add DevOps, AI, databases or observability products merely to fill space.
+- Keep small solutions compact. Do not imitate an enterprise-sized reference when the system has only a few components.
 
-## Service objects and typography
+## Service icons, labels and accessibility
 
-- Make official service icons prominent, normally 48–72 px at the intended viewing size, with short centered service names beneath and optional resource IDs on a second line.
-- Use the provider's original full-color glyphs or colored icon tiles from one coherent official set. Do not draw fake vendor symbols, recolor official glyphs or place every service in a large generic text card.
-- Use small boundary/header icons around 24–32 px. Pad labels away from frame borders and connectors. Keep service labels readable at normal document width, around 13–16 px; scope headings around 16–20 px.
-- If many service objects are required, enlarge the canvas or split an overview and detail rather than shrinking icons and text into illegibility.
-- Preserve an editable SVG source and a PNG preview when rendering is available. Embed the diagram in a requested Markdown guide; do not build an application UI unless requested.
+- Prefer verified official GCP/AWS/Azure assets, retaining original geometry, colors and proportions from one coherent icon set. Do not draw fake vendor symbols or recolor official glyphs.
+- Use service icons around 48–72 px at the intended viewing size, with short centered names beneath and optional resource IDs on a second line. Use 24–32 px boundary/header icons. Disclose clearly labeled generic fallbacks.
+- Use readable sans typography, with monospace only for technical IDs and ports. Typical service labels are 13–16 px, scope headings 16–20 px; adjust to final rendered size. Support Thai glyphs and avoid clipping.
+- Preserve an editable SVG source and a PNG preview when rendering is available. Embed the diagram in its requested Markdown guide; do not build an application UI unless requested.
+- Give SVGs `role="img"`, `aria-labelledby`, a title and description. Use readable contrast and redundant labels/dashes so a monochrome view remains understandable.
+- Record official asset source URLs and attribution. Keep embedded assets and CSS namespaced to avoid collisions.
 
 ## Connections
 
-- Route orthogonal arrows through clear gutters between groups. Connect to icon edges or a clear group attachment point, avoiding labels and unrelated frames.
-- Use distinct, consistent treatments for user traffic, management, replication or health checks when present. Label protocol/port and special semantics such as primary/standby where they affect understanding.
-- Prefer fine lines for routine calls and a heavier arrow only for the primary flow when it improves hierarchy. Include a compact legend if color/dashing meanings need explanation.
-- Draw actual request direction and dependencies; proximity does not establish a connection. Avoid misleading apparent links at line crossings.
-
-## Review before delivery
-
-Check scope placement, global versus regional resources, readable icon labels, boundary headers, arrow endpoints and crossings. Render at the target document width and fix clipping or crowding. Keep the technical model truthful even when a reference image uses different or incorrect containment. When reusing this style, describe the resulting system directly rather than mentioning the user's conversation or future portfolio plans inside the artifact.
+- Route orthogonal arrows through clear gutters. Attach them to visible icon edges or explicit group/resource attachment points, avoiding labels and unrelated frames.
+- Draw actual request direction and dependencies; proximity does not establish a connection. Distinguish user traffic, management, replication and health checks with consistent line treatments where useful. Label protocol/port and primary/standby semantics when they affect understanding.
+- Use thin lines for routine calls; emphasize the primary flow only when it improves hierarchy. Add a compact legend only when color/dash meanings need explanation.
+- Prefer direct routes or one short elbow. Share a visible trunk only for a real one-to-many relationship, with a junction dot where needed. Never share a trunk between unrelated protocols; give traffic types distinct attachment points.
+- Distinguish unavoidable unrelated-line crossings from junctions with a gap or bridge. A junction dot means a true shared branch. Leave a clear gap at a crossing and put arrowheads only at destinations.
 
 ## Connectivity-first layout selection
 
-Before fixing coordinates, sketch the main connections and compare at least a row and a column arrangement for repeated workloads. Choose the arrangement that makes the important connections short and legible; visual symmetry is secondary to easy tracing.
+Before fixing coordinates, sketch the main connections and compare row and column arrangements for repeated workloads. Choose the arrangement that makes important connections short and legible; visual symmetry is secondary.
 
-For a left-to-right flow with one load balancer feeding two backends, consider stacking those backends vertically, with a compact branch in the gap between the balancer and backends. Put management on the opposite side for short direct connections, and place health checks near their own clear routing lane. This is a layout option, not a rule that all compute must be vertical.
+For a left-to-right flow with one load balancer feeding two backends, consider vertically stacking the backends with a compact branch between the load balancer and backends. Place management on the opposite side for short direct connections, and keep health checks in their own clear routing lane. This is an option, not a rule that all compute must be vertical.
 
-Review routes by crossings first, then unnecessary bends, then total length. Prefer direct lines or one short elbow where feasible. Share a clearly visible trunk for one-to-many relationships, with a junction dot where needed; never share a trunk between unrelated protocols. Fan separate traffic types into different attachment points on each icon.
+Review routes by crossings first, then unnecessary bends, then total length. If a line wraps around a tier, passes behind a sibling group, or circles the diagram edge to reach a nearby node, reconsider node order, tier orientation or panel position. Do not hide a weak layout with long perimeter connectors. Preserve real cloud scope boundaries and keep connectors out of header/label bands. Crossing a boundary on the way to a contained resource is acceptable; crossing an unrelated resource is not.
 
-If a line wraps around a tier, passes behind an entire sibling group, or circles a diagram edge just to return to a nearby node, reconsider node order, tier orientation, or panel position. Do not preserve a weak layout and hide its cost with long perimeter connectors. Maintain required cloud scope boundaries and keep connectors out of header/label bands. Crossing a boundary on the way to a contained resource is acceptable; crossing an unrelated resource is not.
+## Final review at document width
 
-## Final connector and document-width review
+Render at the intended document width, typically 900–1000 px, and inspect the saved final source. Check scope placement, global versus regional resources, readable labels, boundary headers, connector endpoints, crossings, clipping and wasted margins. Make operational resource IDs prominent enough to correlate with test evidence.
 
-At actual document width (typically 900–1000 px), inspect the rendered figure rather than judging only full-resolution source. Make operational resource IDs such as app-a/app-b prominent enough to correlate with test results; service category and group metadata can be secondary.
+Account for transparent SVG viewBox padding so arrow tips meet visible glyph geometry; avoid floating tips, glyph overlap or endpoints beside unrelated labels. Trim empty top margins and unused panel space without crowding scope labels, then re-render and inspect again. A preview must show the final saved source.
 
-Distinguish crossings from junctions: use a gap or bridge for unavoidable unrelated-line crossings and a junction dot only for a true shared branch. Keep a small clear gap around the crossing so it does not look electrically connected. Avoid markers at intermediate gap endpoints; arrows belong at the destination.
-
-Connect arrows to the visible icon geometry or an explicit resource attachment point, accounting for transparent padding in SVG viewBoxes. Do not leave a conspicuous floating arrow, cover the glyph, or terminate beside an unrelated label. Give protocols separate attachment points when needed.
-
-Trim empty top margins and unused panel space after routing, without crowding headers or breaking scope containment. Re-render after these adjustments and check label clipping, actual arrow tips, crossing clarity and primary-name readability at document width. A preview should show the final saved source.
-
+Describe the system itself in lab artifacts. Do not include conversation history or commentary about future portfolio plans.
