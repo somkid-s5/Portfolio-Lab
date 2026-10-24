@@ -764,6 +764,8 @@ jobs:
         run: |
           python3 -m venv .ci-lab009
           .ci-lab009/bin/pip install -r GCP/LAB-009-partner-webhook-delivery/requirements.txt
+      - name: Test Cloud Tasks deterministic task and OIDC request contracts without RPC
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_task_queue.py -v
       - name: Exercise event and outbox transactions against the loopback emulator
         shell: bash
         run: |
