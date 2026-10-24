@@ -547,6 +547,16 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  lab008-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 08 domain, schedule contract and diagram assets
+        run: python3 -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -v
+
   lab008-diagrams:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -1,7 +1,7 @@
 ---
 lab: LAB-008
 platform: GCP
-guide_status: design
+guide_status: authoring
 cloud_verification: not-run
 last_verified: null
 ---
@@ -13,7 +13,7 @@ last_verified: null
 
 Solution นี้ชื่อ **Daily Sales Close** ใช้ข้อมูลสังเคราะห์ ไม่เชื่อมระบบบัญชีหรือรับชำระเงินจริง เป้าหมายคือรายงานที่ผูกกับ business date และ source version ที่พิสูจน์ย้อนกลับได้ ไม่อ้าง SLA หรือความตรงเวลาที่ไม่ได้วัด
 
-**สถานะ:** Design — ปิด date contract, execution identity, ledger/output/notification boundaries และ failure recovery แล้ว; App, Infrastructure และ Tasks ยังไม่เริ่ม. ไม่มี GCP resources ถูกสร้าง และ Cloud verification เป็น Not run.
+**สถานะ:** Materials/Authoring — domain validation และ schedule-time contract เริ่มสร้างพร้อม fixtures/tests; ยังต้องทำ storage/ledger/notification/coordinator adapters, container, infrastructure และ verification ก่อนเขียน Tasks. ไม่มี GCP resources ถูกสร้าง และ Cloud verification เป็น Not run.
 
 ## ผู้ใช้และผลลัพธ์ที่ต้องได้
 
@@ -51,6 +51,18 @@ Solution นี้ชื่อ **Daily Sales Close** ใช้ข้อมูล
 Cloud Scheduler มี report job เวลา 01:15 และ watchdog job เวลา 02:00 กับ 14:00 ใน timezone `Asia/Bangkok`; ทั้งคู่เรียก coordinator ที่ป้องกันด้วย HTTPS/OIDC แต่ใช้ path และชื่อ Scheduler job คนละค่า. Coordinator ตรวจ identity, ชื่อ job และ `X-CloudScheduler-ScheduleTime` รูป RFC3339; header บอกเวลาที่กำหนดไว้แต่ไม่แทน IAM authentication. แปลง schedule timestamp เป็นวันท้องถิ่นแล้วใช้วันก่อนหน้าเป็น business date ห้ามใช้เวลาที่ service หรือ Job เริ่มจริง. ขาด header, parse ผิด, route กับ job name ไม่ตรง หรือ caller ไม่ได้รับอนุญาต จะถูกปฏิเสธพร้อม reason ปลอดภัย.
 
 Route `/schedule` เรียก Cloud Run Jobs API `jobs:run` ด้วย override เฉพาะ `--business-date=YYYY-MM-DD` แล้วตอบ `202` เมื่อได้ operation name; ไม่รอ batch จบ. ถ้า API ตอบกลับไม่แน่นอน Scheduler อาจ retry และสร้าง execution ซ้ำ; ledger ของ business date เป็นตัวกันผลซ้ำ. Route `/watchdog` อ่าน Firestore ledger และตรวจ output object generation/hash แบบ read-only; ถ้ายังไม่มีรายงานหรือสถานะไม่ใช่ `succeeded` ให้เขียน structured log `event=daily_report_not_ready` พร้อม business date/status/reason เพื่อให้ log-based alert แจ้งผู้ดูแล. Watchdog จะตอบรับ business-missing หลัง log สำเร็จ เพื่อไม่ให้ retry กลายเป็น notification loop; เฉพาะ dependency error จะตอบ 5xx.
+
+### สัญญาไฟล์ต้นทางสำหรับ Materials
+
+รับไฟล์ CSV แบบ UTF-8 (ยอมรับ BOM) ที่มี header ตามลำดับนี้เท่านั้น:
+
+```text
+transaction_id,sold_at,sku,quantity,unit_price_minor,currency
+```
+
+`transaction_id` ต้องไม่ซ้ำและยาว 1–64 ตัวอักษร ASCII; `sold_at` ต้องเป็น RFC3339 ที่มี timezone และเมื่อนำมาแปลงเป็น `Asia/Bangkok` ต้องตรงกับ business date; `sku` ใช้ตัวพิมพ์ใหญ่ ตัวเลข จุด ขีดล่าง หรือขีดกลาง; `quantity` เป็นจำนวนเต็ม 1–1,000; `unit_price_minor` เป็นจำนวนเต็มหน่วยสตางค์ 0–100,000,000; `currency` รับเฉพาะ `THB`. ปฏิเสธ header/คอลัมน์เกิน schema, transaction ID ซ้ำ, แถวไม่สมบูรณ์, timestamp ไม่มี offset, วันไม่ตรง, ค่าเงิน/จำนวนผิดรูปแบบ, ไฟล์เกิน 5 MiB, มากกว่า 5,000 แถว หรือไม่มีข้อมูล.
+
+Report สรุปจำนวนรายการ, จำนวนสินค้า, `total_amount_minor` และผลรวมต่อ SKU โดย sort SKU และ serialize เป็น canonical JSON (ไม่มี floating-point). `report_id` ผูกกับ `business_date`, source generation และ SHA-256 ของ bytes ต้นทาง; report hash ใช้ตรวจ artifact ที่สร้างซ้ำ. การเรียงแถวใหม่เป็นคนละ source version จึงได้ report ID คนละค่า แม้ยอดรวมเท่ากัน.
 
 ### Batch data path และสถานะ
 

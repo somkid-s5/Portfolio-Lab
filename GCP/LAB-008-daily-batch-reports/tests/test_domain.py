@@ -1,7 +1,10 @@
 """Pure contracts for Daily Sales Close; no Cloud APIs or credentials."""
 from pathlib import Path
 import json
+import sys
 import unittest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.domain import COLUMNS, MAX_DATA_ROWS, MAX_INPUT_BYTES, InputError, build_report
 from app.schedule import ScheduleRequestError, logical_business_date, scheduler_business_date
@@ -47,6 +50,11 @@ class DomainTests(unittest.TestCase):
                                       source_generation="1").business_date, "2026-10-24")
         with self.assertRaisesRegex(InputError, "BUSINESS_DATE_MISMATCH"):
             build_report(utc, business_date=DATE, source_generation="1")
+
+    def test_rejects_non_rfc3339_timestamp_separator(self):
+        with self.assertRaisesRegex(InputError, "INVALID_TIMESTAMP"):
+            build_report(csv_bytes([row(sold="2026-10-23 09:00:00+07:00")]),
+                         business_date=DATE, source_generation="1")
 
     def test_rejects_timezone_naive_timestamp(self):
         with self.assertRaisesRegex(InputError, "TIMEZONE_REQUIRED"):

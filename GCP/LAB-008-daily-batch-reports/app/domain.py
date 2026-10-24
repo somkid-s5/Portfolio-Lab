@@ -18,6 +18,7 @@ BUSINESS_TZ = ZoneInfo("Asia/Bangkok")
 COLUMNS = ("transaction_id", "sold_at", "sku", "quantity", "unit_price_minor", "currency")
 TXN_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 SKU_RE = re.compile(r"^[A-Z0-9][A-Z0-9._-]{0,39}$")
+RFC3339_TIMESTAMP = re.compile(r"^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$")
 INTEGER_RE = re.compile(r"^[0-9]+$")
 
 
@@ -98,6 +99,8 @@ def build_report(csv_bytes: bytes, *, business_date: str, source_generation: str
                 _fail("DUPLICATE_TRANSACTION_ID")
             transaction_ids.add(tx_id)
 
+            if not RFC3339_TIMESTAMP.fullmatch(row["sold_at"]):
+                _fail("INVALID_TIMESTAMP")
             try:
                 sold_at = datetime.fromisoformat(row["sold_at"].replace("Z", "+00:00"))
             except ValueError:
