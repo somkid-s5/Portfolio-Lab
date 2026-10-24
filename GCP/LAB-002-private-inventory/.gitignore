@@ -1,5 +1,0 @@
-secrets/
-*.env
-*.token
-db-password.txt
-__pycache__/

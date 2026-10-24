@@ -1,3 +1,0 @@
-project_id = "replace-with-sandbox-project"
-artifact_bucket = "replace-with-globally-unique-lab005-bucket"
-allow_destroy = false

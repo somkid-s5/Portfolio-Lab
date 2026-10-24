@@ -1,8 +1,0 @@
-secrets
-assets/evidence
-__pycache__
-.git
-.venv
-infra
-tests
-*.env

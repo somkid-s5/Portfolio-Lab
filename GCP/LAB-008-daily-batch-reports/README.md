@@ -95,11 +95,11 @@ Cloud Run/Scheduler execution logs และ job metrics ใช้สำหร�
 
 แผนภาพ topology แยก project, regional resources และ Pub/Sub global topic; Cloud Run ไม่ได้ถูกวาดเป็นทรัพยากรใน VPC. ภาพ run/recovery แยก schedule time, business date, batch ledger และ notification state.
 
-[SVG topology](assets/solution.svg) · [SVG run/recovery flow](assets/run-flow.svg) · [icon provenance](assets/diagram-provenance.json)
+[PNG topology](assets/solution.png) · [SVG source](assets/solution.svg) · [PNG run/recovery flow](assets/run-flow.png) · [SVG source](assets/run-flow.svg) · [icon provenance](assets/diagram-provenance.json)
 
-![Daily Sales Close topology](assets/solution.svg)
+![Daily Sales Close topology](assets/solution.png)
 
-![Daily Sales Close run and recovery flow](assets/run-flow.svg)
+![Daily Sales Close run and recovery flow](assets/run-flow.png)
 
 **ข้อจำกัดการยืนยัน:** Diagram เป็น design artifact; CI ต้องตรวจ official icon hashes และ render preview ที่ความกว้างเอกสารก่อนปิด Design.
 
