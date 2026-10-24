@@ -6,7 +6,7 @@ from contextlib import redirect_stdout
 from unittest.mock import patch
 
 import redis
-from sqlalchemy import update
+from sqlalchemy import text, update
 from sqlalchemy.exc import OperationalError
 
 from app import catalog
@@ -212,6 +212,62 @@ class CatalogIntegrationTests(unittest.TestCase):
         self.assertIn("db_ms", event)
         self.assertIn("total_ms", event)
         self.assertNotIn("Books Item 0001", output.getvalue())
+
+
+class RuntimeGrantTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = create_database_engine()
+        cls.reader = "lab10_reader_ci"
+        cls.operator = "lab10_operator_ci"
+        with cls.engine.begin() as connection:
+            connection.execute(text(f'CREATE ROLE "{cls.reader}" NOLOGIN'))
+            connection.execute(text(f'CREATE ROLE "{cls.operator}" NOLOGIN'))
+
+    @classmethod
+    def tearDownClass(cls):
+        with cls.engine.begin() as connection:
+            connection.execute(text(f'DROP OWNED BY "{cls.reader}"'))
+            connection.execute(text(f'DROP OWNED BY "{cls.operator}"'))
+            connection.execute(text(f'DROP ROLE "{cls.reader}"'))
+            connection.execute(text(f'DROP ROLE "{cls.operator}"'))
+        close_database_engine(cls.engine)
+
+    def test_runtime_grants_are_separated_and_column_scoped(self):
+        from app.migrate import grant_runtime_access
+
+        grant_runtime_access(
+            self.engine,
+            os.environ.get("DB_NAME", "lab010_ci"),
+            self.reader,
+            self.operator,
+        )
+        with self.engine.connect() as connection:
+            checks = connection.execute(
+                text("""
+                    SELECT
+                      has_database_privilege(:reader, current_database(), 'CONNECT'),
+                      has_schema_privilege(:reader, 'public', 'USAGE'),
+                      has_table_privilege(:reader, 'public.products', 'SELECT'),
+                      has_table_privilege(:reader, 'public.products', 'UPDATE'),
+                      has_table_privilege(:operator, 'public.products', 'SELECT'),
+                      has_table_privilege(:operator, 'public.products', 'UPDATE'),
+                      has_column_privilege(:operator, 'public.products', 'name', 'UPDATE'),
+                      has_column_privilege(:operator, 'public.products', 'version', 'UPDATE'),
+                      has_column_privilege(:operator, 'public.products', 'id', 'UPDATE')
+                """),
+                {"reader": self.reader, "operator": self.operator},
+            ).one()
+        self.assertEqual(tuple(checks), (True, True, True, False, True, False, True, True, False))
+
+    def test_identifier_validation_rejects_sql_injection_and_duplicate_roles(self):
+        from app.migrate import grant_runtime_access, quote_identifier
+
+        for value in ('reader"; DROP TABLE products;--', "bad role", "toolong" + "a" * 63):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                quote_identifier(value)
+        with self.assertRaises(ValueError):
+            grant_runtime_access(self.engine, "catalog", "same", "same")
 
 
 if __name__ == "__main__":
