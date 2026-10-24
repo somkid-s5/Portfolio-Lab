@@ -72,6 +72,8 @@ class Lab12DesignTests(unittest.TestCase):
         self.assertEqual(paths["flow-collector-trace"], "M822 540H900V320H1004")
         self.assertEqual(paths["flow-services-logging"], "M858 580H945V520H1004")
         self.assertNotIn("JSON stdout → GKE logs", SVG)
+        self.assertNotIn(">GET item<", SVG)
+        self.assertNotIn(">authorize<", SVG)
         self.assertIn("Catalog", SVG)
         self.assertIn("Payment mock", SVG)
 
