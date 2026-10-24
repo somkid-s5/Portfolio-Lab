@@ -17,9 +17,9 @@ SVG_NS = "{http://www.w3.org/2000/svg}"
 
 
 class Lab12DesignTests(unittest.TestCase):
-    def test_guide_review_is_not_cloud_evidence(self):
-        self.assertIn("phase: guide", README)
-        self.assertIn("guide_status: review", README)
+    def test_guide_ready_is_not_cloud_evidence(self):
+        self.assertIn("phase: guide-ready", README)
+        self.assertIn("guide_status: guide-ready", README)
         self.assertIn("cloud_verification: not-run", README)
         self.assertIn("## ผู้ใช้และผลลัพธ์ที่ต้องพิสูจน์", README)
         self.assertIn("## Solution design", README)

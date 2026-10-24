@@ -15,7 +15,7 @@
 | 09 | [ระบบส่ง Webhook ให้ระบบคู่ค้า](LAB-009-partner-webhook-delivery/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 10 | [ระบบ Catalog ที่ใช้ Cache ลดภาระ Database](LAB-010-catalog-cache/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 11 | [ระบบคำนวณราคาเสนอค่าขนส่งบน GKE](LAB-011-gke-quote-engine/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 12 | [ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้](LAB-012-cross-service-tracing/README.md) | Review — CI pending | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #324](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40095281229) |
+| 12 | [ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้](LAB-012-cross-service-tracing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) |
 | 13 | ระบบประมวลผลข้อมูลนำเข้าแบบขนาน | Planned | Not run | — |
 | 14 | แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา | Planned | Not run | — |
 | 15 | ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud | Planned | Not run | — |
@@ -376,4 +376,4 @@ Lab11 / Brief and Design verified: [CI #312](https://github.com/somkid-s5/Portfo
 
 Lab11 / Authoring checkpoint: เพิ่ม Python Quote API/worker, Secret Manager client 2.31.0, deterministic synthetic pricing rules v1, authenticated `/v1/quotes`, internal worker path, health/readiness endpoints, bounded request validation, sanitized JSON logs, bounded HTTPS load script และ localhost end-to-end tests. App CI pending. Terraform/Kubernetes/guide Tasks ยังอยู่ระหว่างเขียน; no GCP provisioning; Cloud verification Not run.
 
-Lab 12 / Guide authoring checkpoint (2026-10-24): เพิ่ม README Tasks 00–19 พร้อม Expected/Actual/Evidence, synthetic checkout app, pinned runtime dependencies, Cloud Build config, Terraform foundation, rendered-manifest template, collector/IAM/network boundaries, bounded HTTPS probe และ offline tests. สถานะ Review จน repository CI ทุก job ผ่าน; ยังไม่มี GCP provisioning, Cloud verification Not run. CI #324 ก่อนหน้าเป็นหลักฐานเฉพาะ architecture/diagram เท่านั้น ไม่ใช่ผลทดสอบ Cloud.
+Lab 12 / Guide-ready checkpoint (2026-10-24): เพิ่ม README Tasks 00–19 พร้อม Expected/Actual/Evidence, synthetic checkout app, pinned runtime dependencies, Cloud Build config, Terraform foundation, rendered-manifest template, collector/IAM/network boundaries, bounded HTTPS probe และ offline tests. [CI #330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ผ่าน 43/43 jobs รวม App/build, Terraform/manifest/IAM, Guide syntax/links/evidence และ design/diagram checks. ผ่าน repository CI เท่านั้น; ไม่มี GCP provisioning และ Cloud verification Not run.

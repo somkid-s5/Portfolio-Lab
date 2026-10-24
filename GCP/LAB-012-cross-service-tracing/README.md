@@ -1,14 +1,14 @@
 ---
 lab: LAB-012
 platform: GCP
-phase: guide
-guide_status: review
+phase: guide-ready
+guide_status: guide-ready
 cloud_verification: not-run
 last_verified: null
 ---
 # Lab 12 — ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้
 
-**สถานะ:** Guide review — มีคู่มือและไฟล์ประกอบครบฉบับร่าง กำลังตรวจโค้ด/ลิงก์/คำสั่งใน CI. ยังไม่มีการสร้าง Cloud resources หรือผล Cloud run จริง.
+**สถานะ:** Guide-ready — CI [#330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ผ่านครบ 43/43 jobs รวม app/build, Terraform, manifest/IAM, Tasks/evidence/link/shell syntax และ diagram/design checks. CI ตรวจ repository เท่านั้น; ไม่มีการสร้าง GCP resources และ Cloud verification: Not run.
 
 ## สถานการณ์
 

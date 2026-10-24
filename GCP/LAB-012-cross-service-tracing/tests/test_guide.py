@@ -51,8 +51,8 @@ class Lab12GuideTests(unittest.TestCase):
                 self.assertTrue((ROOT / path).resolve().is_file(), target)
 
     def test_no_fake_cloud_success_is_written(self):
-        self.assertIn("phase: guide", README)
-        self.assertIn("guide_status: review", README)
+        self.assertIn("phase: guide-ready", README)
+        self.assertIn("guide_status: guide-ready", README)
         self.assertIn("cloud_verification: not-run", README)
         self.assertIn("Cloud verification: Not run", README)
         self.assertIn("Actual", README)
