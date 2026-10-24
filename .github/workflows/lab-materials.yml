@@ -1103,3 +1103,30 @@ jobs:
           persist-credentials: false
       - name: Check Lab 11 task order, recording fields, links and shell syntax
         run: python3 -m unittest discover -s GCP/LAB-011-gke-quote-engine/tests -p test_guide.py -v
+
+  lab012-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 12 brief, diagram geometry and pinned icon provenance
+        run: python3 -m unittest discover -s GCP/LAB-012-cross-service-tracing/tests -p test_design.py -v
+      - name: Install SVG renderer
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+      - name: Render Lab 12 solution diagram at guide width
+        run: |
+          mkdir -p lab012-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-012-cross-service-tracing/assets/solution.svg -o lab012-diagram-previews/solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab012-design-preview
+          path: |
+            lab012-diagram-previews/solution.png
+            GCP/LAB-012-cross-service-tracing/README.md
+            GCP/LAB-012-cross-service-tracing/assets/**
+          if-no-files-found: error
+          retention-days: 14
