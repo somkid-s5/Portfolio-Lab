@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–15 Guide-ready; Lab 16–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–15 Guide-ready; Lab 16 Brief in progress; Lab 17–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -313,13 +313,7 @@
 
 ### 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud
 
-**โจทย์:** สาขาต้องใช้บริการภายใน Cloud ได้ และยังทำงานเมื่อ VPN tunnel หนึ่งหยุด
-
-**สร้างอะไร:** จำลอ<a id="lab-15"></a>
-
-### 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud
-
-**สถานะ:** Brief และ Design ปิดแล้ว; Guide กำลัง author/review โดยยังไม่สร้าง GCP resources
+**สถานะ:** Guide-ready หลัง [CI #40116589150](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40116589150) ผ่าน 54/54 repository jobs; Lab 15 ผ่าน 4/4 jobs. ไม่มี GCP provisioning; Cloud verification Not run.
 
 **โจทย์:** สาขาต้องใช้ Inventory API ภายใน Cloud และตรวจได้ว่าเส้นทางกลับมาทำงานเมื่อ VPN tunnel หนึ่งถูกถอน
 
@@ -337,15 +331,27 @@
 
 ---
 
-pp/PostgreSQL, target Cloud Run/VM + Cloud SQL, migration tooling, cutover routing
+<a id="lab-16"></a>
 
-**ดูแลและพิสูจน์อะไร:** ซ้อมย้าย, schema compatibility, write freeze, data reconciliation, cutover และ backout boundary
+### 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud
 
-**Change request:** ลด downtime ด้วยแนวทาง incremental migration หากความพร้อมต้นทางรองรับ
+**สถานะ:** Brief in progress. ยังไม่มี Design/Diagram, Tasks หรือ Cloud execution; Cloud verification Not run.
 
-**วิธีหลักที่วางไว้:** Scripts + CLI + Terraform
+**โจทย์:** ทีมต้องย้ายระบบจัดการคำสั่งซื้อจาก VM ที่ดูแล PostgreSQL เองไป Cloud Run และ Cloud SQL โดยควบคุม write freeze, ตรวจความครบถ้วนของข้อมูล และสลับ traffic ผ่าน front door เดิมได้อย่างมีแผน backout
 
-**ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
+**สร้างอะไร:** Synthetic Orders API บน Compute Engine พร้อม self-managed PostgreSQL 16; target Orders API บน Cloud Run และ Cloud SQL for PostgreSQL; VPC/private connectivity; external Application Load Balancer ที่มี backend service แยกสำหรับ VM กับ serverless NEG แล้วใช้ URL map เลือก backend ที่รับ traffic
+
+**วิธี migration หลัก:** ทำ compatibility preflight, ประกาศ write freeze, export/restore ชุดข้อมูลขนาดจำกัด, reconcile business invariants และทดสอบ target ก่อน cutover. วัดช่วงที่หยุดเขียนจริง ห้ามกล่าวอ้าง zero downtime หรือ zero data loss ก่อนมีหลักฐาน
+
+**ดูแลและพิสูจน์อะไร:** API parity, schema/extension/version readiness, write-freeze behavior, row-count และ business-total reconciliation, sequence safety, service identity/secret boundaries, URL-map cutover, rollback boundary, application/database logs และ cleanup
+
+**Change request:** ลดช่วง write freeze ด้วย Database Migration Service continuous migration หาก source, network, PostgreSQL objects, IAM และงบประมาณผ่าน preflight. หยุด writes แล้วรอ replication delay ใกล้ศูนย์ก่อน promote; บันทึก downtime และ data reconciliation จากผลจริง
+
+**ขอบเขต:** ใช้ synthetic data เท่านั้น; source เป็น legacy VM จำลอง ไม่ใช่ระบบ on-prem จริง. ห้ามเปิด dual-writer. หลัง target รับ writes แล้วห้ามสลับกลับ source แบบตรง ๆ หากยังไม่มีแผน reverse sync/forward recovery. การทำ DMS ต้องผ่าน cost/access gate ของผู้เรียนก่อนสร้างทรัพยากร
+
+**วิธีหลัก:** Terraform + gcloud/Cloud Shell + migration scripts; เปิด Plan ก่อน apply ทุกครั้ง และบันทึก Expected แยกจาก Actual/Evidence
+
+**ขอบเขตเมื่อจบ:** migration path และ cutover ทำซ้ำได้, มีผลตรวจ compatibility/data/routing, บันทึก downtime/rollback boundary, ทำ change request หรือระบุข้อจำกัดพร้อมเหตุผล, และมี cleanup record. Cloud verification ต้องอาศัยผลที่ผู้เรียนรันจริง
 
 ---
 
@@ -493,9 +499,9 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 
 ## ลำดับถัดไป
 
-Lab 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud — Guide-ready หลัง [CI #40116050598](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40116050598) ผ่านครบ 54/54 jobs; jobs ของ Lab 15 ผ่าน 4/4 (guide, design/render, infra/Terraform, app). คู่มือ Tasks 00–15, sample API, Terraform, probes, diagram และ tests ผ่าน repository checks. ไม่มี GCP provisioning; Cloud verification ยัง Not run.
+Lab 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud — Guide-ready หลัง [CI #40116589150](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40116589150) ผ่าน 54/54 repository jobs; ไม่มี GCP provisioning และ Cloud verification ยัง Not run.
 
-ขั้นถัดไปเริ่ม Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud — จาก Brief ก่อนเขียน Tasks ตามลำดับ
+Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud — อยู่ในขั้น Brief. ขั้นถัดไปปิด requirements/assumptions แล้วทำ Design และ Diagram ตาม [แนวทางไดอะแกรม](../docs/diagram-style.md) ก่อนออกแบบ Tasks.
 
 ตัวอย่างรูปแบบการอ่าน: [Lab Test 2](../test/lab-test-2/README.md) ใช้เป็น reference ด้านการอ่าน ไม่ใช่ผลการทำ GCP Lab
 

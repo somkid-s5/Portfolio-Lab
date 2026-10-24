@@ -1431,3 +1431,13 @@ jobs:
           persist-credentials: false
       - name: Check Lab 15 task sequence, evidence fields and local links
         run: python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_guide.py' -v
+
+  lab016-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate Lab 16 brief and repaired roadmap section
+        run: python3 -m unittest discover -s GCP/LAB-016-legacy-migration/tests -p 'test_brief.py' -v
