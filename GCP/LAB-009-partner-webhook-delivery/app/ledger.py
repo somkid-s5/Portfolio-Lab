@@ -8,6 +8,7 @@ import re
 from typing import Any, Callable, Mapping
 
 from google.cloud import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 from app.domain import (
     ValidationError,
@@ -110,6 +111,7 @@ class FirestoreLedger:
             "payload_sha256": canonical_hash,
             "created_at": accepted_at,
             "updated_at": accepted_at,
+            "enqueue_pending_since": accepted_at,
             "enqueue_attempts": 0,
             "last_enqueue_error": None,
         }
@@ -287,6 +289,24 @@ class FirestoreLedger:
             raise ValidationError("delivery_id must be lowercase SHA-256 hex")
         snapshot = self.deliveries.document(delivery).get(timeout=10)
         return snapshot.to_dict() if snapshot.exists else None
+
+
+    def list_deliveries(self, status: str, *, limit: int = 25) -> list[dict[str, Any]]:
+        """Read one bounded status page without a compound-order index."""
+        if status not in ("enqueue_pending", "queued"):
+            raise ValidationError("unsupported reconciliation status")
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 25:
+            raise ValidationError("reconciliation page limit must be between 1 and 25")
+        query = (
+            self.deliveries.where(filter=FieldFilter("status", "==", status))
+            .limit(limit)
+        )
+        results = []
+        for snapshot in query.stream(timeout=10):
+            record = snapshot.to_dict() or {}
+            record["delivery_id"] = snapshot.id
+            results.append(record)
+        return results
 
     def mark_task_enqueued(
         self,
