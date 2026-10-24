@@ -32,6 +32,8 @@ class Lab12DesignTests(unittest.TestCase):
         root = ET.fromstring(SVG)
         self.assertEqual(root.attrib.get("role"), "img")
         self.assertEqual(root.attrib.get("aria-labelledby"), "diagram-title diagram-desc")
+        self.assertIn("Noto Sans Thai", SVG)
+        self.assertEqual(PROVENANCE["rendering"]["width_px"], 960)
         self.assertTrue(root.find(SVG_NS + "title").text)
         self.assertTrue(root.find(SVG_NS + "desc").text)
         descriptors = {item["svg_id"]: item for item in PROVENANCE["icon_source"]["files"]}

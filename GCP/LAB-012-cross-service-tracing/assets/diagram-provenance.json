@@ -68,5 +68,10 @@
   "verification": {
     "diagram_render": "GitHub Actions lab012-design renders the current diagram at 960px and uploads a review artifact; this verifies repository rendering only.",
     "cloud_deployment": "not-run"
+  },
+  "rendering": {
+    "tool": "librsvg2-bin",
+    "width_px": 960,
+    "font_package": "fonts-noto-core (Noto Sans Thai)"
   }
 }
