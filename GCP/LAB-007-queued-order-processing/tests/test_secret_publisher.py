@@ -55,6 +55,7 @@ class FakeAPI:
         self.fail_after_add = False
         self.fail_operation_poll = False
         self.wrong_instance = False
+        self.wrong_secret_replica = False
 
     def request(self, method, url, body=None, not_found_ok=False):
         if "/instances/lab007-orders/users?" in url and method == "GET":
@@ -79,7 +80,7 @@ class FakeAPI:
                     }
                 },
             }
-        if "/locations/asia-southeast1/secrets/" in url:
+        if "/projects/lab-project/secrets/" in url:
             secret_id = url.split("/secrets/")[1].split("/")[0].split(":")[0]
             if url.endswith("/versions/latest:access"):
                 version = self.versions.get(secret_id)
@@ -88,13 +89,19 @@ class FakeAPI:
                         return None
                     raise AssertionError("unexpected missing-version read")
                 return {
-                    "name": f"projects/lab-project/locations/asia-southeast1/secrets/{secret_id}/versions/{version[0]}",
+                    "name": f"projects/lab-project/secrets/{secret_id}/versions/{version[0]}",
                     "payload": {"data": base64.b64encode(version[1]).decode("ascii")},
                 }
             if method == "GET":
                 return {
-                    "name": f"projects/lab-project/locations/asia-southeast1/secrets/{secret_id}",
-                    "replication": {"userManaged": {"replicas": [{"location": "asia-southeast1"}]}},
+                    "name": f"projects/lab-project/secrets/{secret_id}",
+                    "replication": {
+                        "userManaged": {
+                            "replicas": [{
+                                "location": "us-central1" if self.wrong_secret_replica else "asia-southeast1"
+                            }]
+                        }
+                    },
                 }
             if method == "POST":
                 self.add_calls.append(secret_id)
@@ -106,7 +113,7 @@ class FakeAPI:
                 if self.fail_after_add:
                     self.fail_after_add = False
                     raise module.SafeFailure("google_api_request_failed")
-                return {"name": f"projects/lab-project/locations/asia-southeast1/secrets/{secret_id}/versions/{number}"}
+                return {"name": f"projects/lab-project/secrets/{secret_id}/versions/{number}"}
         raise AssertionError((method, url))
 
 

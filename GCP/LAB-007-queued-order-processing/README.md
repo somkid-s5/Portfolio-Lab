@@ -543,7 +543,9 @@ python3 scripts/publish_secrets.py \
   --initialize-postgres-password
 ```
 
-Publisher ตรวจชื่อ/region/ชนิด/สถานะของ instance, ตรวจว่า Secret ทั้งห้าถูกสร้างแบบ regional ที่ `asia-southeast1`, ตรวจรูปแบบและ permission ของไฟล์ แล้วอ่าน latest version แบบไม่พิมพ์ payload ถ้า Cloud SQL operation สำเร็จจึงบันทึกสถานะไว้ใน private directory จากนั้นจึงเพิ่ม Secret versions ผ่าน HTTPS โดยส่งข้อมูลจาก memory โดยตรง ไม่ผ่าน shell argument ข้อมูลจะไม่ถูกนำเข้า Terraform state
+Publisher ตรวจชื่อ/region/ชนิด/สถานะของ Cloud SQL instance และตรวจว่า Secret ทั้งห้าเป็น **global Secret Manager resource** ที่กำหนด user-managed replication ไปยัง `asia-southeast1` เพียงแห่งเดียว จากนั้นตรวจรูปแบบและ permission ของไฟล์ แล้วอ่าน latest version โดยไม่พิมพ์ payload ถ้า Cloud SQL operation สำเร็จจึงบันทึกสถานะไว้ใน private directory ก่อนเพิ่ม Secret versions ผ่าน HTTPS โดยส่งข้อมูลจาก memory โดยตรง ไม่ผ่าน shell argument และไม่เก็บ payload ใน Terraform state
+
+ข้อจำกัดสำคัญ: global Secret ที่ replicate ไปภูมิภาคเดียว **ไม่ได้จำกัดการเข้าถึงให้อยู่ในภูมิภาคนั้น**; ใช้ global endpoint/resource name และยังเข้าถึงได้จากภูมิภาคอื่น หากโจทย์ต้องพิสูจน์ strict data residency/access boundary ต้องเลือก Regional Secret Manager service และ regional endpoint เป็นอีกแบบหนึ่ง ไม่เรียกการตั้งค่านี้ว่า Regional Secret ([ความแตกต่างของ global และ regional service](https://docs.cloud.google.com/secret-manager/docs/secret-manager-secrets-comparison)).
 
 Expected: JSON มี `event=secret_publish_complete`, `instance=lab007-orders`, `postgres_password=initialized` และเลข version ใน map `versions` สำหรับ auth, portal, worker, dispatcher และ bootstrap จดเฉพาะเลขเหล่านี้ลง `infra/workloads/terraform.tfvars`; ห้ามคัดลอก payload หรือรหัสผ่านลงไฟล์ Terraform
 
@@ -551,7 +553,7 @@ Expected: JSON มี `event=secret_publish_complete`, `instance=lab007-orders`,
 
 ถ้าครั้งแรกขาดการเชื่อมต่อระหว่างตั้งรหัส API บันทึกสถานะ `pending` ก่อนส่งคำขอ เมื่อรันซ้ำด้วย private bundle เดิม script จะส่งรหัสค่าเดิมเพื่อ resolve operation แล้วบันทึกว่าเสร็จ ห้ามสร้าง bundle ใหม่เพื่อแก้ unknown outcome ถ้า Secret เดิมมีค่าไม่ตรงกับ bundle script จะหยุดโดยไม่ rotate; ตรวจว่าเป็น project/instance และ bundle ชุดเดิม ก่อนเปลี่ยนอะไร
 
-ข้อผิดพลาดเรื่อง permission, region, instance หรือ Secret mismatch ให้หยุดแก้ที่สาเหตุ ห้ามเปลี่ยนเป็น `latest`, ห้ามยก public IP หรือใส่รหัสผ่านใน command line เป็นทางลัด API contract อ้างอิง [Cloud SQL users.update](https://docs.cloud.google.com/sql/docs/postgres/admin-api/rest/v1beta4/users/update), [Secret Manager addVersion](https://docs.cloud.google.com/secret-manager/docs/reference/rest/v1/projects.secrets/addVersion) และ [อ่าน Secret version](https://docs.cloud.google.com/secret-manager/docs/reference/rest/v1/projects.secrets.versions/access)
+ข้อผิดพลาดเรื่อง permission, region ของ Cloud SQL/replica, instance หรือ Secret mismatch ให้หยุดแก้ที่สาเหตุ ห้ามเปลี่ยนเป็น `latest`, ห้ามยก public IP หรือใส่รหัสผ่านใน command line เป็นทางลัด API contract อ้างอิง [Cloud SQL users.update](https://docs.cloud.google.com/sql/docs/postgres/admin-api/rest/v1beta4/users/update), [Secret Manager addVersion](https://docs.cloud.google.com/secret-manager/docs/reference/rest/v1/projects.secrets/addVersion) และ [อ่าน Secret version](https://docs.cloud.google.com/secret-manager/docs/reference/rest/v1/projects.secrets.versions/access)
 
 การตรวจใน CI ใช้ Google API mock เท่านั้น ไม่ได้สร้าง Secret, เปลี่ยนรหัสผ่านบน GCP หรือยืนยัน Cloud SQL login จริง ช่อง Cloud verification จึงคงเป็น **Not run** จนกว่าจะมีหลักฐานจาก sandbox จริง
 

@@ -569,15 +569,7 @@ jobs:
         with:
           terraform_version: 1.9.8
           terraform_wrapper: false
-      - name: Show exact foundation Terraform formatting differences without writing files
-        working-directory: GCP/LAB-007-queued-order-processing/infra/foundation
-        continue-on-error: true
-        run: terraform fmt -check -diff -recursive || true
-      - name: Show exact workload Terraform formatting differences without writing files
-        working-directory: GCP/LAB-007-queued-order-processing/infra/workloads
-        continue-on-error: true
-        run: terraform fmt -check -diff -recursive || true
-      - name: Validate private SQL and Secret foundation without credentials or provisioning
+      - name: Validate private SQL and single-region-replicated global Secret foundation without credentials or provisioning
         working-directory: GCP/LAB-007-queued-order-processing/infra/foundation
         run: |
           terraform fmt -check -recursive

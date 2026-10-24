@@ -243,8 +243,11 @@ class GoogleAPI:
 
 
 def _secret_resource(project, secret_id):
-    return (f"https://secretmanager.googleapis.com/v1/projects/{quote(project, safe='-')}"
-            f"/locations/{REGION}/secrets/{secret_id}")
+    project_path = quote(project, safe="-")
+    return (
+        f"https://secretmanager.googleapis.com/v1/projects/{project_path}/"
+        f"secrets/{secret_id}"
+    )
 
 
 def _sql_resource(project, suffix):

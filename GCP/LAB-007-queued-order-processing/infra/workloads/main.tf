@@ -32,31 +32,31 @@ locals {
   mounts = {
     portal = {
       auth = {
-        secret = local.secret_ids.auth
-        version = var.secret_versions.auth
-        filename = "auth.json"
+        secret     = local.secret_ids.auth
+        version    = var.secret_versions.auth
+        filename   = "auth.json"
         mount_path = "/secrets/auth"
       }
       db = {
-        secret = local.secret_ids.portal
-        version = var.secret_versions.portal
-        filename = "db.json"
+        secret     = local.secret_ids.portal
+        version    = var.secret_versions.portal
+        filename   = "db.json"
         mount_path = "/secrets/db"
       }
     }
     worker = {
       db = {
-        secret = local.secret_ids.worker
-        version = var.secret_versions.worker
-        filename = "db.json"
+        secret     = local.secret_ids.worker
+        version    = var.secret_versions.worker
+        filename   = "db.json"
         mount_path = "/secrets/db"
       }
     }
     dispatcher = {
       db = {
-        secret = local.secret_ids.dispatcher
-        version = var.secret_versions.dispatcher
-        filename = "db.json"
+        secret     = local.secret_ids.dispatcher
+        version    = var.secret_versions.dispatcher
+        filename   = "db.json"
         mount_path = "/secrets/db"
       }
     }
@@ -120,7 +120,6 @@ data "google_secret_manager_secret" "lab007" {
   for_each  = local.secret_ids
   project   = var.project_id
   secret_id = each.value
-  location  = local.region
 }
 
 resource "google_cloud_run_v2_service" "app" {
@@ -168,7 +167,7 @@ resource "google_cloud_run_v2_service" "app" {
             DB_SECRET_VERSION            = var.secret_versions[each.key]
           },
           each.key == "portal" ? {
-            AUTH_FILE          = "/secrets/auth/auth.json"
+            AUTH_FILE           = "/secrets/auth/auth.json"
             AUTH_SECRET_VERSION = var.secret_versions.auth
           } : {}
         )

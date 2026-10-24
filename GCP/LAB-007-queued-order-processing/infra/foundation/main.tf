@@ -130,7 +130,6 @@ resource "google_secret_manager_secret" "lab007" {
   for_each  = local.secrets
   project   = var.project_id
   secret_id = each.value
-  location  = local.region
   replication {
     user_managed {
       replicas {
