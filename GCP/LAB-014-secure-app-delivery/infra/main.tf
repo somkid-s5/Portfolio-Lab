@@ -161,7 +161,7 @@ resource "google_cloudbuild_trigger" "main_push" {
   description     = "Build Lab 14 only for trusted pushes to main."
   service_account = google_service_account.lab014["builder"].name
   filename        = "GCP/LAB-014-secure-app-delivery/cloudbuild.yaml"
-  included_files  = [
+  included_files = [
     "GCP/LAB-014-secure-app-delivery/app/**",
     "GCP/LAB-014-secure-app-delivery/cloudbuild.yaml",
     "GCP/LAB-014-secure-app-delivery/deploy/**",
