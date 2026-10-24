@@ -17,11 +17,11 @@ SVG_NS = "{http://www.w3.org/2000/svg}"
 
 
 class Lab11DesignTests(unittest.TestCase):
-    def test_brief_is_design_only_and_cloud_status_is_honest(self):
-        self.assertIn("phase: design", README)
-        self.assertIn("guide_status: design", README)
+    def test_authoring_checkpoint_and_cloud_status_are_honest(self):
+        self.assertIn("phase: authoring", README)
+        self.assertIn("guide_status: authoring", README)
         self.assertIn("cloud_verification: not-run", README)
-        self.assertIn("ยังไม่ใช่คู่มือทำ Lab", README)
+        self.assertIn("Guide ยังเขียนไม่ครบทุก Task", README)
         for requirement in range(1, 11):
             self.assertIn(f"R{requirement}", README)
         self.assertNotRegex(README, r"(?m)^### Task \d{2}")
@@ -57,6 +57,7 @@ class Lab11DesignTests(unittest.TestCase):
         self.assertEqual(set(embedded), expected)
         self.assertEqual(PROVENANCE["icon_source"]["pinned_commit"], "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192")
         self.assertEqual(PROVENANCE["icon_source"]["official_entry_point"], "https://cloud.google.com/icons")
+        self.assertIn("CI #312", PROVENANCE["verification"]["diagram_render"])
 
     def test_standalone_html_contains_exact_editable_svg(self):
         match = re.search(r"(<svg\b.*?</svg>)", HTML, re.DOTALL)

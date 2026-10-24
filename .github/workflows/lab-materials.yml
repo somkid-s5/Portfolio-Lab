@@ -1060,3 +1060,17 @@ jobs:
             GCP/LAB-011-gke-quote-engine/assets/diagram-provenance.json
           if-no-files-found: error
           retention-days: 14
+
+  lab011-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile the app and bounded load tool
+        run: python3 -m compileall -q GCP/LAB-011-gke-quote-engine/app GCP/LAB-011-gke-quote-engine/scripts/load_test.py GCP/LAB-011-gke-quote-engine/tests/test_app.py
+      - name: Exercise quote calculation, auth, secret separation and live API-to-worker path
+        run: python3 -m unittest discover -s GCP/LAB-011-gke-quote-engine/tests -p test_app.py -v
+      - name: Build the application image without publishing it
+        run: docker build --pull --tag lab011-quote-engine:ci --file GCP/LAB-011-gke-quote-engine/app/Dockerfile GCP/LAB-011-gke-quote-engine/app

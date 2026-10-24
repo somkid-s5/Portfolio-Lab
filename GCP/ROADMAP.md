@@ -485,7 +485,7 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 
 Lab 10 — [Catalog Cache](LAB-010-catalog-cache/README.md) — Guide-ready หลัง [CI #310](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40088902566) และ [CI #311](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40089135500) ผ่านครบ 35/35 jobs ต่อรอบ: app/TTL integration, Guide Tasks/evidence/Bash syntax/links, design/diagram และ Terraform fmt/init/validate. คู่มือมี troubleshooting, cleanup และ clean rebuild path. ไม่ได้ provision GCP; Cloud verification ยังคง Not run.
 
-Lab 11 — [GKE Quote Engine](LAB-011-gke-quote-engine/README.md) — Brief/Design: GKE Autopilot, regional HTTPS Gateway, private API/worker, per-workload Secret Manager access, bounded HPA และ operational failure/change scenarios. ใช้ DNS-based control-plane endpoint ให้ Cloud Shell ใช้ IAM-authenticated access; diagram วาง API/worker แนวตั้งและเส้น Gateway สั้นแบบ orthogonal. ยังไม่เริ่ม Tasks หรือ provision GCP; Cloud verification Not run.
+Lab 11 — [GKE Quote Engine](LAB-011-gke-quote-engine/README.md) — Brief/Design ผ่าน [CI #312](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40090486212) ครบ 36/36 jobs; GKE Autopilot, regional HTTPS Gateway, private API/worker, per-workload Secret Manager access, bounded HPA และ operational failure/change scenarios. ใช้ DNS-based control-plane endpoint ให้ Cloud Shell ใช้ IAM-authenticated access; diagram วาง API/worker แนวตั้งและเส้น Gateway สั้นแบบ orthogonal. App API/worker, v1 synthetic rules, bounded load tool และ localhost integration tests อยู่ระหว่าง Authoring. No GCP provisioned; Cloud verification Not run.
 
 ตัวอย่างรูปแบบการอ่านที่ยืนยันแล้ว: [Lab Test 2](../test/lab-test-2/README.md) เป็นตัวอย่างรูปแบบ ไม่ถือเป็นผลการทำ Lab ใด
 

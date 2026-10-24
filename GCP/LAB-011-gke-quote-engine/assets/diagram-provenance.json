@@ -53,7 +53,7 @@
   },
   "layout_decision": "Client enters from the left through regional Gateway to API; quote-api and quote-worker are stacked vertically so the internal request is a short direct edge. Build/image delivery is a separate top lane. Per-KSA secret access and operations telemetry use dedicated right-side lanes to avoid perimeter detours.",
   "verification": {
-    "diagram_render": "Awaiting 960px render in repository CI",
+    "diagram_render": "Rendered at 960px by GitHub Actions CI #312 (artifact: lab011-design-preview); repository check only.",
     "cloud_deployment": "not-run"
   }
 }

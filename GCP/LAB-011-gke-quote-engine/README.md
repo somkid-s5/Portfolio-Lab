@@ -1,14 +1,14 @@
 ---
 lab: LAB-011
 platform: GCP
-phase: design
-guide_status: design
+phase: authoring
+guide_status: authoring
 cloud_verification: not-run
 last_verified: null
 ---
 # Lab 11 — ระบบคำนวณราคาเสนอค่าขนส่งบน GKE
 
-**สถานะ:** Brief และ Design — ยังไม่ใช่คู่มือทำ Lab และยังไม่มีผลรันบน GCP. ขอบเขตนี้วางไว้ก่อนออกแบบ Tasks และเริ่มสร้าง App/infra.
+**สถานะ:** Authoring — Guide ยังเขียนไม่ครบทุก Task; App API/worker, pricing rules, bounded load tool, unit/integration tests และ Cloud Build image path เริ่มทำแล้ว. ยังไม่มีผลรันบน GCP; Cloud verification: Not run.
 
 ## สถานการณ์
 
@@ -53,7 +53,7 @@ last_verified: null
 - **Private worker:** Gateway route ชี้เฉพาะ API; worker รับเฉพาะ API service ผ่าน NetworkPolicy. Ingress policy ต้องอนุญาต health-check/proxy source ranges ที่ Gateway ใช้จริงและ KSA/pod selector ของ API; ให้พิสูจน์ด้วย positive/negative probes
 - **Per-workload identity:** ใช้ Workload Identity Federation for GKE และ IAM principal ของแต่ละ KSA โดยตรง ไม่มี key file. API/worker อ่านคนละ Secret Manager secret และโหลดค่าตอนเริ่ม process; การเพิ่ม secret version ต้องมี rollout เพื่อใช้ version ใหม่
 - **Bounded horizontal scaling:** worker ใช้ HPA CPU target 60%, min 1/max 4; API เริ่ม 2 replicas เพื่อให้ rollout มี backend พร้อม. ทุก container ระบุ CPU/memory requests และ limits; load tool จะจำกัดจำนวน/concurrency/เวลาตาม design ก่อนเขียน Task
-- **Image promotion:** Cloud Build สร้าง image ใน region, push ไป Artifact Registry และคู่มือ deploy ด้วย image digest ไม่พึ่ง mutable `latest`
+- **Image promotion:** Cloud Build ใช้ dedicated build service account ที่เขียนได้เฉพาะ repository และส่ง log ไป Cloud Logging; build สร้าง image, push ไป Artifact Registry และคู่มือ deploy ด้วย image digest ไม่พึ่ง mutable `latest`. GKE node service account แยกต่างหาก มี role สำหรับ node system tasks และสิทธิ์อ่าน image repository; app KSA ไม่มีสิทธิ์ pull/push image.
 - **Observability:** ใช้ structured logs จาก app และ GKE system metrics/Events ใน Cloud Logging/Monitoring; ไม่สร้าง dashboard หรือ alert ที่มีค่าใช้จ่ายเพิ่ม เว้นแต่จะจำเป็นต่อหลักฐาน
 
 ### Component และ identity inventory
@@ -63,9 +63,9 @@ last_verified: null
 | Regional external GKE Gateway + HTTPRoute | TLS termination และ route ไป API เท่านั้น | Public edge; ephemeral lab cert; test ด้วย HTTPS |
 | `quote-api` Deployment + Service | bearer auth, validation, quote request handoff | KSA `quote-api`; อ่าน `api-bearer-token`; ไม่มี worker pricing secret |
 | `quote-worker` Deployment + ClusterIP | คำนวณราคาและคืน `rules_version` | KSA `quote-worker`; อ่าน `quote-rules`; ไม่มี public Gateway route |
-| GKE Autopilot cluster | รัน workload, probes, rollout และ HPA | Private nodes, VPC-native subnet, Dataplane V2 |
+| GKE Autopilot cluster | รัน workload, probes, rollout และ HPA | Private nodes, VPC-native subnet, Dataplane V2; dedicated node service account สำหรับ system tasks/image pull |
 | Secret Manager | เก็บ token และ pricing rules แยก secret/version | IAM binding ราย KSA; secret values ไม่อยู่ใน Terraform state |
-| Cloud Build + Artifact Registry | build และเก็บ image | Dedicated build identity; deploy ใช้ immutable digest |
+| Cloud Build + Artifact Registry | build และเก็บ image | Dedicated build service account; Artifact Registry Writer เฉพาะ repository และ Logging Writer; deploy ใช้ immutable digest |
 | Cloud Logging + Cloud Monitoring | app/system telemetry | ใช้ managed GKE collection; query ด้วยช่วงเวลาทดลอง |
 
 ### Request และ control flow
@@ -76,6 +76,19 @@ last_verified: null
 4. API ส่งผล quote กลับ Client; structured logs ติด `request_id`, `rules_version`, outcome และ duration แต่ไม่บันทึก token หรือ secret.
 5. Cloud Build push image digest ไป Artifact Registry; GKE node identity pull image. Workload identity ของ app ใช้เฉพาะเรียก Secret Manager.
 6. GKE ส่ง logs/metrics/events ไป Cloud Operations สำหรับตรวจ rollout, probe, CPU, HPA และ errors.
+
+## Application contract and runtime identity
+
+แอปตัวอย่างอยู่ใน `app/`; เป็น Python HTTP API กับ worker แยก Deployment แต่ใช้ image digest เดียวกัน.
+
+- `GET /` และ `GET /healthz` ใช้ตรวจ health; `POST /v1/quotes` เป็น public API ที่ Gateway route เข้าเท่านั้น.
+- Request JSON ต้องมี `weight_kg` ตั้งแต่ 0.1–1,000, `distance_km` ตั้งแต่ 1–5,000 และ `service_level` เป็น `standard` หรือ `express`; body จำกัด 4 KiB.
+- API ตรวจ bearer token แบบ constant-time, สร้าง quote ID แล้วเรียก worker ผ่าน ClusterIP. Worker รับ path `/internal/quote`; ไม่มี route จาก Gateway.
+- Pricing rules โหลดครั้งเดียวตอน process start จาก Secret Manager; API อ่านเฉพาะ token และ worker อ่านเฉพาะ rules. Worker คืน `rules_version` เพื่อเปรียบเทียบ Change Request. Worker มี synthetic CPU work ต่อคำขอที่ปรับได้ผ่าน `QUOTE_CPU_WORK_MS` (0–100 ms) เพื่อทำให้ HPA scale ได้สังเกตง่าย; ค่านี้เป็น test fixture ไม่ใช่ workload benchmark หรือ capacity claim.
+- App logs เป็น JSON มี request ID, outcome, duration และ rule version; ห้ามบันทึก authorization header, token, body หรือ pricing secret. Health endpoints ไม่คืนค่าความลับ.
+- `app/sample/quote-rules-v1.json` เป็นข้อมูลสังเคราะห์สำหรับสร้าง Secret Manager version; ไม่มี credential หรือข้อมูลผู้ใช้.
+
+ตัวอย่างคำนวณตาม seed v1 สำหรับ 2 kg, 100 km, standard มี Expected amount 96.00 THB (35 + 2×8 + 100×0.45). นี่เป็นตัวอย่างสูตร ไม่ใช่ผลจากการ deploy บน GCP.
 
 ## Operations scenarios ที่จะลงใน Guide
 
@@ -118,6 +131,10 @@ Actual/status/UTC/Evidence จะวางติดกับแต่ละ Task
 - [GKE network isolation and DNS-based control-plane endpoint](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/latest/network-isolation)
 - [GKE networking best practices](https://docs.cloud.google.com/kubernetes-engine/docs/best-practices/networking)
 - [kubectl access and `get-credentials --dns-endpoint`](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl)
+- [Configure a GKE Autopilot node service account](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/creating-an-autopilot-cluster)
+- [Artifact Registry permissions for GKE image pulls](https://docs.cloud.google.com/kubernetes-engine/docs/troubleshooting/image-pulls)
+- [Cloud Build user-managed service accounts](https://docs.cloud.google.com/build/docs/securing-builds/configure-user-specified-service-accounts)
+- [Secret Manager Python client 2.31.0](https://docs.cloud.google.com/python/docs/reference/secretmanager/2.31.0/)
 - [Pricing Calculator](https://cloud.google.com/products/calculator)
 
-Design checked against official docs on 2026-10-24. Verify release channel, quotas, supported GatewayClass, pricing, IAM and organization policy again when writing executable Tasks. GKE DNS endpoint and Cloud Shell credential path are now explicit; no reliance on Cloud Shell's dynamic egress IP.
+Official docs checked 2026-10-24. Verify release channel, quotas, supported GatewayClass, pricing, IAM and organization policy again while authoring executable Tasks. GKE DNS endpoint and Cloud Shell credential path are explicit; no reliance on Cloud Shell's dynamic egress IP.
