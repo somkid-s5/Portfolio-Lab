@@ -8,12 +8,13 @@ last_verified: null
 ---
 # Lab 09 — ระบบส่ง Webhook ให้ระบบคู่ค้า
 
-**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี pure domain contract, Firestore transaction ledger สำหรับ event/outbox/idempotency และ Cloud Tasks OIDC enqueue adapter พร้อม unit/emulator tests; Reconciler/worker/API, Terraform และ Guide ยังไม่ครบ. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
+**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี pure domain contract, Firestore transaction ledger สำหรับ event/outbox/idempotency และ Cloud Tasks OIDC enqueue adapter และ Event API route พร้อม unit/emulator tests; bounded Reconciler, Delivery Worker, partner simulator, Terraform และ Guide ยังไม่ครบ. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
 
 ## Build materials checkpoint
 
 - `app/domain.py` กำหนด schema, canonical bytes, idempotency hash, task identity, HMAC และการจำแนกผลตอบกลับโดยไม่พึ่ง Cloud SDK.
-- `app/ledger.py` เขียน event, delivery outbox และ idempotency record ใน Firestore transaction เดียว; replay ของ key เดิมคืน event เดิม, body hash ต่างกันเกิด conflict และการ mark queued จะไม่ถอยสถานะที่ Worker ขยับไปแล้ว.
+- `app/ledger.py` เขียน event, delivery outbox และ idempotency record ใน Firestore transaction เดียว; replay ของ key เดิมคืน event เดิม, body hash ต่างกันเกิด conflict และ state guards กัน stale generation/การถอยสถานะ. Error code กับ `retry_ended_unknown` ถูกบันทึกแบบ bounded เพื่อส่งต่อ human review.
+- `app/api.py` รับ event ผ่าน `/v1/events`, ตอบ 202 หลัง Firestore commit และถือ enqueue เป็น best-effort; error ระหว่างส่งไม่ทำให้ producer ส่ง business event ซ้ำโดยไม่จำเป็น. IAM enforcement อยู่ที่ Cloud Run configuration.
 - `tests/test_domain.py` ทดสอบ contract แบบ pure; `tests/test_firestore_ledger.py` ใช้ loopback Firestore Emulator ทดสอบ atomic write, concurrent replay และ state guard. ผลจะถือเป็น CI/emulator evidence เมื่อ workflow ผ่านเท่านั้น.
 - ขั้นถัดไปคือ Cloud Tasks create/get adapter และ reconciler; ยังไม่มี Cloud SDK call ไปยัง project จริง.
 
