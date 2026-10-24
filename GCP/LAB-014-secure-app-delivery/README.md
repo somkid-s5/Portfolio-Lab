@@ -9,7 +9,7 @@ last_verified: null
 
 # Lab 14 — แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา
 
-> **สถานะเอกสาร:** Design — สถาปัตยกรรมและแผนภาพ Solution ร่างเสร็จ; ยังไม่ได้เขียน Task Guide หรือ deploy files
+> **สถานะเอกสาร:** Design checkpoint — architecture/trust boundary และแผนภาพผ่าน repository CI #346; ยังไม่มี Task Guide, App, Terraform หรือ deploy files
 > **สถานะ Cloud:** Not run — เป็นแผนและแบบฝึกหัด ยังไม่มีการสร้างทรัพยากรหรือผลทดสอบ GCP จริง
 
 ## สถานการณ์
@@ -99,8 +99,10 @@ attribute.workflow_ref == "somkid-s5/Portfolio-Lab/.github/workflows/release.yml
 | GitHub PR workflow | ไม่มี GCP role และไม่มี OIDC token permission | service-account key หรือ cloud token |
 | Cloud Build builder SA | `roles/artifactregistry.writer` เฉพาะ Artifact Registry repo; `roles/logging.logWriter` ใน disposable project | KMS signing, Binary Authorization policy edit, Cloud Deploy หรือ IAM admin |
 | `lab014-attestor` (WIF: `gcp-attest`) | `roles/cloudbuild.builds.viewer` ใน project; `roles/cloudkms.signerVerifier` บน attestation key เดียว; `roles/containeranalysis.notes.attacher` บน attestor note; `roles/containeranalysis.occurrences.editor` ใน project | สร้าง/แก้ build, deploy/approve Cloud Deploy, แก้ IAM |
-| `lab014-releaser` (WIF: `gcp-release`) | `roles/clouddeploy.releaser` ใน project; `roles/iam.serviceAccountUser` เฉพาะ Cloud Deploy execution SA ที่ใช้ render | KMS signing/attestation, Cloud Run deploy โดยตรง, production approval |
-| Cloud Deploy execution SA | `roles/clouddeploy.jobRunner` และ `roles/run.developer` ใน disposable project; `roles/iam.serviceAccountUser` เฉพาะ runtime SA | sign image, เปลี่ยน Binary Authorization policy, IAM admin |
+| Binary Authorization attestor service agent | `roles/containeranalysis.notes.occurrences.viewer` บน Container Analysis note ที่ attestor อ้างถึง เพื่ออ่าน occurrence ตอนตรวจ image | สร้าง attestation หรือแก้ note/policy |
+| `lab014-releaser` (WIF: `gcp-release`) | `roles/clouddeploy.releaser` ใน project; `roles/iam.serviceAccountUser` เฉพาะ `lab014-renderer` และ `lab014-deployer` เพื่อให้ Cloud Deploy ใช้ execution identities ตาม target | KMS signing/attestation, Cloud Run deploy โดยตรง, production approval |
+| `lab014-renderer` (Cloud Deploy RENDER) | `roles/clouddeploy.jobRunner` ใน project สำหรับ render และ Cloud Deploy storage/log operations | deploy ไป Cloud Run, sign image, เปลี่ยน policy |
+| `lab014-deployer` (Cloud Deploy DEPLOY/VERIFY) | `roles/clouddeploy.jobRunner` และ `roles/run.developer` ใน disposable project; `roles/iam.serviceAccountUser` เฉพาะ runtime SA | sign image, เปลี่ยน Binary Authorization policy, IAM admin |
 | Production approver (คน/กลุ่ม) | `roles/clouddeploy.approver` ใน disposable project | build, sign, deploy หรือแก้ policy |
 | Cloud Run runtime SA | ไม่มี role เพิ่ม เพราะ Quote API ไม่เรียก Google APIs | build, registry write, sign, deploy |
 
@@ -152,7 +154,8 @@ Cloud Build GitHub trigger ผูก builder SA ไว้ใน trigger config; 
 - [Cloud Deploy pipeline และ targets](https://docs.cloud.google.com/deploy/docs/create-pipeline-targets) — requireApproval และการจัด target
 - [Cloud Deploy canary สำหรับ Cloud Run](https://docs.cloud.google.com/deploy/docs/deployment-strategies/canary/cloud-run) — traffic progression และ verify ต่อ phase
 - [Cloud Deploy deployment verification](https://docs.cloud.google.com/deploy/docs/verify-deployment) — verification task result และ rollout failure
-- [Cloud Deploy service accounts](https://docs.cloud.google.com/deploy/docs/cloud-deploy-service-account) — execution SA, jobRunner, runtime roles และ caller `actAs`
+- [Cloud Deploy service accounts](https://docs.cloud.google.com/deploy/docs/cloud-deploy-service-account) — per-target execution identities, jobRunner, runtime roles และ caller `actAs`
+- [Binary Authorization REST: Attestors](https://docs.cloud.google.com/binary-authorization/docs/reference/rest/v1/projects.attestors) — attestor delegation SA ต้องอ่าน occurrences บน note
 - [Cloud Deploy IAM roles and permissions](https://docs.cloud.google.com/deploy/docs/iam-roles-permissions) — Releaser/Approver/Runner roles
 - [Binary Authorization สำหรับ Cloud Run](https://docs.cloud.google.com/binary-authorization/docs/run/overview) — policy scope, enforcement และข้อจำกัด Cloud Run
 - [สร้าง Binary Authorization attestation ด้วย Cloud KMS](https://docs.cloud.google.com/binary-authorization/docs/making-attestations) — payload, signing key และ roles สำหรับ attestation
@@ -171,4 +174,4 @@ Cloud Build GitHub trigger ผูก builder SA ไว้ใน trigger config; 
 
 ## ขั้นถัดไป
 
-ปิด Design checkpoint ด้วยการทดสอบ architecture contract และทบทวน role/scope กับ Terraform/API schema จากนั้นเริ่ม Materials: Quote API ที่รันทดสอบได้, Cloud Build config, WIF release workflow, Cloud Deploy/Skaffold manifests, Terraform และ offline integration tests. เมื่อ materials ผ่าน CI แล้วจึงเขียน Task Guide แบบคลิก/คำสั่ง/ผลคาดหวัง/วิธีแก้ failure และช่อง Actual/Evidence ให้ครบ; ไม่มีการสร้าง GCP resources ระหว่างจัดทำเอกสาร.
+Design checkpoint ปิดแล้วด้วย architecture contract CI #346 และทบทวน role/scope: แยก renderer/deployer identities และเพิ่ม note-occurrence viewer ให้ Binary Authorization attestor delegation SA. ขั้นถัดไปเริ่ม Materials: Quote API ที่รันทดสอบได้, Cloud Build config, WIF release workflow, Cloud Deploy/Skaffold manifests, Terraform และ offline integration tests. เมื่อ materials ผ่าน CI แล้วจึงเขียน Task Guide แบบคลิก/คำสั่ง/ผลคาดหวัง/วิธีแก้ failure และช่อง Actual/Evidence ให้ครบ; ไม่มีการสร้าง GCP resources ระหว่างจัดทำเอกสาร.

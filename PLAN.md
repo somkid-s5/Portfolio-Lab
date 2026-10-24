@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs บน commit `70d1269d854b212d9bb9567e833f932d54ced204`; Lab 14 Design diagram ผ่าน repository CI [#344](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40104864860) ครบ 48/48 jobs; ปรับ trust flow หลังทบทวน Cloud Build IAM และรอ CI รอบใหม่. Cloud verification ทุก Lab ยังคง Not run; Lab 15–20 ยัง Planned.
+**สถานะ:** Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs; Lab 14 Design/trust revision ผ่าน CI [#346](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40105778148) ครบ 48/48 jobs บน commit `d698371d635f3f77bb7bb77df293bfda7e99c83d`. ปิด IAM design โดยแยก renderer/deployer และกำหนด attestor delegation access; ยังไม่มี App/Tasks/infra หรือ GCP provisioning. Cloud verification ทุก Lab ยังคง Not run; Lab 15–20 ยัง Planned.
 
 ## ผลลัพธ์ปลายทาง
 

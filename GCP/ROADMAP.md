@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs; Lab 14 diagram ผ่าน CI #344; ปรับ trust flow หลังทบทวน Cloud Build IAM และรอ CI รอบใหม่; ยังอยู่ Design. Lab 15–20 Planned. CI เป็น repository checks เท่านั้น ไม่มี Cloud verification จริง.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs; Lab 14 Design/trust revision ผ่าน CI [#346](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40105778148) ครบ 48/48 jobs และ design checkpoint ปิดแล้ว. ขั้นถัดไปสร้าง app/build/release materials ก่อนเขียน Task Guide; ยังไม่มี GCP provisioning และ Cloud verification Not run. Lab 15–20 Planned.
 
 ## แนวทางที่ยึดร่วมกัน
 

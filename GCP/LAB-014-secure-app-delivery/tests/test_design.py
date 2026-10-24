@@ -92,6 +92,10 @@ class Lab14DesignTests(unittest.TestCase):
             "`gcp-attest`",
             "`gcp-release`",
             "trigger ID, commit SHA, builder identity",
+            "`lab014-renderer`",
+            "`lab014-deployer`",
+            "`roles/containeranalysis.notes.occurrences.viewer`",
+            "Design checkpoint ปิดแล้ว",
         ):
             self.assertIn(phrase, README)
 
