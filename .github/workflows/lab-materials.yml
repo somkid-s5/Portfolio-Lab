@@ -1267,7 +1267,35 @@ jobs:
       - name: Check 20 ordered Tasks, evidence fields, Bash syntax and local links
         run: python3 -m unittest discover -s GCP/LAB-013-parallel-data-processing/tests -p test_guide.py -v
 
-  lab014-design:
+  lab014-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run Lab 14 API and bounded probe tests
+        run: |
+          python -m unittest discover -s GCP/LAB-014-secure-app-delivery/app/tests -v
+          python -m unittest discover -s GCP/LAB-014-secure-app-delivery/tests -p test_probe.py -v
+      - name: Build the non-root application image
+        run: docker build --pull --file GCP/LAB-014-secure-app-delivery/app/Dockerfile --tag lab014-quote-api:ci GCP/LAB-014-secure-app-delivery
+      - name: Verify the image user and live health/business contract
+        run: |
+          test "$(docker image inspect --format '{{.Config.User}}' lab014-quote-api:ci)" = "10001:10001"
+          container_id="$(docker run --detach --rm --publish 127.0.0.1:18080:8080 --env QUOTE_PRICE_FACTOR=1.00 lab014-quote-api:ci)"
+          trap 'docker logs "$container_id" || true; docker stop "$container_id" >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18080/healthz >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+          python -c 'import json,urllib.request; d=json.load(urllib.request.urlopen("http://127.0.0.1:18080/api/v1/quote?origin=BKK&destination=CNX&weight_kg=5", timeout=3)); assert d["total_thb"] == "455.00", d'
+            lab014-design:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
