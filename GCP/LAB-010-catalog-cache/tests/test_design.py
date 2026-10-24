@@ -67,6 +67,10 @@ class DesignTests(unittest.TestCase):
         self.assertIn('*.tfstate.*', dockerignore)
         self.assertIn('google_cloud_run_v2_service_iam_member" "public"', main)
         self.assertIn('google_cloud_run_v2_service_iam_member" "operator_invoker"', main)
+        self.assertIn('value = var.simulate_redis_failure ? "6380" : "6378"', main)
+        self.assertIn('value = tostring(var.cache_enabled)', main)
+        self.assertIn('variable "cache_enabled"', variables)
+        self.assertIn('variable "simulate_redis_failure"', variables)
 
     def test_implementation_keeps_cache_clear_scoped_and_bounded(self):
         cache_source = (ROOT / "app" / "cache.py").read_text(encoding="utf-8")

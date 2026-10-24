@@ -352,3 +352,6 @@ Lab10 / Infra schema correction: CI run 40086910075 (source 53370fa) ผ่า�
 
 
 Lab10 / Infra CI format correction: CI run 40087072059 stopped at terraform fmt after provider-schema edits; diff identified only attribute alignment in the Redis and SQL-user blocks, so formatting has been corrected before validation. This run did not reach terraform validate; corrected provider schema remains unverified until next CI. No GCP apply.
+
+
+Lab10 / App + infra CI verified: [CI run 40087195704](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40087195704), source 3bd11017a3127ce623f59ca3255c458f343bdc2a, full workflow completed success. Lab10 app integration (25 tests), design checks, Docker non-root/import and Terraform provider 6.50 fmt/init/validate all passed without credentials or provisioning. เพิ่ม cache-enabled/Redis-fault togglesหลัง checkpoint นี้เพื่อรองรับ matched workload; CI rerun pending. No GCP apply; Cloud verification Not run.

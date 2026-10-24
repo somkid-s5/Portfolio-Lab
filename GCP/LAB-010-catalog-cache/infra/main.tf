@@ -332,7 +332,11 @@ resource "google_cloud_run_v2_service" "catalog" {
       }
       env {
         name  = "REDIS_PORT"
-        value = "6378"
+        value = var.simulate_redis_failure ? "6380" : "6378"
+      }
+      env {
+        name  = "CACHE_ENABLED"
+        value = tostring(var.cache_enabled)
       }
       env {
         name  = "REDIS_AUTH_FILE"

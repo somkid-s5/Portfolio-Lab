@@ -8,6 +8,8 @@ image_uri         = ""
 redis_auth_version = ""
 redis_ca_version   = ""
 category_list_ttl_seconds = 60
+cache_enabled = true
+simulate_redis_failure = false
 allow_destroy = false
 
 # After image build and external Secret Manager versions exist, set

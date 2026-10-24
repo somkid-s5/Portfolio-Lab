@@ -85,6 +85,18 @@ variable "category_list_ttl_seconds" {
   }
 }
 
+variable "cache_enabled" {
+  description = "Toggle the cache for a matched-workload database-only baseline."
+  type        = bool
+  default     = true
+}
+
+variable "simulate_redis_failure" {
+  description = "Route the app to unused private port 6380 for the reversible Redis client-path fault."
+  type        = bool
+  default     = false
+}
+
 variable "allow_destroy" {
   description = "Disable deletion protection only during the reviewed cleanup task."
   type        = bool
