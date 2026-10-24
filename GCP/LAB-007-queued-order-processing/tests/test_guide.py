@@ -32,7 +32,7 @@ class GuideTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, f"bash block {number}: {result.stderr}")
 
     def test_cloud_build_is_not_confused_with_cloud_verification(self):
-        self.assertIn("guide_status: authoring", self.readme)
+        self.assertIn("guide_status: guide-ready", self.readme)
         self.assertIn("cloud_verification: not-run", self.readme)
         self.assertIn("Cloud verification", self.readme)
         self.assertIn("Cloud Build source bucket", self.readme)

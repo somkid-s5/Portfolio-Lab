@@ -13,7 +13,7 @@ last_verified: null
 
 Solution นี้ชื่อ **Order Queue Desk** ผลสำเร็จทางธุรกิจคือจองสต็อกและเปลี่ยนคำสั่งซื้อเป็น confirmed ไม่ใช่การตัดเงิน ส่งสินค้า หรือรับประกัน exactly-once ของบริการภายนอก
 
-**สถานะ:** App, PostgreSQL schema/transactions, bootstrap, Secret publisher, Terraform, bounded fault/load tools และแผนภาพจัดทำแล้ว; คู่มือ Tasks อยู่ระหว่างตรวจ CI ก่อนประกาศ Guide-ready. ยังไม่มี GCP deployment/Cloud verification จริง; ทุกช่อง Cloud result ต้องกรอกจากการทดลองใน sandbox ของผู้เรียน
+**สถานะ:** Guide-ready หลัง full workflow [CI run 40067214073](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40067214073) ผ่านทุก job ของ Lab 07 ทั้ง guide checks, PostgreSQL/browser integration, bootstrap, container, Terraform validation และ diagram render. ยังไม่มี GCP deployment/Cloud verification จริง; ทุกช่อง Cloud result ต้องกรอกจากการทดลองใน sandbox ของผู้เรียน
 
 ## ผู้ใช้และงานที่ต้องทำได้
 
@@ -310,7 +310,7 @@ SQLbackup retentionไม่ใช่การรับประกันrestore
 
 [integration tests](tests/test_sql.py) ใช้ PostgreSQL 16 จริงกับ pg8000 1.31.5 และ SET ROLE เพื่อทดสอบ grants: concurrent create, duplicate processing, LAST-01 race, multi-item rejection, partial-write rollback, commit-before-ack replay, owner/event binding, ledger corruption และ price snapshot คำสั่งทดสอบยอมรับเฉพาะ disposable loopback database ชื่อ lab007_ci ไม่ fallback ไป Cloud SQL
 
-นี่เป็น CI checkpoint ระยะแรกของ domain/PostgreSQL ที่ใช้ SET ROLE ไม่ใช่ผล Cloud SQL/IAM/TLS/Secret login จริง; เนื้อหาและเครื่องมือปัจจุบันอยู่ในส่วน Materials และ Tasks ด้านล่าง
+นี่เป็น CI checkpoint ระยะแรกของ domain/PostgreSQL ที่ใช้ SET ROLE ไม่ใช่ผล Cloud SQL/IAM/TLS/Secret login จริง; คู่มือฉบับปัจจุบันและ Tasks สำหรับลงมืออยู่ในส่วน Materials และ Tasks ด้านล่าง
 
 ## การ claim และบันทึกผลส่ง outbox
 

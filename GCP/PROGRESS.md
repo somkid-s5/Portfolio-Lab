@@ -10,7 +10,7 @@
 | 04 | [ระบบจองบริการบน Serverless และ Private Database](LAB-004-serverless-booking/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 08 | ระบบรายงานตามเวลาและงาน Batch รายวัน | Planned | Not run | — |
 | 09 | ระบบส่ง Webhook ให้ระบบคู่ค้า | Planned | Not run | — |
 | 10 | ระบบ Catalog ที่ใช้ Cache ลดภาระ Database | Planned | Not run | — |
@@ -309,3 +309,5 @@ Lab07 / DLQ CLI verified: [CI40015022666](https://github.com/somkid-s5/Portfolio
 
 
 Lab07 / Bootstrap verified: source043f8fb381e04433c9191f5b5bcca31a50b38620 [CI40062382480](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40062382480) jobs120778470963/120778471113/120778471007/120778471043 completed success; Lab07รวม158tests=34pure/client+108SDK/HTTP/runtime/auth/PG/browser+16bootstrap. Core11realPG16testsใช้NON-superuserCREATEROLEinstaller+realSCRAMrolelogins ตรวจatomic install/rollback/concurrency/unknowncommit/manifest-bundlebinding/ธุรกรรมไม่reset/grantsและpublicapp-preservation; runtime5SDKmocktestsตรวจprivateLAZY/fixednumericmount/jobguards/sequentialroleprobes+cleanup/safelogcodes. Serving/bootstrapimages buildnonroot/import/exclusionsผ่าน. CI165 guardใหม่ทำงานแต่testoutercontainer tuple/list mismatch แก้assertไม่เปลี่ยนguardและ166ผ่าน15tests; 167เพิ่มallowlistdiagnosticcaseอีก1ผ่านแล้ว. ยังAuthoring/CloudNotrun; เหลือSecretpublication/IaC/deployedfault+workloadtools/diagrams/fullguide/Reviewก่อนLab08.
+
+Lab 07: Guide-ready — [CI run 40067214073](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40067214073), source `1d893d78632f51c0cbcef9c735ef2e4d22b9b325`: full workflow passed. Lab07 guide checks confirm Tasks 00–12 have Expected and Actual/Evidence fields and all bounded Bash examples parse; PostgreSQL 16/browser journey, bootstrap isolation/rollback, serving/bootstrap container checks, both Terraform roots and topology/event-flow rendering passed in CI. These are repository/CI checks, not live Pub/Sub, Cloud SQL, IAM, Cloud Run, or GCP deployment evidence. Cloud verification remains Not run and no GCP resources were provisioned. Next: Lab 08 Brief.
