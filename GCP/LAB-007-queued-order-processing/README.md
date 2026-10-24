@@ -13,7 +13,7 @@ last_verified: null
 
 Solution นี้ชื่อ **Order Queue Desk** ผลสำเร็จทางธุรกิจคือจองสต็อกและเปลี่ยนคำสั่งซื้อเป็น confirmed ไม่ใช่การตัดเงิน ส่งสินค้า หรือรับประกัน exactly-once ของบริการภายนอก
 
-**สถานะ:** กำลังสร้าง Materials — มี Portal/Queue worker/dispatcher, PostgreSQL transactions และ serving image ที่ตรวจใน CI แล้ว พร้อม Secret publisher และ Terraform foundation/workloads roots ที่กำลังรอ CI ตรวจ ยังขาดเครื่องมือทดสอบ fault/load, Diagram และคู่มือครบทุก Task จึงยังไม่ Guide-ready และไม่มีผลทดสอบ GCP จริง
+**สถานะ:** กำลังทำ Materials — Portal/worker/dispatcher, PostgreSQL transactions, bootstrap, private Secret publisher และ Terraform foundation/workloads roots ผ่าน automated CI checks แล้ว (CI run 40064473767; Lab07 รวม 170 automated tests และ Terraform fmt/init/validate) ยังไม่มี GCP deployment/Cloud verification จริง; fault/load tools, diagram review และคู่มือ Tasks ยังอยู่ระหว่างทำ
 
 ## ผู้ใช้และงานที่ต้องทำได้
 
@@ -52,13 +52,23 @@ Solution นี้ชื่อ **Order Queue Desk** ผลสำเร็จท�
 | Queue | Pub/Sub topic และ authenticated push subscription ไป worker |
 | Processor | Cloud Run worker; transaction จองสินค้าและบันทึก business deduplication |
 | งานที่ส่งไม่สำเร็จ | Dead-letter topic พร้อม pull subscription สำหรับ inspect/replay ที่แยกสิทธิ์ |
-| การเรียก dispatcher | พิจารณา Cloud Scheduler OIDC หรือ runner แบบ bounded ที่อธิบายความต่อเนื่องและค่าใช้จ่ายได้ ไม่ใช้ background thread ที่หวังว่า Cloud Run จะรันต่อหลังตอบ request |
-| Private data path | Cloud SQL private IP และ Cloud Run Direct VPC egress; ระบุ VPC/subnet/private services access ตามขอบเขตจริง |
-| Identity / delivery | แยก Portal, dispatcher, worker, push และ scheduler identities; Secret Manager, Artifact Registry และ Terraform roots ตาม deployment order |
+| การเรียก dispatcher | Cloud Scheduler เรียก Cloud Run dispatcher ด้วย OIDC ทุกนาที; endpoint drain แบบ bounded ไม่ใช้ background thread ที่หวังว่า Cloud Run จะรันต่อหลังตอบ request |
+| Private data path | Cloud Run Direct VPC Egress แบบ PRIVATE_RANGES_ONLY ผ่าน subnet 10.77.10.0/26; Cloud SQL PostgreSQL 16 ใช้ private IP ผ่าน Private Services Access (PSA) ไม่มี public IP |
+| Identity / delivery | แยก Portal, dispatcher, worker, bootstrap และ scheduler identities; push ใช้ OIDC; Secret Manager อ้างอิง numeric versions; Artifact Registry ใช้ image digest; foundation/workloads แยก deployment order |
 
 เลือก region เบื้องต้น asia-southeast1 แต่ Pub/Sub topic/subscription ไม่ใช่ VM ใน regional subnet ต้องวาด service scope ตามจริง และกำหนด message storage policy หากโจทย์ต้องควบคุมที่อยู่ข้อมูล Worker ที่ต้องผ่าน IAM ไม่ใช่ private VPC ingress โดยอัตโนมัติ
 
 Private IP เป็นเพียงเส้นทางเครือข่าย การยืนยัน DB identity/TLS และ connection pooling ต้องตัดสินใจให้ครบก่อนเขียน code ไม่ใช้ private IP แทนข้ออ้างว่าการเชื่อมต่อเข้ารหัสแล้ว
+
+## Solution diagram
+
+แผนภาพแยกขอบเขต project, regional services, global endpoints, customer VPC และ managed Cloud SQL ตามตำแหน่งจริง Cloud Run เป็น regional service ที่ใช้ Direct VPC Egress ไม่ได้อยู่ภายใน subnet; Cloud SQL เป็น managed service ที่เชื่อมกับ VPC ด้วย PSA รายละเอียด request/retry/replay แสดงแยกใน event flow เพื่อให้อ่านเส้นทางหลักได้ชัด
+
+![Order Queue Desk architecture](assets/solution.svg)
+
+![Order Queue Desk delivery, retry and recovery](assets/event-flow.svg)
+
+Secret Manager ในรูปเป็น global API resource ที่กำหนด replica แห่งเดียวใน asia-southeast1 ไม่ใช่ Regional Secret และไม่ได้จำกัดการเข้าถึงไว้เฉพาะ region นั้น; Pub/Sub กำหนด allowed message persistence region แต่ตัว topic/subscription ไม่ใช่ VM ใน subnet
 
 ## ข้อตกลงความถูกต้องที่ต้องปิดใน Design
 
@@ -557,7 +567,7 @@ Expected: JSON มี `event=secret_publish_complete`, `instance=lab007-orders`,
 
 การตรวจใน CI ใช้ Google API mock เท่านั้น ไม่ได้สร้าง Secret, เปลี่ยนรหัสผ่านบน GCP หรือยืนยัน Cloud SQL login จริง ช่อง Cloud verification จึงคงเป็น **Not run** จนกว่าจะมีหลักฐานจาก sandbox จริง
 
-## Bootstrap ฐานข้อมูลใหม่โดยไม่ reset ระบบเดิม
+\nLab07 เพิ่ม private Secret publisher 12 unit tests เพื่อครอบคลุม private bundle, Secret replication region, numeric versions, first-run password guard, rerun และ unknown API outcomes. CI run 40064473767 ผ่านทุก Lab07 job โดยรวม 170 automated tests; Terraform format/init/validate ผ่านโดยไม่ใช้ Cloud credentials และไม่ provision ทรัพยากร. นี่เป็น local/CI evidence เท่านั้น ไม่ใช่ GCP Cloud verification.\n\n## Bootstrap ฐานข้อมูลใหม่โดยไม่ reset ระบบเดิม
 
 ใช้ [bootstrap image แยก](bootstrap/Dockerfile) รัน [one-off Job](bootstrap/run.py) ก่อนเปิด Portal/dispatcher/worker ไม่ใช้ serving service ทำ DDL หรือโหลด admin Secret ระหว่างรับ request ตัว image รัน non-root และมีเฉพาะ installer/runtime, SQL สองไฟล์ และตัวตรวจ JSON ไม่คัดลอก private bundles หรือโค้ด serving ทั้งชุด
 

@@ -516,6 +516,33 @@ jobs:
         run: |
           docker run --rm --entrypoint python lab007-orders:ci -c "import os,pathlib,portal_runtime,queue_runtime; assert os.getuid()==10001; assert pathlib.Path('/srv/app/static/index.html').is_file(); assert not pathlib.Path('/srv/app/secrets').exists(); assert not pathlib.Path('/srv/sql').exists(); assert not pathlib.Path('/srv/tests').exists(); assert not pathlib.Path('/srv/scripts/create-secrets.py').exists()"
 
+  lab007-diagrams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Generate topology and event-flow diagrams from verified Google Cloud icons
+        run: python3 GCP/LAB-007-queued-order-processing/scripts/render-diagrams.py
+      - name: Render at document width for visual review
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          mkdir -p lab007-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-007-queued-order-processing/assets/solution.svg -o lab007-diagram-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-007-queued-order-processing/assets/event-flow.svg -o lab007-diagram-previews/event-flow.png
+          python3 -c "import base64,pathlib; [print('LAB007_PREVIEW_'+p.stem.upper().replace('-','_')+'='+base64.b64encode(p.read_bytes()).decode()) for p in sorted(pathlib.Path('lab007-diagram-previews').glob('*.png'))]"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab007-diagrams
+          path: |
+            lab007-diagram-previews/*.png
+            GCP/LAB-007-queued-order-processing/assets/*.svg
+            GCP/LAB-007-queued-order-processing/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
+
   lab007-bootstrap:
     runs-on: ubuntu-latest
     timeout-minutes: 10
