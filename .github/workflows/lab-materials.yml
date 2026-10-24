@@ -766,6 +766,8 @@ jobs:
           .ci-lab009/bin/pip install -r GCP/LAB-009-partner-webhook-delivery/requirements.txt
       - name: Test Cloud Tasks deterministic task and OIDC request contracts without RPC
         run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_task_queue.py -v
+      - name: Test Scheduler reconciliation HTTP contract without cloud calls
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_reconciler_api.py -v
       - name: Compile Lab 09 Python application modules
         run: .ci-lab009/bin/python -m py_compile GCP/LAB-009-partner-webhook-delivery/app/*.py
       - name: Exercise event and outbox transactions against the loopback emulator
