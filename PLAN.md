@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–12 Guide-ready; Lab 13 Design checkpoint ผ่าน CI [#333](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099200779) และ repository CI [#334](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099464528); มีการแก้ wording ของ retry lifecycle policy ตามเอกสารทางการและกำลังตรวจ revision ใหม่; Lab 14–20 ยัง Planned. Lab 12 ผ่าน repository CI [#330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ครบ 43/43 jobs. ไม่มี GCP provisioning และ Cloud verification ทุก Lab ยังคง Not run.
+**สถานะ:** Lab 01–12 Guide-ready; Lab 13 Design checkpoint ผ่าน CI [#333](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099200779) และ repository CI [#334](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099464528); มีการแก้ wording ของ retry lifecycle policy และ Artifact Registry pull IAM ตามเอกสารทางการ; revision ปัจจุบันกำลังตรวจ CI; Lab 14–20 ยัง Planned. Lab 12 ผ่าน repository CI [#330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ครบ 43/43 jobs. ไม่มี GCP provisioning และ Cloud verification ทุก Lab ยังคง Not run.
 
 ## ผลลัพธ์ปลายทาง
 

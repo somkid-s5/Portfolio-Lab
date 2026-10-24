@@ -19,6 +19,21 @@ class DesignCheckpointTests(unittest.TestCase):
         self.assertIn("ยังไม่มีคู่มือ Task", README)
         self.assertNotRegex(README, r"(?m)^### Task [0-9]+")
         self.assertIn("Cloud verification: **Not run**", README)
+        self.assertIn("RETRY_TASK เฉพาะ code 75", README)
+        self.assertIn("code 65 ที่ไม่อยู่ใน allowlist", README)
+        self.assertIn("Artifact Registry Reader", README)
+        self.assertIn("roles/artifactregistry.reader", README)
+        self.assertIn("Operator user (เป็น publisher ด้วย)", README)
+        for role_id in (
+            "roles/cloudbuild.builds.editor", "roles/batch.jobsEditor",
+            "roles/compute.networkViewer", "roles/logging.viewer",
+            "roles/iam.serviceAccountUser", "roles/artifactregistry.writer",
+            "roles/batch.agentReporter", "roles/logging.logWriter",
+            "roles/storage.objectViewer", "roles/storage.objectCreator",
+            "roles/batch.serviceAgent",
+        ):
+            self.assertIn(role_id, README)
+        self.assertNotIn("FAIL_TASK", README)
 
     def test_requirements_cover_build_run_fail_recover_change_and_cleanup(self):
         for requirement in range(1, 11):

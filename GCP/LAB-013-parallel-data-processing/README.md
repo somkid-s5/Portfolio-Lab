@@ -9,7 +9,7 @@ last_verified: null
 
 # Lab 13 — ระบบนำเข้าข้อมูลแบบขนาน
 
-> **สถานะ: Design checkpoint** — เอกสารนี้ล็อกโจทย์ ข้อกำหนด และแบบสถาปัตยกรรม; มีการปรับคำอธิบาย retry lifecycle policy ให้ตรงกับเอกสาร Cloud Batch และรอตรวจ revision ใน repository CI. ยังไม่มีคู่มือ Task, application/worker, Terraform หรือผลทดสอบ Cloud.
+> **สถานะ: Design checkpoint** — เอกสารนี้ล็อกโจทย์ ข้อกำหนด และแบบสถาปัตยกรรม; มีการปรับ retry lifecycle policy และเพิ่ม Artifact Registry Reader ให้ worker ตามเอกสารทางการ; รอตรวจ revision ใน repository CI. ยังไม่มีคู่มือ Task, application/worker, Terraform หรือผลทดสอบ Cloud.
 
 ## สถานการณ์
 
@@ -77,13 +77,13 @@ Batch retries มี semantics แบบ at-least-once; design นี้ **ไ�
 
 | Principal | สิทธิ์ที่ตั้งใจให้ | ขอบเขต/ข้อห้าม |
 |---|---|---|
-| Operator user | Batch Job Editor, Service Account User เฉพาะ runtime/publisher identities, Logging Viewer และสิทธิ์จัดการ input/output ที่คู่มือจะระบุ | ไม่ใช้ Owner/Editor ทั้ง Project โดยไม่จำเป็น |
-| Cloud Build service account | เขียน image ไปยัง Artifact Registry repository ที่กำหนด | ไม่ได้สิทธิ์อ่าน input data หรือเขียนผล Batch |
-| Runtime service account | Batch Agent Reporter, Logs Writer, Storage Object Viewer เฉพาะ input bucket, Storage Object Creator เฉพาะ attempt-output bucket | ไม่มีสิทธิ์ลบ/แก้ input หรือเขียน published manifest |
-| Publisher identity | อ่านสถานะ job และ attempt outputs เพื่อ reconcile; Storage Object Creator เฉพาะ published-manifest bucket | ไม่ใช้เป็น worker identity และไม่รัน container |
-| Cloud Batch service agent | service-agent role ที่ Google จัดการให้ | ไม่มอบ service-agent role ให้ worker |
+| Operator user (เป็น publisher ด้วย) | Cloud Build Editor (roles/cloudbuild.builds.editor), Batch Job Editor (roles/batch.jobsEditor), Compute Network Viewer (roles/compute.networkViewer), Logging Viewer (roles/logging.viewer); Service Account User (roles/iam.serviceAccountUser) เฉพาะ build/runtime accounts; Storage Object Viewer (roles/storage.objectViewer) เฉพาะ input/attempt-output buckets และ Storage Object Creator (roles/storage.objectCreator) เฉพาะ published-manifest bucket | ไม่ใช้ Owner/Editor ทั้ง Project โดยไม่จำเป็น; ไม่มี key |
+| Cloud Build service account | Artifact Registry Writer (roles/artifactregistry.writer) เฉพาะ worker repository และ Logs Writer (roles/logging.logWriter) ระดับ project สำหรับ Cloud Build logs | ไม่มีสิทธิ์อ่าน input หรือเขียนผล Batch |
+| Runtime service account | Batch Agent Reporter (roles/batch.agentReporter) และ Logs Writer (roles/logging.logWriter) ระดับ project; Artifact Registry Reader (roles/artifactregistry.reader) เฉพาะ worker repository; Storage Object Viewer (roles/storage.objectViewer) เฉพาะ input bucket; Storage Object Creator (roles/storage.objectCreator) เฉพาะ attempt-output bucket | ไม่มีสิทธิ์ลบ/แก้ input หรือเขียน published manifest |
+| Publisher identity | Operator user ตรวจ task/job และ attempt outputs แล้วสร้าง completion manifest ด้วย Storage Object Creator เฉพาะ published-manifest bucket | เป็น user identity ไม่ใช่ worker identity; ไม่ใช้ service-account key |
+| Cloud Batch service agent | Google จัดการ Google Batch Service Agent (roles/batch.serviceAgent) ให้อัตโนมัติหลังเปิดใช้บริการ | ห้าม revoke role นี้หรือมอบให้ principal อื่นนอกจาก service agent |
 
-การแยก bucket ทำให้ worker ไม่มีสิทธิ์สร้าง completion manifest โดยไม่ต้องพึ่ง prefix condition ภายใน bucket เดียว การตั้งค่า Terraform ต้องพิสูจน์ขอบเขตด้วย negative access check จริงใน Lab ส่วนการ grant role ที่จำเป็นต่อ service agent ให้เป็นไปตามขั้นตอน enable service/API ของ Google Cloud; ห้ามสร้าง key ให้ service account
+การแยก bucket ทำให้ worker ไม่มีสิทธิ์สร้าง completion manifest โดยไม่ต้องพึ่ง prefix condition ภายใน bucket เดียว; runtime ยังต้องอ่าน image จาก Artifact Registry จึงได้ Artifact Registry Reader เฉพาะ repository ส่วน build identity ได้ Writer เฉพาะ repository การตั้งค่า Terraform ต้องพิสูจน์ขอบเขตด้วย negative access check จริงใน Lab ส่วนการ grant role ที่จำเป็นต่อ service agent ให้เป็นไปตามขั้นตอน enable service/API ของ Google Cloud; ห้ามสร้าง key ให้ service account
 
 ชื่อ role/permission, API, quota, Batch machine configuration, region support และราคาจะทวนกับเอกสารทางการอีกครั้งก่อนเขียนขั้นตอนละเอียด เพราะเปลี่ยนตามบริการและ project policy ได้
 
