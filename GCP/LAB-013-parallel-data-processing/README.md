@@ -58,7 +58,7 @@ last_verified: null
 | Cloud Logging | รวม log ของแต่ละ task | เปิด Cloud Logging destination ใน Batch logs policy และใส่ correlation fields ที่กำหนด |
 | Operator CLI | submit/inspect job, reconcile และสร้าง HTML summary | ใช้ user identity ผ่าน gcloud; report เป็นไฟล์เฉพาะที่ ไม่เปิด public endpoint |
 
-Cloud Storage buckets อยู่นอก VPC แต่จำกัดด้วย IAM และ bucket policy; worker เข้าถึง Google APIs ผ่าน Private Google Access. Cloud Logging เป็นบริการระดับ project จึงอยู่นอกกรอบ regional resources ใน Diagram. Compute Engine worker VMs อยู่ใน subnet; Cloud Batch เป็น control plane ที่จัดสรร VM ให้ job
+Cloud Storage buckets อยู่นอก VPC แต่จำกัดด้วย IAM และ bucket policy; worker เข้าถึง Google APIs ผ่าน Private Google Access. Cloud Logging เป็นบริการระดับ project จึงอยู่นอกกรอบ regional resources ใน Diagram. Compute Engine worker VMs อยู่ใน subnet; Cloud Batch เป็น control plane ที่จัดสรร VM ให้ job. Resource ที่ออกแบบเป็น regional ให้เริ่มที่ asia-southeast1; ตอนเขียน Guide ต้องตรวจ location support, quota และ project policy ล่าสุดอีกครั้ง
 
 ### Data และ execution flow
 
