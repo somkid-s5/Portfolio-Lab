@@ -207,8 +207,9 @@ def main():
     if len(archive_bytes) > 30_000_000:
         raise ValueError("official_archive_exceeds_bound")
     archive_hash = hashlib.sha256(archive_bytes).hexdigest()
+    print("LAB007_ICON_ARCHIVE_SHA256=" + archive_hash)
     if archive_hash != EXPECTED_ARCHIVE_SHA256:
-        raise ValueError("official_archive_checksum_mismatch")
+        raise ValueError("official_archive_checksum_mismatch:" + archive_hash)
 
     sources = []
     with ZipFile(__import__("io").BytesIO(archive_bytes)) as archive:
