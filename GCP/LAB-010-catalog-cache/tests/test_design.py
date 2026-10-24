@@ -83,7 +83,7 @@ class DesignTests(unittest.TestCase):
         root = ET.parse(ASSETS / "cache-flow.svg").getroot()
         content = " ".join(node.text or "" for node in root.findall(".//" + SVG_NS + "text"))
         for phrase in ("GET catalog", "Redis GET", "Cache HIT", "MISS",
-                       "SETEX TTL 60s", "BYPASS", "250 ms", "If-Match",
+                       "SETEX 60s", "BYPASS", "250 ms", "If-Match",
                        "Commit to PostgreSQL", "Invalidate Redis keys",
                        "no FLUSHDB", "remaining 60s TTL", "sanitized 503"):
             self.assertIn(phrase, content)
