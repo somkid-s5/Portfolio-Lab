@@ -9,7 +9,7 @@ last_verified: null
 
 # Lab 13 — ระบบนำเข้าข้อมูลแบบขนาน
 
-> **สถานะ: Design checkpoint** — เอกสารนี้ล็อกโจทย์ ข้อกำหนด และแบบสถาปัตยกรรม ยังไม่มีคู่มือ Task, application/worker, Terraform หรือผลทดสอบ Cloud
+> **สถานะ: Design checkpoint** — CI [#333](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099200779) ผ่านครบ 30/30 repository jobs รวม design tests และ SVG render; เอกสารนี้ล็อกโจทย์ ข้อกำหนด และแบบสถาปัตยกรรม ยังไม่มีคู่มือ Task, application/worker, Terraform หรือผลทดสอบ Cloud.
 
 ## สถานการณ์
 
