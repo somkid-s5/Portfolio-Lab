@@ -113,8 +113,6 @@ class GCSObjects:
             blob.reload(timeout=5, retry=None)
         except NotFound as exc:
             raise SourceMissing() from exc
-        if blob.size is None:
-            raise InvalidSource("INPUT_TOO_LARGE")
         return str(_generation(blob.generation))
 
     def read_source(self, object_name: str, generation: str, *, business_date: str) -> bytes:
