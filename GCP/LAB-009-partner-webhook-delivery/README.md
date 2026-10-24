@@ -8,7 +8,7 @@ last_verified: null
 ---
 # Lab 09 — ระบบส่ง Webhook ให้ระบบคู่ค้า
 
-**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี pure domain contract, Firestore transaction ledger, Cloud Tasks OIDC adapter, Event API, bounded outbox reconciler และ Scheduler HTTP entrypoint พร้อม unit/emulator tests; ยังขาด Delivery Worker, partner simulator, Terraform และ Guide. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
+**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี pure domain contract, Firestore ledger/outbox, Cloud Tasks OIDC adapter, Event API, bounded Reconciler/Scheduler target, fenced Delivery Worker, HMAC partner simulator และ create-only receipt adapter พร้อม tests; ยังขาด runtime composition, Terraform, Operator CLI และ Guide Tasks. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
 
 ## Build materials checkpoint
 
@@ -16,11 +16,12 @@ last_verified: null
 - `app/ledger.py` เขียน event, delivery outbox และ idempotency record ใน Firestore transaction เดียว; replay ของ key เดิมคืน event เดิม, body hash ต่างกันเกิด conflict และ state guards กัน stale generation/การถอยสถานะ. Error code กับ `retry_ended_unknown` ถูกบันทึกแบบ bounded เพื่อส่งต่อ human review.
 - `app/task_queue.py` สร้าง Cloud Task แบบ deterministic, ส่งเฉพาะ IDs พร้อม OIDC และแยก AlreadyExists→GetTask; unit tests ใช้ client double ไม่มี RPC.
 - `app/api.py` รับ event ผ่าน `/v1/events`, ตอบ 202 หลัง Firestore commit และถือ enqueue เป็น best-effort; error ระหว่างส่งไม่ทำให้ producer ส่ง business event ซ้ำโดยไม่จำเป็น. IAM enforcement อยู่ที่ Cloud Run configuration.
-- `app/reconciler.py` อ่าน pending/queued อย่างมี page cap รวมไม่เกิน 25 records ต่อรอบ, ซ่อม task ที่ยังสด, และย้าย pending เกิน 15 นาทีหรือ queued ที่หา task ไม่พบไป `retry_ended_unknown` เพื่อให้คนตรวจ. การบันทึก enqueue error ไม่เลื่อน `enqueue_pending_since` จึงไม่รีเซ็ต deadline.
+- `app/reconciler.py` อ่าน pending/queued/attempt_running อย่างมี page cap รวมไม่เกิน 25 records ต่อรอบ, ซ่อม task ที่ยังสด, และย้าย pending เกิน 15 นาที, queued ที่หา task ไม่พบ หรือ attempt_running ที่ lease หมดอายุและ task หายไป `retry_ended_unknown` เพื่อให้คนตรวจ. การบันทึก enqueue error ไม่เลื่อน `enqueue_pending_since` จึงไม่รีเซ็ต deadline.
 - `app/reconciler_api.py` เปิด `POST /internal/reconcile` สำหรับ Cloud Scheduler, ไม่รับ control fields จาก request, ส่ง HTTP 503 เมื่อมี record error เพื่อให้ Scheduler retry. ใช้ Cloud Run IAM เป็น auth boundary; test นี้ยืนยันเฉพาะ HTTP contract ไม่ได้ทดสอบ IAM จริง.
-- Emulator tests ครอบคลุม deadline จริงจากเวลาเริ่ม pending, page bound, queue lookup ที่หาย และไม่เขียนทับ terminal state.
+- `app/worker.py` claim attempt ด้วย lease/fencing token, สร้าง HMAC ใหม่ต่อ outbound attempt, บันทึก delivered/permanent/retry ก่อนตอบ Cloud Tasks และใช้ Retry-After แบบมีเพดาน. `app/simulator.py` ตรวจ canonical body/signature/freshness และจำลอง fault mode ที่ตั้งจาก deploy config เท่านั้น; `app/receipt_store.py` ใช้ GCS generation-match 0 และเทียบ hash ก่อนยืนยัน duplicate. Worker/Simulator tests เพิ่มแล้วและรอ CI.
+- Emulator tests ครอบคลุม pending deadline, page bound, task หาย, lease ที่ยัง active/หมดอายุ และไม่เขียนทับ terminal state.
 - `tests/test_domain.py` ทดสอบ contract แบบ pure; `tests/test_firestore_ledger.py` ใช้ loopback Firestore Emulator ทดสอบ atomic write, concurrent replay และ state guard. ผลจะถือเป็น CI/emulator evidence เมื่อ workflow ผ่านเท่านั้น.
-- ขั้นถัดไปคือ Delivery Worker และ partner simulator; จากนั้นจึงประกอบ runtime entrypoints, Terraform และ Tasks guide. ยังไม่มี Terraform หรือ Cloud SDK call ไปยัง project จริง.
+- ขั้นถัดไปคือรัน CI ของ Worker/Simulator/receipt adapters, แล้วประกอบ runtime entrypoints, Terraform, Operator CLI และ Tasks guide. ยังไม่มี Terraform หรือ Cloud SDK call ไปยัง project จริง.
 
 ## สถานการณ์
 
@@ -128,7 +129,7 @@ Cloud Run สำหรับ Event API และ Cloud Shell client ใช้ in
 
 API fast path และ Reconciler ห้ามเขียนทับสถานะที่ Worker ทำให้ก้าวหน้าแล้ว: หลัง CreateTask สำเร็จ จะเปลี่ยนเป็น queued ได้เฉพาะเมื่อสถานะยังเป็น enqueue_pending. หาก CreateTask ตอบ AlreadyExists ให้ GetTask ชื่อเดิม; ถ้ามี task ให้คง generation เดิม, ถ้า NOT_FOUND แต่ ledger ยัง nonterminal ให้ตั้ง retry_ended_unknown เพื่อให้คนตรวจ แทนการสร้างชื่อเดิมซ้ำหลังช่วง dedup. enqueue_pending ที่ค้างเกิน 15 นาทีเข้าคิว needs-review และไม่ auto-enqueue ต่อโดยไม่จำกัด.
 
-Reconciler ทำงานทุกนาทีแบบ bounded page ≤25: ซ่อม enqueue_pending ล่าสุด, ตรวจ GetTask ของ queued ที่ยัง nonterminal, และเปลี่ยน task ที่หายเป็น retry_ended_unknown หลัง reread/transaction ตรวจ state อีกครั้ง. งาน terminal จะไม่ถูก redrive อัตโนมัติ. Cloud Tasks ลบ task หลัง successful response หรือ retry exhaustion; task name กันซ้ำได้เพียงช่วงสั้น จึงไม่ใช่ business idempotency.
+Reconciler ทำงานทุกนาทีแบบ bounded page ≤25 และแบ่งหน้าอ่านระหว่าง enqueue_pending, queued และ attempt_running. มันซ่อม pending ล่าสุด, ตรวจ GetTask ของ queued ที่ยัง nonterminal, และตรวจ attempt_running ที่ lease หมดอายุ: ถ้า Cloud Task หายให้เปลี่ยนเป็น retry_ended_unknown แต่ถ้ายังมี task ให้รอ Cloud Tasks retry. Transaction ตรวจ generation/state/lease อีกครั้งก่อนเปลี่ยน; task ที่หายไม่ใช่หลักฐานว่าคู่ค้ารับ event แล้ว. งาน terminal จะไม่ถูก redrive อัตโนมัติ. Cloud Tasks ลบ task หลัง successful response หรือ retry exhaustion; task name กันซ้ำได้เพียงช่วงสั้น จึงไม่ใช่ business idempotency.
 
 Worker ใช้ transaction/lease และ fencing ป้องกัน worker เก่าบันทึกทับ generation ใหม่. Duplicate task ที่พบ lease ยัง active ตอบ non-2xx เพื่อให้ Cloud Tasks ลองใหม่ ไม่ตอบ 2xx แล้วทิ้งงาน. Worker commit delivered/permanent_failed ก่อนตอบ 2xx ให้ Cloud Tasks; หากไม่สามารถบันทึก state ให้ตอบ non-2xx. Reconciler และ Operator ตรวจและแก้ ambiguous outcome; ไม่มี exactly-once claim.
 

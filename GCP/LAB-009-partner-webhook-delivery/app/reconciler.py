@@ -15,19 +15,21 @@ STALE_ENQUEUE_AFTER = timedelta(minutes=15)
 MAX_PAGE_SIZE = 25
 _PENDING_UNKNOWN_REASON = "enqueue_pending_timeout"
 _QUEUED_UNKNOWN_REASON = "queued_task_not_found"
+_RUNNING_UNKNOWN_REASON = "attempt_lease_expired_task_missing"
 
 
 @dataclass(frozen=True)
 class ReconcileSummary:
     pending_seen: int = 0
     queued_seen: int = 0
+    running_seen: int = 0
     enqueued: int = 0
     moved_to_review: int = 0
     errors: int = 0
 
 
 class OutboxReconciler:
-    """Repair fresh outbox records and inspect a bounded queued-task page."""
+    """Repair fresh outbox records and inspect a bounded page of queued or expired running tasks."""
 
     def __init__(
         self,
@@ -52,14 +54,20 @@ class OutboxReconciler:
             raise ValidationError("reconciler clock must return UTC")
         now = now.astimezone(timezone.utc)
 
-        pending_budget = (page_size + 1) // 2
-        queued_budget = page_size // 2
+        pending_budget = (page_size + 2) // 3
+        queued_budget = (page_size + 1) // 3
+        running_budget = page_size // 3
         pending = self._ledger.list_deliveries(
             "enqueue_pending", limit=pending_budget
         )
         queued = (
             self._ledger.list_deliveries("queued", limit=queued_budget)
             if queued_budget
+            else []
+        )
+        running = (
+            self._ledger.list_deliveries("attempt_running", limit=running_budget)
+            if running_budget
             else []
         )
         enqueued = moved = errors = 0
@@ -177,9 +185,39 @@ class OutboxReconciler:
             except Exception:
                 errors += 1
 
+        for record in running:
+            delivery = record.get("delivery_id")
+            generation = record.get("generation")
+            task_name = record.get("task_name")
+            lease_until = record.get("lease_until")
+            if (
+                not isinstance(delivery, str)
+                or not isinstance(generation, int)
+                or isinstance(generation, bool)
+                or not isinstance(task_name, str)
+                or not isinstance(lease_until, datetime)
+                or lease_until.tzinfo is None
+            ):
+                errors += 1
+                continue
+            if now < lease_until.astimezone(timezone.utc):
+                continue
+            try:
+                exists = self._enqueuer.task_exists(task_name)
+                if not exists and self._ledger.mark_retry_ended_unknown(
+                    delivery,
+                    generation=generation,
+                    reason=_RUNNING_UNKNOWN_REASON,
+                    now=now,
+                ):
+                    moved += 1
+            except Exception:
+                errors += 1
+
         return ReconcileSummary(
             pending_seen=len(pending),
             queued_seen=len(queued),
+            running_seen=len(running),
             enqueued=enqueued,
             moved_to_review=moved,
             errors=errors,

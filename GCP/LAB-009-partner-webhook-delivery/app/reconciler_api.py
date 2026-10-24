@@ -61,6 +61,7 @@ def create_reconciler_app(
         result = {
             "pending_seen": summary.pending_seen,
             "queued_seen": summary.queued_seen,
+            "running_seen": summary.running_seen,
             "enqueued": summary.enqueued,
             "moved_to_review": summary.moved_to_review,
             "errors": summary.errors,

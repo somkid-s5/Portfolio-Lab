@@ -78,6 +78,9 @@ class OutboxReconcilerTests(unittest.TestCase):
     def tearDown(self):
         for collection in (self.ledger.events, self.ledger.deliveries, self.ledger.idempotency):
             for snapshot in collection.stream(timeout=10):
+                if collection is self.ledger.deliveries:
+                    for attempt in snapshot.reference.collection("attempts").stream(timeout=10):
+                        attempt.reference.delete(timeout=10)
                 snapshot.reference.delete(timeout=10)
 
     def accept(self, number):
@@ -154,18 +157,60 @@ class OutboxReconcilerTests(unittest.TestCase):
             return original_get_event(event_id)
 
         self.ledger.get_event = fail_once
-        summary = self.reconciler.run_once(page_size=4)
+        summary = self.reconciler.run_once(page_size=6)
         self.assertEqual(summary.pending_seen, 2)
         self.assertEqual(summary.errors, 1)
         self.assertEqual(summary.enqueued, 1)
         self.assertEqual(len(self.enqueuer.calls), 1)
 
+    def test_expired_running_attempt_without_task_moves_to_manual_review(self):
+        accepted = self.accept(30)
+        event = self.ledger.get_event(accepted.event_id)["event"]
+        self.assertEqual(self.ledger.claim_attempt(
+            accepted.delivery_id,
+            event_id=accepted.event_id,
+            partner_id="partner-a",
+            generation=1,
+            lease_token="c" * 32,
+            lease_until=NOW + timedelta(seconds=45),
+            now=NOW,
+        ).outcome, "claimed")
+        self.clock = NOW + timedelta(seconds=46)
+        self.enqueuer.exists = False
+        summary = self.reconciler.run_once(page_size=3)
+        self.assertEqual(summary.running_seen, 1)
+        self.assertEqual(summary.moved_to_review, 1)
+        record = self.ledger.get_delivery(accepted.delivery_id)
+        self.assertEqual(record["status"], "retry_ended_unknown")
+        self.assertEqual(record["review_reason"], "attempt_lease_expired_task_missing")
+
+    def test_active_worker_lease_is_not_flagged_even_if_task_lookup_would_be_missing(self):
+        accepted = self.accept(31)
+        self.ledger.claim_attempt(
+            accepted.delivery_id,
+            event_id=accepted.event_id,
+            partner_id="partner-a",
+            generation=1,
+            lease_token="d" * 32,
+            lease_until=NOW + timedelta(seconds=45),
+            now=NOW,
+        )
+        self.clock = NOW + timedelta(seconds=10)
+        self.enqueuer.exists = False
+        summary = self.reconciler.run_once(page_size=3)
+        self.assertEqual(summary.running_seen, 1)
+        self.assertEqual(summary.moved_to_review, 0)
+        self.assertEqual(
+            self.ledger.get_delivery(accepted.delivery_id)["status"],
+            "attempt_running",
+        )
+
     def test_total_read_page_is_bounded(self):
         for number in range(4, 9):
             self.accept(number)
         summary = self.reconciler.run_once(page_size=3)
-        self.assertLessEqual(summary.pending_seen + summary.queued_seen, 3)
-        self.assertEqual(summary.pending_seen, 2)
+        self.assertLessEqual(summary.pending_seen + summary.queued_seen + summary.running_seen, 3)
+        self.assertEqual(summary.pending_seen, 1)
 
     def test_page_size_above_contract_is_rejected(self):
         with self.assertRaises(ValidationError):

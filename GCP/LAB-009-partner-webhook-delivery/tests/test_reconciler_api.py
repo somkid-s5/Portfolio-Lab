@@ -12,6 +12,7 @@ from app.reconciler_api import create_reconciler_app
 SUMMARY = SimpleNamespace(
     pending_seen=4,
     queued_seen=3,
+    running_seen=0,
     enqueued=2,
     moved_to_review=1,
     errors=0,
@@ -44,6 +45,7 @@ class ReconcilerApiTests(unittest.TestCase):
             "status": "completed",
             "pending_seen": 4,
             "queued_seen": 3,
+            "running_seen": 0,
             "enqueued": 2,
             "moved_to_review": 1,
             "errors": 0,
@@ -61,6 +63,7 @@ class ReconcilerApiTests(unittest.TestCase):
         self.reconciler.result = SimpleNamespace(
             pending_seen=1,
             queued_seen=1,
+            running_seen=0,
             enqueued=1,
             moved_to_review=0,
             errors=1,

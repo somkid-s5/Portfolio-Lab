@@ -1,6 +1,6 @@
 """Firestore transaction tests require the explicit loopback emulator."""
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hashlib
 import os
 import sys
@@ -51,6 +51,9 @@ class FirestoreLedgerTests(unittest.TestCase):
     def tearDown(self):
         for collection in (self.ledger.events, self.ledger.deliveries, self.ledger.idempotency):
             for snapshot in collection.stream(timeout=10):
+                if collection is self.ledger.deliveries:
+                    for attempt in snapshot.reference.collection("attempts").stream(timeout=10):
+                        attempt.reference.delete(timeout=10)
                 snapshot.reference.delete(timeout=10)
 
     def event(self, event_id=None):
@@ -207,6 +210,132 @@ class FirestoreLedgerTests(unittest.TestCase):
         self.assertFalse(self.ledger.mark_retry_ended_unknown(
             result.delivery_id, generation=1, reason=reason, now=NOW
         ))
+
+    def _claim(self, event, result, *, generation=1, token="a" * 32, now=NOW):
+        return self.ledger.claim_attempt(
+            result.delivery_id,
+            event_id=event["event_id"],
+            partner_id=event["partner_id"],
+            generation=generation,
+            lease_token=token,
+            lease_until=now + timedelta(seconds=45),
+            now=now,
+        )
+
+    def test_worker_claim_and_terminal_commit_are_atomic_and_auditable(self):
+        event = self.event()
+        accepted = self.accept(event)
+        claim = self._claim(event, accepted)
+        self.assertEqual((claim.outcome, claim.attempt_number), ("claimed", 1))
+        self.assertEqual(
+            self.ledger.get_delivery(accepted.delivery_id)["status"],
+            "attempt_running",
+        )
+        self.assertTrue(self.ledger.finish_attempt(
+            accepted.delivery_id,
+            generation=1,
+            attempt_number=1,
+            lease_token="a" * 32,
+            outcome="delivered",
+            http_status=200,
+            now=NOW + timedelta(seconds=1),
+        ))
+        record = self.ledger.get_delivery(accepted.delivery_id)
+        attempt = self.ledger.deliveries.document(accepted.delivery_id).collection(
+            "attempts"
+        ).document("g001-a001").get(timeout=10).to_dict()
+        self.assertEqual(record["status"], "delivered")
+        self.assertEqual(record["attempt_count"], 1)
+        self.assertEqual(attempt["status"], "delivered")
+        self.assertEqual(attempt["http_status"], 200)
+        self.assertEqual(self._claim(event, accepted).outcome, "terminal")
+
+    def test_active_lease_blocks_duplicate_and_wrong_fence_cannot_finish(self):
+        event = self.event()
+        accepted = self.accept(event)
+        self.assertEqual(self._claim(event, accepted).outcome, "claimed")
+        busy = self._claim(event, accepted, token="b" * 32, now=NOW + timedelta(seconds=1))
+        self.assertEqual(busy.outcome, "busy")
+        self.assertFalse(self.ledger.finish_attempt(
+            accepted.delivery_id,
+            generation=1,
+            attempt_number=1,
+            lease_token="b" * 32,
+            outcome="delivered",
+            http_status=200,
+            now=NOW + timedelta(seconds=2),
+        ))
+        self.assertEqual(
+            self.ledger.get_delivery(accepted.delivery_id)["status"],
+            "attempt_running",
+        )
+
+    def test_expired_lease_fences_old_worker_and_marks_prior_attempt(self):
+        event = self.event()
+        accepted = self.accept(event)
+        first = self._claim(event, accepted)
+        later = NOW + timedelta(seconds=46)
+        second = self._claim(event, accepted, token="b" * 32, now=later)
+        self.assertEqual((first.attempt_number, second.attempt_number), (1, 2))
+        self.assertFalse(self.ledger.finish_attempt(
+            accepted.delivery_id,
+            generation=1,
+            attempt_number=1,
+            lease_token="a" * 32,
+            outcome="delivered",
+            http_status=200,
+            now=later,
+        ))
+        old = self.ledger.deliveries.document(accepted.delivery_id).collection(
+            "attempts"
+        ).document("g001-a001").get(timeout=10).to_dict()
+        self.assertEqual(old["status"], "lease_expired")
+        self.assertEqual(
+            self.ledger.get_delivery(accepted.delivery_id)["attempt_count"],
+            2,
+        )
+
+    def test_unknown_delivery_can_resume_when_matching_task_arrives(self):
+        event = self.event()
+        accepted = self.accept(event)
+        self.assertTrue(self.ledger.mark_retry_ended_unknown(
+            accepted.delivery_id,
+            generation=1,
+            reason="queued_task_not_found",
+            now=NOW,
+        ))
+        claim = self._claim(event, accepted)
+        self.assertEqual(claim.outcome, "claimed")
+        record = self.ledger.get_delivery(accepted.delivery_id)
+        self.assertEqual(record["status"], "attempt_running")
+        self.assertFalse(record["review_required"])
+        self.assertEqual(record["last_review_reason"], "queued_task_not_found")
+
+    def test_attempt_limit_moves_delivery_to_manual_review(self):
+        event = self.event()
+        accepted = self.accept(event)
+        for number in range(1, 6):
+            at = NOW + timedelta(seconds=number * 60)
+            token = f"{number:032x}"
+            claim = self._claim(event, accepted, token=token, now=at)
+            self.assertEqual(claim.attempt_number, number)
+            self.assertTrue(self.ledger.finish_attempt(
+                accepted.delivery_id,
+                generation=1,
+                attempt_number=number,
+                lease_token=token,
+                outcome="retry",
+                http_status=503,
+                error_code="partner_http_503",
+                now=at + timedelta(seconds=1),
+            ))
+        at = NOW + timedelta(minutes=6)
+        limited = self._claim(event, accepted, token="f" * 32, now=at)
+        self.assertEqual(limited.outcome, "review_required")
+        record = self.ledger.get_delivery(accepted.delivery_id)
+        self.assertEqual(record["status"], "retry_ended_unknown")
+        self.assertEqual(record["review_reason"], "worker_attempt_limit")
+        self.assertTrue(record["review_required"])
 
     def test_duplicate_key_with_corrupt_idempotency_reference_fails_closed(self):
         event = self.event()

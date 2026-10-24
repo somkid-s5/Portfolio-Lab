@@ -768,6 +768,14 @@ jobs:
         run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_task_queue.py -v
       - name: Test Scheduler reconciliation HTTP contract without cloud calls
         run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_reconciler_api.py -v
+      - name: Test private Worker HTTP target without cloud calls
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_worker_api.py -v
+      - name: Test create-only receipt adapter without GCP writes
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_receipt_store.py -v
+      - name: Test HMAC partner simulator and bounded fault modes
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_simulator.py -v
+      - name: Test public simulator HTTP route contract
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_simulator_api.py -v
       - name: Compile Lab 09 Python application modules
         run: .ci-lab009/bin/python -m py_compile GCP/LAB-009-partner-webhook-delivery/app/*.py
       - name: Exercise event and outbox transactions against the loopback emulator
@@ -797,6 +805,10 @@ jobs:
           subprocess.run([".ci-lab009/bin/python", "-m", "unittest", "discover",
                           "-s", "GCP/LAB-009-partner-webhook-delivery/tests",
                           "-p", "test_reconciler.py", "-v"],
+                         check=True, timeout=180)
+          subprocess.run([".ci-lab009/bin/python", "-m", "unittest", "discover",
+                          "-s", "GCP/LAB-009-partner-webhook-delivery/tests",
+                          "-p", "test_worker.py", "-v"],
                          check=True, timeout=180)
           PY
       - name: Show Firestore emulator diagnostics on failure
