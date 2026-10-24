@@ -1,6 +1,8 @@
 """Static quality checks for the runnable Lab 09 Thai guide."""
 from pathlib import Path
+import re
 import subprocess
+from urllib.parse import unquote, urlsplit
 import unittest
 
 
@@ -71,6 +73,23 @@ class Lab09GuideTests(unittest.TestCase):
         self.assertIn("*.tfvars", ignored)
         self.assertIn("*.tfplan", ignored)
         self.assertIn("!*.tfvars.example", ignored)
+
+    def test_local_markdown_links_resolve_to_repository_files(self):
+        pattern = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+        for match in pattern.finditer(self.text):
+            target = match.group(1).strip()
+            if target.startswith("<") and ">" in target:
+                target = target[1:target.index(">")]
+            else:
+                target = target.split(" ", 1)[0]
+            parsed = urlsplit(target)
+            if parsed.scheme or parsed.netloc:
+                continue
+            if not parsed.path and parsed.fragment:
+                continue
+            relative_path = unquote(parsed.path)
+            candidate = (GUIDE.parent / relative_path) if relative_path else GUIDE
+            self.assertTrue(candidate.resolve().is_file(), target)
 
     def test_guide_and_cloud_status_are_not_conflated(self):
         front_matter = self.text.split("---", 2)[1]

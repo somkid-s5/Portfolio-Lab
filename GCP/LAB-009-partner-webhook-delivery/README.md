@@ -10,21 +10,6 @@ last_verified: null
 
 **สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี domain/API/ledger, Cloud Tasks/Reconciler, fenced Worker, HMAC simulator, create-only receipt, strict runtime composition, shared non-root container, Terraform root แบบ foundation/workload gate และ Operator CLI สำหรับตรวจ/receipt/redrive พร้อม audit. คู่มือ Tasks 00–12 ยังอยู่ระหว่างเขียนและทดสอบ. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
 
-## Build materials checkpoint
-
-- `app/domain.py` กำหนด schema, canonical bytes, idempotency hash, task identity, HMAC และการจำแนกผลตอบกลับโดยไม่พึ่ง Cloud SDK.
-- `app/ledger.py` เขียน event, delivery outbox และ idempotency record ใน Firestore transaction เดียว; replay ของ key เดิมคืน event เดิม, body hash ต่างกันเกิด conflict และ state guards กัน stale generation/การถอยสถานะ. Error code กับ `retry_ended_unknown` ถูกบันทึกแบบ bounded เพื่อส่งต่อ human review.
-- `app/task_queue.py` สร้าง Cloud Task แบบ deterministic, ส่งเฉพาะ IDs พร้อม OIDC และแยก AlreadyExists→GetTask; unit tests ใช้ client double ไม่มี RPC.
-- `app/api.py` รับ event ผ่าน `/v1/events`, ตอบ 202 หลัง Firestore commit และถือ enqueue เป็น best-effort; error ระหว่างส่งไม่ทำให้ producer ส่ง business event ซ้ำโดยไม่จำเป็น. IAM enforcement อยู่ที่ Cloud Run configuration.
-- `app/reconciler.py` อ่าน pending/queued/attempt_running อย่างมี page cap รวมไม่เกิน 25 records ต่อรอบ, ซ่อม task ที่ยังสด, และย้าย pending เกิน 15 นาที, queued ที่หา task ไม่พบ หรือ attempt_running ที่ lease หมดอายุและ task หายไป `retry_ended_unknown` เพื่อให้คนตรวจ. การบันทึก enqueue error ไม่เลื่อน `enqueue_pending_since` จึงไม่รีเซ็ต deadline.
-- `app/reconciler_api.py` เปิด `POST /internal/reconcile` สำหรับ Cloud Scheduler, ไม่รับ control fields จาก request, ส่ง HTTP 503 เมื่อมี record error เพื่อให้ Scheduler retry. ใช้ Cloud Run IAM เป็น auth boundary; test นี้ยืนยันเฉพาะ HTTP contract ไม่ได้ทดสอบ IAM จริง.
-- `app/worker.py` claim attempt ด้วย lease/fencing token, สร้าง HMAC ใหม่ต่อ outbound attempt, บันทึก delivered/permanent/retry ก่อนตอบ Cloud Tasks และใช้ Retry-After แบบมีเพดาน. `app/simulator.py` ตรวจ canonical body/signature/freshness และจำลอง fault mode ที่ตั้งจาก deploy config เท่านั้น; `app/receipt_store.py` ใช้ GCS generation-match 0 และเทียบ hash ก่อนยืนยัน duplicate. Worker/Simulator tests เพิ่มแล้วและรอ CI.
-- `app/event_service.py`, `app/reconciler_service.py`, `app/worker_service.py` และ `app/simulator_service.py` ประกอบ WSGI app จาก client credentials ของ runtime identity. `app/runtime_config.py` รับเฉพาะ allowlisted non-secret settings, pin Secret Manager version และตรวจ config ตั้งแต่ startup; `app/secret_manager.py` แยก configuration error ออกจาก transient access failure. container build ยังรอ CI ตรวจ และยังไม่มี live Cloud test.
-- `Dockerfile` สร้าง image ร่วมแบบ non-root; `app/entrypoint.py` ยอมเลือกเฉพาะ role ที่กำหนด 4 แบบ, port ถูก validate และ `.dockerignore` ตัด tests/infra/assets/เอกสาร/secrets ออกจาก image. CI จะ build/import/check user โดยไม่ push Artifact Registry.
-- Emulator tests ครอบคลุม pending deadline, page bound, task หาย, lease ที่ยัง active/หมดอายุ และไม่เขียนทับ terminal state.
-- `tests/test_domain.py` ทดสอบ contract แบบ pure; `tests/test_firestore_ledger.py` ใช้ loopback Firestore Emulator ทดสอบ atomic write, concurrent replay และ state guard. ผลจะถือเป็น CI/emulator evidence เมื่อ workflow ผ่านเท่านั้น.
-- ขั้นถัดไปคือยืนยัน CI ของ Worker/Simulator/runtime/container แล้วทำ Terraform, Operator CLI และ Tasks guide. ยังไม่มี Terraform หรือ Cloud SDK call ไปยัง project จริง.
-
 ## สถานการณ์
 
 ระบบ Order ภายในต้องแจ้ง event ประเภท order.shipped ไปยัง endpoint ของคู่ค้าหลายราย แต่ปลายทางอาจช้า ตอบ 429/5xx หรือรับ event ไปแล้วแต่คำตอบกลับหาย ทีมต้องตอบผู้เรียกได้เร็ว ติดตามผลส่งย้อนหลังได้ และ redrive ได้โดยไม่ทำให้คู่ค้าเกิดผลทางธุรกิจซ้ำ
@@ -200,7 +185,6 @@ terraform version
 
 ```bash
 sudo apt-get update && sudo apt-get install -y unzip
-TF_VERSION="1.9.8"
 curl -fsSLO "https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip"
 curl -fsSLO "https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_SHA256SUMS"
 grep "terraform_1.9.8_linux_amd64.zip" terraform_1.9.8_SHA256SUMS | sha256sum -c -
@@ -366,7 +350,7 @@ curl -sS -o /dev/null -w 'unauthenticated HTTP %{http_code}\n' "$EVENT_URL/healt
 TOKEN="$(gcloud auth print-identity-token)"
 curl -sS -H "Authorization: Bearer $TOKEN" -w '\nauthenticated HTTP %{http_code}\n' "$EVENT_URL/healthz"
 unset TOKEN
-curl "$SIMULATOR_URL/healthz"
+curl -sS -o /tmp/lab009-simulator-health.json -w 'HTTP %{http_code}\\n' "$SIMULATOR_URL/healthz" && cat /tmp/lab009-simulator-health.json
 ```
 
 คาดว่า unauthenticated ถูกปฏิเสธและ authenticated ได้ HTTP 200. gcloud ID token สำหรับทดสอบผู้พัฒนาไม่มี audience claim; ใช้เฉพาะ sandbox และอย่านำวิธีนี้ไปแทน service-to-service OIDC ในระบบจริง.
@@ -517,6 +501,21 @@ python -m app.operator_cli inspect --project "$PROJECT_ID" --delivery-id "วา
 
 Requirement ใหม่: เพิ่มคู่ค้าสังเคราะห์ partner-b โดยต้องได้ queue, HMAC secret/version, public simulator และ receipt bucket ของตนเอง; rate limit เท่ากับ partner-a; ห้าม partner-a อ่าน secret หรือ receipt ของ partner-b.
 
+แก้เฉพาะค่า `partners` ใน `infra/terraform.tfvars` ให้เป็นดังนี้ โดยคงค่า project/region/identity อื่นไว้:
+
+```hcl
+partners = {
+  "partner-a" = {
+    fault_mode     = "transient-503-first-two"
+    secret_version = "1"
+  }
+  "partner-b" = {
+    fault_mode     = "permanent-400"
+    secret_version = "1"
+  }
+}
+```
+
 1. เพิ่ม block partner-b ใน map partners ของ tfvars โดยตั้ง fault_mode=permanent-400 และ secret_version=1. สร้างเฉพาะ Secret metadata ก่อน เพราะ simulator อ่าน secret ตอนเริ่มต้น:
 
 ```bash
@@ -622,7 +621,7 @@ terraform -chdir=infra destroy -var='allow_destroy=true'
 
 7. ตรวจ Console และ Terraform state ว่า Lab09 resources ถูกลบ; เก็บเฉพาะหลักฐานที่ redact แล้ว, CI link, Terraform version, image digest, test IDs, timestamps, incident/change-request records และผล cleanup. เติม Case-study summary ด้านล่างด้วยผล Actual ของคุณ; CI ไม่ใช่ Cloud verification. หากยังไม่ได้ทำ Cloud ให้ระบุ Cloud verification: Not run.
 
-**Expected:** Scheduler paused, queues ไม่มี task ก่อน destroy, Cloud Run/Firestore/Secrets/queues/buckets/repository ของ Lab ถูกลบตาม plan, ไม่มี resource ของ project อื่นถูกแตะ, และไฟล์หลักฐานไม่เปิดเผย token/secret/PII.
+**Expected:** Scheduler paused, queues ไม่มี task ก่อน destroy, Cloud Run/Firestore/Secrets/queues/buckets/repository ของ Lab ถูกลบตาม plan; Google APIs ที่เปิดให้ project ยังคง enabled เพราะ Terraform ตั้ง `disable_on_destroy = false`. ไม่มี resource ของ project อื่นถูกแตะ และไฟล์หลักฐานไม่เปิดเผย token/secret/PII.
 
 **Actual / Status / UTC:** ______  
 **Evidence:** ______ (destroy plan/apply, รายการ resource หลัง cleanup, ชื่อไฟล์ภาพ/บันทึกที่ redact แล้ว)
@@ -653,6 +652,8 @@ terraform -chdir=infra destroy -var='allow_destroy=true'
 - exactly-once delivery หรือใช้ task-name dedupe แทน durable ledger
 - automatic payload rewrite/แก้ event เดิมแล้ว redrive ทับข้อมูล; การแก้ payload ต้อง audit และนิยามใน Design
 - การอ้าง Cloud verification จาก unit/CI/emulator test หรือการคาดเดาผล Console
+
+## คู่มืออ้างอิงสำหรับทำตามขั้นตอน
 
 - [Use Cloud Shell and its preinstalled tools, including Docker](https://docs.cloud.google.com/shell/docs/how-cloud-shell-works)
 - [Authenticate developers to Cloud Run for test requests](https://docs.cloud.google.com/run/docs/authenticating/developers)
