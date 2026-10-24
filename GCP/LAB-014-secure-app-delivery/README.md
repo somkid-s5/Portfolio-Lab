@@ -484,7 +484,49 @@ cd "$LAB_DIR"
 python3 -m unittest discover -s tests -p 'test_change_request.py' -v
 ~~~
 
-จากนั้นสร้าง JSON สำหรับ change จริงโดยใส่ field ครบตามตาราง. ใช้เวลาปัจจุบัน UTC ใน RFC 3339, expiry หลัง created_at และไม่เกิน 30 วัน, owner กับ approver ต้องคนละ identity, digest ต้องเป็น SHA-256 จริง และ scope ต้องระบุ resource ใน project:
+จากนั้นสร้าง record `PENDING` ที่ผูกกับ digest จริงของ release และ project ปัจจุบัน. ตัวอย่างนี้ตั้งอายุ 7 วัน, ไม่ใส่ approval reference และไม่เปลี่ยน policy:
+
+~~~bash
+cd "$LAB_DIR"
+export PROJECT_ID="$(gcloud config get-value project 2>/dev/null)"
+export CHANGE_REQUEST_PATH="/tmp/lab014-change-request.json"
+test -n "$PROJECT_ID" && test "$PROJECT_ID" != "(unset)" || { echo "เลือก project ใน Task 00 ก่อน" >&2; exit 1; }
+python3 - <<'PY'
+from datetime import datetime, timedelta, timezone
+import json
+import os
+from pathlib import Path
+
+now = datetime.now(timezone.utc).replace(microsecond=0)
+record = {
+    'request_id': input('Request ID (เช่น CR-2026-01; ต้องไม่ซ้ำ): ').strip(),
+    'owner': input('Owner (เช่น user:you@example.com): ').strip(),
+    'reason': input('เหตุผล 20–500 ตัวอักษร: ').strip(),
+    'resource_scope': f"projects/{os.environ['PROJECT_ID']}/attestors/lab014-release-attestor",
+    'digest': input('Image digest จริง (sha256:...): ').strip(),
+    'approver': input('Approver ที่ไม่ใช่ owner (user:... หรือ group:...): ').strip(),
+    'approval_status': 'PENDING',
+    'approval_reference': '',
+    'created_at': now.isoformat().replace('+00:00', 'Z'),
+    'expires_at': (now + timedelta(days=7)).isoformat().replace('+00:00', 'Z'),
+}
+Path(os.environ['CHANGE_REQUEST_PATH']).write_text(
+    json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding='utf-8'
+)
+print(f"Wrote {os.environ['CHANGE_REQUEST_PATH']} (PENDING; expires in 7 days)")
+PY
+python3 tools/check_change_request.py "$CHANGE_REQUEST_PATH"
+~~~
+
+กรอก digest จาก release จริงและใช้ Request ID ที่ไม่ซ้ำ. หากยังไม่มีการอนุมัติ ให้คง `PENDING` และ `approval_reference` ว่าง; ห้ามเปลี่ยนเป็น `APPROVED` หรือแต่งหลักฐานขึ้นเอง. สถานะ `valid` แปลว่า record ผ่าน validation เท่านั้น ไม่ได้อนุมัติ Cloud Deploy และไม่แก้ Binary Authorization policy.
+
+ก่อนจบ Task ให้บันทึกผลแบบปกปิดอีเมล/ข้อมูลส่วนบุคคลตามต้องการ แล้วลบไฟล์ชั่วคราวออกจาก Cloud Shell (อย่า commit record นี้เข้า Git):
+
+~~~bash
+rm -- "$CHANGE_REQUEST_PATH"
+~~~
+
+Field ที่ checker บังคับมีดังนี้:
 
 | Field | สิ่งที่ใส่ |
 |---|---|
