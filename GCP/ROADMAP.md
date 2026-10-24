@@ -335,7 +335,7 @@
 
 ### 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud
 
-**สถานะ:** Brief in progress. ยังไม่มี Design/Diagram, Tasks หรือ Cloud execution; Cloud verification Not run.
+**สถานะ:** Design in progress. ปิด Brief แล้ว; มี Architecture และ migration-flow diagrams ใน Lab README; ยังไม่มี Tasks หรือ Cloud execution; Cloud verification Not run.
 
 **โจทย์:** ทีมต้องย้ายระบบจัดการคำสั่งซื้อจาก VM ที่ดูแล PostgreSQL เองไป Cloud Run และ Cloud SQL โดยควบคุม write freeze, ตรวจความครบถ้วนของข้อมูล และสลับ traffic ผ่าน front door เดิมได้อย่างมีแผน backout
 

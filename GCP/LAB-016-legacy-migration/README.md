@@ -1,6 +1,6 @@
 # Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud
 
-> **สถานะเอกสาร:** Brief in progress — ยังไม่ใช่คู่มือทำตามทีละ Task  
+> **สถานะเอกสาร:** Design in progress — ปิด Brief แล้ว กำลังตรวจ Architecture และ migration flow ก่อนเขียน Tasks  
 > **Cloud verification:** Not run — ยังไม่มีการสร้างหรือทดสอบทรัพยากร GCP  
 > **ข้อมูลใน Lab:** ใช้ข้อมูลจำลองเท่านั้น ห้ามนำข้อมูลลูกค้าหรือข้อมูลจริงมาใส่
 
@@ -36,7 +36,7 @@
 
 มี backend service แยกกันสำหรับกลุ่ม VM เดิมและ serverless NEG ของ Cloud Run เพราะ backend คนละชนิด URL map เลือกได้ว่าขณะนั้น traffic จะไป backend ใด ใช้ front door เดิมตลอดการ cutover จึงทดสอบการเปลี่ยนเส้นทางโดยไม่เปลี่ยน URL ของผู้ใช้
 
-ระหว่าง Design จะตัดสินรูปแบบ HTTPS และใบรับรองทดสอบที่ไม่ต้องพึ่งโดเมนสาธารณะ รวมทั้งตรวจข้อกำหนดของ load balancer กับ region อีกครั้ง
+Front door ใช้ global external Application Load Balancer กับ HTTPS และใบรับรองทดสอบแบบ self-signed สำหรับ orders.lab.test; ทดสอบด้วย curl --resolve และ CA ที่ผู้เรียนสร้างในเครื่อง โดยไม่ต้องจดโดเมนสาธารณะหรือเก็บ private key ใน Repo. URL map เปลี่ยน default backend ระหว่าง backend service ของ unmanaged instance group กับ backend service ของ Cloud Run serverless NEG โดยเลือกให้มี active backend เพียงชุดเดียวในแต่ละครั้ง
 
 ## ข้อกำหนดและวิธีพิสูจน์
 
@@ -77,13 +77,49 @@ DMS เป็น Change Request ที่มี resource/cost เพิ่ม �
 - ค่าใช้จ่ายจริงยังไม่ได้ประเมิน. VM/disk, Cloud SQL, load balancer, IP, logging, Artifact Registry และ DMS อาจคิดค่าใช้จ่าย; ผู้เรียนต้องตรวจราคา/งบประมาณก่อนสร้างทรัพยากร และทำ cleanup ตาม inventory
 - เอกสารนี้ยังไม่สั่งสร้างทรัพยากร GCP; Cloud verification จึงคงเป็น Not run
 
-## สิ่งที่จะปิดใน Design ก่อนเริ่มเขียน Tasks
+## Design decision checkpoint
 
-1. ยืนยัน topology และ request/data/identity flows พร้อม Diagram ที่อิง service icon ทางการตาม [แนวทางไดอะแกรมของรีโป](../../docs/diagram-style.md)
-2. เลือก connectivity ของ Cloud Run ↔ Cloud SQL และ DMS ↔ source ให้ตรงกับข้อจำกัด VPC/PSA/region
-3. กำหนด IAM/API/roles, firewall, secret handling, TLS test method, quota และ cost/cleanup boundary
-4. กำหนด maintenance gate, final dump/restore commands, data reconciliation contract และ rollback decision table
-5. ตัดสินว่า DMS Change Request ใช้ standard migration หรือวิธีอื่น พร้อมกำหนด fallback หาก preflight ไม่ผ่าน
+### ภาพรวม Solution
+
+![Architecture ของระบบ Orders ก่อนและหลังย้าย](assets/solution.svg)
+
+ภาพแสดงขอบเขตจริง: Load Balancer เป็น global service; VPC มี VM และ subnet ของ Direct VPC egress; Cloud Run กับ Cloud SQL เป็น regional managed services ที่อยู่นอก customer VPC; Private Services Access เชื่อม VPC ไป Cloud SQL private IP. Legacy VM อยู่ใน zonal unmanaged instance group สำหรับ backend ของ Load Balancer ส่วน Cloud Run ใช้ serverless NEG และ backend service แยกประเภทกัน
+
+### เส้นทางย้ายข้อมูลและ Cutover
+
+![ลำดับ freeze, transfer, reconcile, cutover และ backout](assets/migration-flow.svg)
+
+### การตัดสินใจด้าน Design
+
+| เรื่อง | แบบที่เลือก | เหตุผลและข้อจำกัด |
+|---|---|---|
+| Front door | Global external Application Load Balancer, HTTPS, URL map และ backend service แยกสำหรับ VM กับ serverless NEG | คง URL เดิมระหว่าง cutover; URL map ชี้ไป backend เดียวในแต่ละช่วง ไม่มีการแบ่ง traffic ระหว่างฐานข้อมูล |
+| ทดสอบ TLS | orders.lab.test กับ self-signed certificate ที่สร้างในเครื่อง และ curl --resolve | ทดสอบ TLS/SAN โดยไม่ใช้ DNS สาธารณะ; private key อยู่ในเครื่องผู้เรียนเท่านั้น |
+| Source | Compute Engine VM + Orders API + PostgreSQL 16 ใน zonal unmanaged instance group | ใช้จำลองระบบเดิมที่ทีมควบคุมเองและทำ backup/restore ซ้ำได้; ไม่อ้างว่าแทนระบบ on-premises จริง |
+| Target | Orders API บน Cloud Run; PostgreSQL 16 บน Cloud SQL private IP | ใช้ Cloud SQL Auth Proxy/Cloud Run Cloud SQL connection ผ่าน Direct VPC egress และ Private Services Access; secret และ IAM จำกัดตาม runtime identity |
+| Network ranges | VM subnet 10.80.0.0/24, Direct VPC egress subnet 10.80.1.0/26, PSA reserved range 10.80.2.0/24 | เป็นค่าตั้งต้นของ Lab; ก่อนสร้างต้องตรวจ overlap กับทุก subnet, peering route, quota และ Cloud SQL prerequisites |
+| Migration หลัก | หยุด writers, ตรวจ transaction, pg_dump/restore, reconcile และค่อยเปลี่ยน URL map | เหมาะกับ dataset จำลองขนาดจำกัดและพิสูจน์ cutover/backout ได้; ผู้เรียนวัด write-freeze จริง ไม่มีคำกล่าวอ้าง zero downtime |
+| DMS | Change Request เท่านั้น; ต้องผ่าน source configuration, private connectivity, compatibility และ cost/access gate | DMS ทำ initial load/CDC แต่เพิ่มทรัพยากรและ prerequisites; หาก gate ไม่ผ่านให้บันทึกเหตุผลแล้วใช้เส้นทางหลัก |
+| Rollback | ก่อนเปิด writes ที่ target ให้คืน URL map ได้; หลัง target รับ writes ให้ forward-recover หรือทำ reverse synchronization ที่ออกแบบและพิสูจน์แล้ว | ป้องกัน split-brain และการทิ้งคำสั่งซื้อที่เขียนหลัง cutover |
+
+### Network และ Identity ที่ต้องคงในคู่มือ
+
+- Request: client → global HTTPS Load Balancer → URL map → backend service ที่เลือก → VM หรือ Cloud Run serverless NEG.
+- Target database: Cloud Run ใช้ Direct VPC egress จาก subnet ที่กำหนด แล้วเชื่อม Cloud SQL ผ่าน private IP/PSA; runtime service account ได้ Cloud SQL Client และ Secret Manager Secret Accessor เฉพาะ secret ที่ต้องอ่าน.
+- Public ingress: เปิด Cloud Run invocations ที่จำเป็นต่อ serverless NEG แต่จำกัด ingress ให้รับทาง external Application Load Balancer; ห้ามใช้ all ingress เป็นทางลัด.
+- Legacy backend: health-check firewall เปิดเฉพาะช่วง IP และ port ที่ Google ระบุในเอกสาร ณ วันที่เขียน Tasks; SSH ใช้ IAP/OS Login ตาม Lab และไม่เปิด 22 สู่ Internet.
+- DMS Change Request: private source connectivity ต้องตั้งตามวิธี DMS ที่เลือกจริง; destination Cloud SQL เป็นผู้เชื่อมต่อไป source ตาม migration flow ของ DMS. ไม่เปิด PostgreSQL สู่ public internet.
+- Secrets, dump files, certificates และ Terraform state ต้องไม่ commit; ใช้ไฟล์ชั่วคราวที่จำกัดสิทธิ์และลบทิ้งหลัง Lab.
+
+### เงื่อนไขก่อนเริ่ม Tasks
+
+1. ตรวจเอกสารปัจจุบันของ global external Load Balancer, instance-group backend, serverless NEG, Cloud Run ingress/Direct VPC egress, Cloud SQL private IP/PSA และ PostgreSQL 16 ที่เลือก
+2. ตรวจ API, IAM roles, region, subnet range, PSA allocation, quota, health-check firewall และค่าใช้จ่ายในบัญชีทดลอง โดยยังไม่สร้าง resource
+3. ยืนยันว่า Cloud SQL Auth Proxy/socket + Direct VPC egress ใช้กับ app sample และ target private IP ตาม flow ที่จะเขียน; ตรวจคำสั่งและ syntax ใน CI เท่าที่ทำได้
+4. ทำ runbook สำหรับ write-freeze, active transaction check, final backup/restore, row/business-total/sequence reconcile และ URL-map boundary ให้สอดคล้องกัน
+5. แยก baseline path ออกจาก DMS Change Request และใส่ทางออกชัดเจนเมื่อ DMS gate ไม่ผ่าน
+
+ภาพเป็น Architecture proposal สำหรับคู่มือ ยังไม่มีผล Cloud execution; Cloud verification ยังคง Not run.
 
 ## บันทึกผลและหลักฐานระหว่างทำ
 
