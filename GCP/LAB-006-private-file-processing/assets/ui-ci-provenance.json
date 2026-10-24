@@ -1,0 +1,9 @@
+{
+  "workflow_run": 39991195096,
+  "job_id": 120543077262,
+  "source_commit": "6bd5cffee995c873502ce82f98ca0dc0076b92b8",
+  "capture": "Real headless Chrome on GitHub Actions; HTTPS loopback Portal and real Firestore emulator; Storage/signing are explicit test doubles.",
+  "scenario": "Lost create response, reload and resume same key; one job and one summary. Synthetic CSV: 3 rows, 6 units, 72400 satang.",
+  "review": "Visually inspected terminal succeeded banner, succeeded row, full job detail and Thai text; no signed URL, auth secret or password visible.",
+  "cloud_verification": "not-run"
+}

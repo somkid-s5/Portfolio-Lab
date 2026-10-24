@@ -1,0 +1,13 @@
+{
+  "idempotency_key": "cccccccccccccccccccccccccccccccc",
+  "items": [
+    {
+      "sku": "USB-01",
+      "quantity": 1
+    },
+    {
+      "sku": "BOOK-01",
+      "quantity": 2
+    }
+  ]
+}

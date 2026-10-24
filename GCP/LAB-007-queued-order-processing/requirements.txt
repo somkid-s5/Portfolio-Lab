@@ -1,0 +1,6 @@
+pg8000==1.31.5
+google-cloud-pubsub==2.33.0
+Flask==3.1.2
+cloud-sql-python-connector[pg8000]==1.23.0
+SQLAlchemy==2.0.44
+gunicorn==23.0.0

@@ -1,0 +1,51 @@
+worker_processes 1;
+pid {{PID_FILE}};
+error_log stderr;
+events { worker_connections 256; }
+http {
+  include /etc/nginx/mime.types;
+  default_type application/octet-stream;
+  access_log off;
+  client_body_temp_path {{TEMP_ROOT}}/body;
+  proxy_temp_path {{TEMP_ROOT}}/proxy;
+  fastcgi_temp_path {{TEMP_ROOT}}/fastcgi;
+  uwsgi_temp_path {{TEMP_ROOT}}/uwsgi;
+  scgi_temp_path {{TEMP_ROOT}}/scgi;
+  server_tokens off;
+  server {
+    listen {{WEB_PORT}};
+    server_name _;
+    root {{WEB_ROOT}};
+    index index.html;
+    client_max_body_size 4k;
+    add_header X-Web-ID $hostname always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Cache-Control no-store always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none'" always;
+    location = /livez {
+      if (!-f $document_root/index.html) { return 503; }
+      if (!-f $document_root/app.js) { return 503; }
+      if (!-f $document_root/style.css) { return 503; }
+      default_type application/json;
+      return 200 '{"alive":true,"tier":"web"}';
+    }
+    location /api/ {
+      proxy_pass http://{{API_VIP}}:{{API_PORT}};
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_connect_timeout 3s;
+      proxy_read_timeout 20s;
+      proxy_send_timeout 10s;
+      proxy_next_upstream off;
+    }
+    location = /healthz {
+      proxy_pass http://{{API_VIP}}:{{API_PORT}}/healthz;
+      proxy_set_header Host $host;
+      proxy_connect_timeout 3s;
+      proxy_read_timeout 20s;
+      proxy_next_upstream off;
+    }
+    location / { try_files $uri $uri/ =404; }
+  }
+}

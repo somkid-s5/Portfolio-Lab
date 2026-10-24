@@ -1,0 +1,22 @@
+{
+  "kind": "Real application browser screenshot from disposable GitHub Actions fixture",
+  "cloud_verification": "not-run",
+  "run_url": "https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39830356415",
+  "source_commit": "146bb2e772eb1ec1957aba352e511e3fde2c596e",
+  "test": "test_browser_through_nginx_recovers_lost_order_reply_without_duplicate",
+  "stack": [
+    "Headless Chrome",
+    "Nginx",
+    "Flask Orders API",
+    "PostgreSQL 16"
+  ],
+  "scenario": "Lost reply after transaction commit; reload; retry same owner/key/payload; one order; subsequent cancellation restores stock",
+  "image": "Unmodified browser screenshot captured before cancellation; synthetic users and product data only",
+  "not_evidence_for": [
+    "GCP provisioning",
+    "MIG rollout",
+    "VPC/firewall IAM",
+    "Cloud SQL HA failover",
+    "production performance"
+  ]
+}
