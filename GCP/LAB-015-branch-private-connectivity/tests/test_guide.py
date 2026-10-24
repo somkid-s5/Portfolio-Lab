@@ -21,7 +21,7 @@ class LabGuideTests(unittest.TestCase):
                 self.assertIn("**Evidence:**", section)
 
     def test_local_links_and_cloud_status_are_explicit(self):
-        self.assertIn("guide_status: authoring", TEXT)
+        self.assertIn("guide_status: guide-ready", TEXT)
         self.assertIn("cloud_verification: not-run", TEXT)
         self.assertIn("สถานะ Cloud:** Not run", TEXT)
         links = re.findall(r"!?\[[^\]]*\]\(([^)]+)\)", TEXT)

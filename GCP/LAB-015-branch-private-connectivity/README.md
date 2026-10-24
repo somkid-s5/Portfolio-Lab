@@ -1,13 +1,13 @@
 ---
 lab_id: GCP-015
-guide_status: authoring
+guide_status: guide-ready
 cloud_verification: not-run
 region: asia-southeast1
 ---
 
 # Lab 15 — เชื่อมสำนักงานสาขากับ Inventory API แบบ Private
 
-**สถานะคู่มือ:** กำลังตรวจด้วย repository CI  
+**สถานะคู่มือ:** Guide-ready — [Repository CI #40116050598 ผ่านครบ 54/54 jobs และ Lab 15 ผ่าน 4/4 jobs](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40116050598)  
 **สถานะ Cloud:** Not run — ยังไม่มีการสร้างทรัพยากร GCP จากงานจัดทำเอกสารนี้  
 **Region หลัก:** asia-southeast1  
 **รูปแบบ:** Branch Simulator VPC ↔ HA VPN/BGP ↔ Hub VPC ↔ Internal Application Load Balancer ↔ Cloud Run

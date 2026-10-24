@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–14 Guide-ready; Lab 15 อยู่ระหว่างจัดทำ Guide หลัง Brief/Design checkpoint; Lab 16–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–15 Guide-ready; Lab 16–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -493,9 +493,9 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 
 ## ลำดับถัดไป
 
-Lab 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud — Brief/Design complete; กำลังทำ sample API, Terraform, bounded probes, architecture diagram และคู่มือ Tasks 00–15. เกณฑ์ Cloud verification ยัง Not run; งานนี้ตรวจได้ด้วย offline tests/CI เท่านั้น
+Lab 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud — Guide-ready หลัง [CI #40116050598](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40116050598) ผ่านครบ 54/54 jobs; jobs ของ Lab 15 ผ่าน 4/4 (guide, design/render, infra/Terraform, app). คู่มือ Tasks 00–15, sample API, Terraform, probes, diagram และ tests ผ่าน repository checks. ไม่มี GCP provisioning; Cloud verification ยัง Not run.
 
-เมื่อ Lab 15 ผ่าน Guide-ready review แล้ว ให้เริ่ม Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud — จาก Brief ก่อนเขียน Tasks ตามลำดับ
+ขั้นถัดไปเริ่ม Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud — จาก Brief ก่อนเขียน Tasks ตามลำดับ
 
 ตัวอย่างรูปแบบการอ่าน: [Lab Test 2](../test/lab-test-2/README.md) ใช้เป็น reference ด้านการอ่าน ไม่ใช่ผลการทำ GCP Lab
 
