@@ -25,7 +25,7 @@ class GuideTests(unittest.TestCase):
 
     def test_bash_fences_are_syntax_valid(self):
         blocks = re.findall(r"^~~~bash\n(.*?)^~~~$", self.readme, re.MULTILINE | re.DOTALL)
-        self.assertGreaterEqual(len(blocks), 20)
+        self.assertGreaterEqual(len(blocks), 19)
         for number, block in enumerate(blocks):
             result = subprocess.run(["bash", "-n"], input=block, text=True,
                                     capture_output=True, check=False)

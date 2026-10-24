@@ -310,7 +310,7 @@ SQLbackup retentionไม่ใช่การรับประกันrestore
 
 [integration tests](tests/test_sql.py) ใช้ PostgreSQL 16 จริงกับ pg8000 1.31.5 และ SET ROLE เพื่อทดสอบ grants: concurrent create, duplicate processing, LAST-01 race, multi-item rejection, partial-write rollback, commit-before-ack replay, owner/event binding, ledger corruption และ price snapshot คำสั่งทดสอบยอมรับเฉพาะ disposable loopback database ชื่อ lab007_ci ไม่ fallback ไป Cloud SQL
 
-[CI 39999204524](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39999204524) jobs lab007-domain/lab007-postgres ผ่าน 11 domain และ 12 PostgreSQL tests แรกแล้ว ใช้ SET ROLE ไม่ใช่ผล Cloud SQL/IAM/TLS/secret login จริง และยังต้องต่อ publisher/HTTP/runtime/bootstrap/UI/infrastructure/Diagram/คู่มือก่อน Guide-ready
+นี่เป็น CI checkpoint ระยะแรกของ domain/PostgreSQL ที่ใช้ SET ROLE ไม่ใช่ผล Cloud SQL/IAM/TLS/Secret login จริง; เนื้อหาและเครื่องมือปัจจุบันอยู่ในส่วน Materials และ Tasks ด้านล่าง
 
 ## การ claim และบันทึกผลส่ง outbox
 
@@ -340,7 +340,7 @@ Dispatcher รับเพียง JSON ว่าง ไม่รับ topic/S
 
 /livez ตรวจ process แยกจาก /healthz ที่อ่าน schema version ด้วย runtime DB role ไม่สร้างข้อมูล ทั้งสอง service ยังต้อง Cloud Run IAM ด้านหน้า **Flask factory และ ce/message headers ไม่ได้ทำให้ caller ผ่าน IAM เอง** ต้องให้ push/scheduler identities เท่านั้นในขั้น deploy
 
-เพิ่ม [11 HTTP tests](tests/test_queue_http.py) และ SQL health test ทำให้ SQL suite เป็น 23 tests ชุดใหม่รอ CI CI ใช้ PostgreSQL จริงและ contract tests; Cloud Run runtime identity ต้องยืนยันแยกใน Tasks บน GCP
+เพิ่ม [11 HTTP tests](tests/test_queue_http.py) และ SQL health test ทำให้ SQL suite เป็น 23 tests ณ checkpoint นั้น; CI ใช้ PostgreSQL จริงและ contract tests แต่ Cloud Run runtime identity ต้องยืนยันแยกใน Tasks บน GCP
 
 HTTP 10 tests แรกและชุดรวมของ Lab 007 ผ่าน CI 40002222352 แล้ว (รวม 57 tests ตาม source นั้น) เพิ่ม regression test ให้ framework server error เป็น retryable503 ไม่ตีความเป็น poison400 ทำให้ชุดรวมเป็น 58 tests เมื่อรวม test ใหม่นี้ ซึ่งผ่าน [CI 40003675282](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40003675282) jobs ของ Lab 007 แล้ว
 
@@ -412,7 +412,7 @@ PORT รับเฉพาะเลข ASCII 1–65535; Gunicorn timeout65s/grac
 
 ผล Lab07 ของ [CI 40011482826](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40011482826) / source8a2fc21d1ab752f1d56d59fdd0dc24c3486f5a0a: domain/dispatch/pagination/container-entry25 + SDK/HTTP/runtime/auth/SQL/browser72 = **97 tests ผ่าน** พร้อม image build/non-root/import/exclusion checks และตรวจภาพอ่านได้ครบถึง footer [Provenance](assets/ui-provenance.json) ระบุแหล่งภาพและขอบเขตจริง
 
-ผลนี้ไม่ยืนยัน Pub/Sub delivery/dead-letter, Cloud Run IAM, Cloud SQL private routing/TLS/Secrets, production capacity หรือการ cleanup จริง คู่มือและผล Cloud ยังต้องแยกตรวจต่อ
+ผลนี้ไม่ยืนยัน Pub/Sub delivery/dead-letter, Cloud Run IAM, Cloud SQL private routing/TLS/Secrets, production capacity หรือ cleanup จริง; ตรวจข้อจำกัดเหล่านี้แยกใน Tasks บน GCP
 
 ## Audited replay — ส่ง event เดิมโดยไม่สร้างคำสั่งซื้อใหม่
 
@@ -628,6 +628,12 @@ Tasks ต่อไปนี้สร้างระบบจริงใน **Pr
 ~~~bash
 git clone --branch docs/gcp-solution-labs --single-branch https://github.com/somkid-s5/Portfolio-Lab.git "$HOME/Portfolio-Lab"
 cd "$HOME/Portfolio-Lab/GCP/LAB-007-queued-order-processing"
+export PROJECT_ID="ใส่-project-id-ของ-sandbox"
+export REGION="asia-southeast1"
+export PROJECT_NUMBER="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
+export AR="asia-southeast1-docker.pkg.dev/$PROJECT_ID/lab007-images"
+gcloud config set project "$PROJECT_ID"
+gcloud auth list
 git status --short --branch
 gcloud version
 terraform version
