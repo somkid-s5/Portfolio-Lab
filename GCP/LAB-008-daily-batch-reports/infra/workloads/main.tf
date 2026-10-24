@@ -148,6 +148,7 @@ resource "google_cloud_run_v2_job_iam_member" "operator_runner" {
 
 resource "google_project_iam_member" "operator_diagnostics" {
   for_each = toset([
+    "roles/cloudscheduler.jobRunner",
     "roles/datastore.viewer",
     "roles/logging.viewer",
     "roles/run.viewer",
@@ -200,6 +201,7 @@ resource "google_cloud_scheduler_job" "report" {
 
   depends_on = [
     google_project_service_identity.scheduler,
+    google_service_account_iam_member.operator_scheduler_act_as,
     google_cloud_run_v2_service_iam_member.scheduler_invoker,
   ]
 }
@@ -235,6 +237,7 @@ resource "google_cloud_scheduler_job" "watchdog" {
 
   depends_on = [
     google_project_service_identity.scheduler,
+    google_service_account_iam_member.operator_scheduler_act_as,
     google_cloud_run_v2_service_iam_member.scheduler_invoker,
   ]
 }
