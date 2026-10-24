@@ -91,7 +91,7 @@ def solution_diagram(icons):
     body = '''
 <text x="28" y="42" class="title">Order Queue Desk — architecture</text>
 <text x="28" y="70" class="subtitle">Lab 07 • asynchronous order processing with business-level idempotency</text>
-<rect x="110" y="100" width="1100" height="850" rx="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.8"/>
+<rect x="110" y="100" width="1100" height="910" rx="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.8"/>
 <rect x="110" y="100" width="34" height="38" fill="#1f2937"/>
 <text x="127" y="125" fill="#ffffff" class="small" text-anchor="middle" style="fill:#ffffff;font-weight:700">GCP</text>
 <text x="158" y="128" class="frame-title">Dedicated Lab project • no public Cloud SQL IP</text>
@@ -130,13 +130,13 @@ def solution_diagram(icons):
 <text x="126" y="492" class="small">HTTPS</text>
 <path class="flow-teal" d="M665 570H690"/>
 <path class="flow-teal" d="M900 570H920"/>
-<text x="160" y="925" class="small">Blue: customer HTTPS • Teal: private SQL path through Direct VPC Egress and PSA. The companion flow diagram shows queue and Scheduler directions.</text>
-<text x="160" y="945" class="small">Secret versions are numeric and image references use digests; Secret Manager is a global endpoint with one Asia replica, not a regional access boundary.</text>
+<text x="160" y="944" class="small">Blue: customer HTTPS • Teal: private SQL path through Direct VPC Egress and PSA. Queue and Scheduler directions are in the companion flow diagram.</text>
+<text x="160" y="966" class="small">Secret versions are numeric; image references use digests. Secret Manager is global with an Asia replica, not a regional access boundary.</text>
 '''
     return base(
         "Lab 07 Order Queue Desk architecture",
         "GCP project, global services, regional Cloud Run workloads, Direct VPC Egress, private Cloud SQL over PSA, Pub/Sub and operational resources.",
-        1320, 980, body,
+        1320, 1040, body,
     )
 
 
