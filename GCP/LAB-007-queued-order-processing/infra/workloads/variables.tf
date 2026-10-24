@@ -2,7 +2,7 @@ variable "project_id" {
   type        = string
   description = "The same dedicated sandbox project used by infra/foundation."
   validation {
-    condition = can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.project_id))
+    condition     = can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.project_id))
     error_message = "Use a valid Google Cloud project ID."
   }
 }
