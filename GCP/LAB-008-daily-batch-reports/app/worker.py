@@ -76,7 +76,16 @@ class DailyReportWorker:
         except StateConflict as exc:
             raise WorkerFailure(exc.code) from exc
         if disposition != "claimed":
-            return {"status": disposition, "business_date": business_date}
+            result = {"status": disposition, "business_date": business_date}
+            if disposition == "succeeded":
+                result.update(
+                    report_id=record.get("report_id"),
+                    report_generation=record.get("report_generation"),
+                    source_generation=record.get("source_generation"),
+                    source_sha256=record.get("source_sha256"),
+                    report_sha256=record.get("report_sha256"),
+                )
+            return result
 
         try:
             source_bytes = self.objects.read_source(
