@@ -29,7 +29,7 @@ NOW = datetime(2026, 10, 24, 1, 2, 3, tzinfo=timezone.utc)
 class FirestoreLedgerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        if os.environ.get("FIRESTORE_EMULATOR_HOST") != "127.0.0.1:8087":
+        if os.environ.get("FIRESTORE_EMULATOR_HOST") != "127.0.0.1:8089":
             raise RuntimeError("explicit_loopback_emulator_required")
         cls.client = firestore.Client(
             project=PROJECT,
