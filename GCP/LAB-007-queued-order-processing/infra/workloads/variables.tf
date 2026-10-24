@@ -2,7 +2,7 @@ variable "project_id" {
   type        = string
   description = "The same dedicated sandbox project used by infra/foundation."
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.project_id))
+    condition = can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.project_id))
     error_message = "Use a valid Google Cloud project ID."
   }
 }
@@ -41,7 +41,7 @@ variable "secret_versions" {
   })
   description = "Numeric versions printed by publish_secrets.py; secret payloads never enter Terraform."
   validation {
-    condition     = alltrue([
+    condition = alltrue([
       for version in values(var.secret_versions) :
       can(regex("^[1-9][0-9]{0,9}$", version))
     ])
