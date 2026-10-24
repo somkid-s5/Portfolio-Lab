@@ -31,6 +31,14 @@ class ContainerTests(unittest.TestCase):
                 entry.command(env)
         self.assertEqual(entry.command({"SERVICE_ROLE":"worker","PORT":"09000"})[2],"0.0.0.0:9000")
 
+    def test_bootstrap_cloud_build_uses_separate_dockerfile_and_digest_substitution(self):
+        config=(LAB/"cloudbuild-bootstrap.yaml").read_text()
+        self.assertIn("gcr.io/cloud-builders/docker",config)
+        self.assertIn("bootstrap/Dockerfile",config)
+        self.assertIn("$" + "{_IMAGE}",config)
+        self.assertIn("images:",config)
+        self.assertIn("CLOUD_LOGGING_ONLY",config)
+
     def test_nonroot_image_and_allowlisted_context(self):
         docker=(LAB/"Dockerfile").read_text()
         self.assertIn("USER 10001:10001",docker)

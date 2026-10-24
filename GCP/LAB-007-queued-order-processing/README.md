@@ -13,7 +13,7 @@ last_verified: null
 
 Solution นี้ชื่อ **Order Queue Desk** ผลสำเร็จทางธุรกิจคือจองสต็อกและเปลี่ยนคำสั่งซื้อเป็น confirmed ไม่ใช่การตัดเงิน ส่งสินค้า หรือรับประกัน exactly-once ของบริการภายนอก
 
-**สถานะ:** กำลังทำ Materials — Portal/worker/dispatcher, PostgreSQL transactions, bootstrap, private Secret publisher และ Terraform foundation/workloads roots ผ่าน automated CI checks แล้ว (CI run 40064473767; Lab07 รวม 170 automated tests และ Terraform fmt/init/validate) ยังไม่มี GCP deployment/Cloud verification จริง; fault/load tools, diagram review และคู่มือ Tasks ยังอยู่ระหว่างทำ
+**สถานะ:** App, PostgreSQL schema/transactions, bootstrap, Secret publisher, Terraform, bounded fault/load tools และแผนภาพจัดทำแล้ว; คู่มือ Tasks อยู่ระหว่างตรวจ CI ก่อนประกาศ Guide-ready. ยังไม่มี GCP deployment/Cloud verification จริง; ทุกช่อง Cloud result ต้องกรอกจากการทดลองใน sandbox ของผู้เรียน
 
 ## ผู้ใช้และงานที่ต้องทำได้
 
@@ -40,7 +40,7 @@ Solution นี้ชื่อ **Order Queue Desk** ผลสำเร็จท�
 
 ผล HTTP 202 ของ Portal หมายถึงบันทึกรับงานแล้ว ไม่ได้หมายถึง publish สำเร็จหรือจองสต็อกแล้ว ผล HTTP ack ของ worker ต้องตามหลัง transaction ที่สรุปผลธุรกิจได้ หรือยืนยันว่าผลเดิมถูกบันทึกแล้วเท่านั้น
 
-## Candidate architecture
+## Architecture ที่เลือกใช้
 
 วางระบบใน sandbox project ของ Lab นี้ ไม่ต้องเปิดทรัพยากรจาก Lab ก่อนค้างไว้:
 
@@ -63,6 +63,8 @@ Private IP เป็นเพียงเส้นทางเครือข่
 ## Solution diagram
 
 แผนภาพแยกขอบเขต project, regional services, global endpoints, customer VPC และ managed Cloud SQL ตามตำแหน่งจริง Cloud Run เป็น regional service ที่ใช้ Direct VPC Egress ไม่ได้อยู่ภายใน subnet; Cloud SQL เป็น managed service ที่เชื่อมกับ VPC ด้วย PSA รายละเอียด request/retry/replay แสดงแยกใน event flow เพื่อให้อ่านเส้นทางหลักได้ชัด
+
+[เปิดภาพ topology PNG](assets/solution.png) · [ไฟล์ SVG สำหรับแก้ไข](assets/solution.svg) · [เปิดภาพ event-flow PNG](assets/event-flow.png) · [ไฟล์ SVG สำหรับแก้ไข](assets/event-flow.svg)
 
 ![Order Queue Desk architecture](assets/solution.svg)
 
@@ -110,16 +112,9 @@ Fault controls ต้องเป็น sandbox revision/config ที่ปิ�
 
 เพดานตั้งต้นสำหรับออกแบบเครื่องมือ: ไม่เกิน 100 orders ต่อรอบ, 2 items ต่อ order, synthetic quantity ไม่เกิน 3 ต่อ item, producer ไม่เกิน 2 requests/วินาที และช่วงส่งไม่เกิน 60 วินาที ต้องเลือก seed/expected results ให้เพียงพอสำหรับรอบเทียบ โดยไม่ reset ฐานข้อมูลเดิมเงียบ ๆ
 
-## สิ่งที่ต้องเตรียมเพื่อให้แล็บทำได้จริง
+## Materials ที่ใช้ใน Solution
 
-- Portal/catalog/order status UI พร้อมรหัสสังเคราะห์และ owner/role checks
-- Schema/seed/migrations และ least-privilege DB roles ที่ติดตั้งได้จาก environment ใหม่
-- Outbox dispatcher, push envelope parser, business worker และ operator DLQ/replay tooling
-- ตัวสร้าง workload และตัวเทียบ stock/order/reservation snapshot แบบ read-only และ bounded
-- Normal/negative/concurrent/failure tests กับ PostgreSQL จริงใน cloud CI ไม่ใช้ mock พิสูจน์ transaction
-- Browser journey ผ่าน UI/API/DB จริงใน CI โดยติดป้าย Queue/signing doubles ให้ชัด
-- Terraform/containers/health/logs พร้อมคำแนะนำ IAM/network/cost และภาพ architecture/recovery ที่ตรวจ render แล้ว
-- README เดียวที่พาทำตั้งแต่ setup ถึง cleanup มี Expected/Actual และช่องหลักฐานข้างงาน ไม่ใช่เพียงคำสั่งสร้าง topic
+ชุดแล็บประกอบด้วย Portal/UI, PostgreSQL schema/seed และ least-privilege roles, transactional outbox, dispatcher, authenticated Pub/Sub push worker, operator replay/DLQ tools, private bootstrap/Secret publisher, Terraform foundation/workloads, bounded workload/fault tools, browser/PostgreSQL CI checks และ topology/event-flow diagrams; วิธี deploy, ตรวจผล, เปลี่ยน capacity, เก็บหลักฐาน และ cleanup อยู่ใน Tasks ด้านท้าย README
 
 ## สิทธิ์ ต้นทุน และขอบเขตที่ยังไม่รวม
 
@@ -129,9 +124,9 @@ Cloud SQL, backups/storage, Queue retention/operations, network, images, logs �
 
 ไม่รวม payment gateway, physical fulfillment, cross-region DR, service mesh, production SSO หรือการรับประกัน SLA แต่ระบุข้อจำกัดและสิ่งที่ต้องเพิ่มก่อนส่งให้ทีมใช้งานจริงได้
 
-## ขั้นถัดไป
+## ลำดับการลงมือ
 
-ปิด resource/identity/API/event/schema/state/transaction/outbox/DLQ contracts พร้อม acceptance test matrix และ task order ก่อนเริ่มเขียน Materials ระบุชนิด DB, runtime versions, TLS, IAM scopes, retention และ capacity ที่เลือกจริงพร้อมเหตุผล แล้วจึงทำ Diagram และคู่มือทีละขั้น
+ทำ Tasks 00–12 ตามลำดับใน Project sandbox ของ Lab 07; ตรวจแผน Terraform และผลจริงก่อนทำขั้นต่อไป หากไม่ได้สร้าง GCP resource ให้บันทึก Not run แทนการตีความ CI ว่าเป็น Cloud result
 
 ## แหล่งอ้างอิงที่ตรวจสำหรับ Brief
 
@@ -295,7 +290,7 @@ SQLbackup retentionไม่ใช่การรับประกันrestore
 - [Cloud Scheduler HTTP target authentication](https://docs.cloud.google.com/scheduler/docs/http-target-auth)
 - [Cloud Run scheduled invocation](https://docs.cloud.google.com/run/docs/triggering/using-scheduler)
 
-**Design checkpoint:** นี่คือสัญญาที่ Materials ต้องทำให้เป็นจริง ยังไม่มีApp/schema/infraสำเร็จหรือผล GCP ขั้นถัดไปเริ่มdomain+SQLtestsตามลำดับข้างต้น หากSDK/providerมีข้อจำกัดให้ปรับDesignพร้อมเหตุผลก่อนเขียนTask
+**Design ที่ใช้งาน:** resource, identity, event, schema, transaction, outbox/DLQ, capacity และ cleanup contracts ถูกนำไปใช้ใน app/sql/infra; Tasks ด้านท้ายพา deploy และตรวจส่วนที่ CI จำลองไม่ได้ โดยไม่อ้างว่าได้ทดสอบ Cloud จริง
 
 ## ตัวตรวจคำขอและข้อความ
 
@@ -345,7 +340,7 @@ Dispatcher รับเพียง JSON ว่าง ไม่รับ topic/S
 
 /livez ตรวจ process แยกจาก /healthz ที่อ่าน schema version ด้วย runtime DB role ไม่สร้างข้อมูล ทั้งสอง service ยังต้อง Cloud Run IAM ด้านหน้า **Flask factory และ ce/message headers ไม่ได้ทำให้ caller ผ่าน IAM เอง** ต้องให้ push/scheduler identities เท่านั้นในขั้น deploy
 
-เพิ่ม [11 HTTP tests](tests/test_queue_http.py) และ SQL health test ทำให้ SQL suite เป็น 23 tests ชุดใหม่รอ CI ยังไม่มี Cloud Run runtime wiring, Portal UI หรือการพิสูจน์ push identity จริง
+เพิ่ม [11 HTTP tests](tests/test_queue_http.py) และ SQL health test ทำให้ SQL suite เป็น 23 tests ชุดใหม่รอ CI CI ใช้ PostgreSQL จริงและ contract tests; Cloud Run runtime identity ต้องยืนยันแยกใน Tasks บน GCP
 
 HTTP 10 tests แรกและชุดรวมของ Lab 007 ผ่าน CI 40002222352 แล้ว (รวม 57 tests ตาม source นั้น) เพิ่ม regression test ให้ framework server error เป็น retryable503 ไม่ตีความเป็น poison400 ทำให้ชุดรวมเป็น 58 tests เมื่อรวม test ใหม่นี้ ซึ่งผ่าน [CI 40003675282](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40003675282) jobs ของ Lab 007 แล้ว
 
@@ -357,7 +352,7 @@ HTTP 10 tests แรกและชุดรวมของ Lab 007 ผ่าน
 
 Pool ใช้ SQLAlchemy 2.0.44: Portal2/worker2/dispatcher1, overflow0, wait2s, pre-ping และ rollback เมื่อคืน connection รหัสผ่านส่งให้ connector จาก Secret bundle ในหน่วยความจำ ไม่อยู่ใน URL หรือ engine query logs ช่วงรอ pool เต็มเป็น transient failure ไม่ใช่เหตุให้รับงานแล้วลบทิ้ง
 
-[Cloud Run factories](app/queue_runtime.py) ประกอบ worker/dispatcher กับ repository และ health query จริง พร้อมปิด pool/connector/publisher ตอน process จบ ยังไม่มี bootstrap/admin credential ใน serving role และยังไม่ใช่ Portal factory หรือ container entry point ที่ครบแล้ว
+[Cloud Run factories](app/queue_runtime.py) ประกอบ worker/dispatcher กับ repository และ health query จริง พร้อมปิด pool/connector/publisher ตอน process จบ ยังไม่มี bootstrap/admin credential ใน serving role และการทดสอบ runtime นี้ไม่ยืนยัน private routing/TLS/IAM บน GCP
 
 เพิ่ม [8 runtime/SDK tests](tests/test_database.py) และ PostgreSQL pool tests อีก 3 กรณี (SQL suite26): repository ใช้ pool จริง, ไม่สร้าง connection เกินขนาด และ rollback ก่อน reuse runtime และ pool suite ผ่าน [CI 40005157659](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40005157659) แล้ว รวม Lab 007 เป็น 69 tests ณ source นั้น ไม่ใช่การยืนยัน private routing/TLS/IAM บน GCP
 
@@ -369,7 +364,7 @@ Catalog อ่าน SKU/ราคา/สต็อกด้วยขอบเข
 
 [pagination.py](app/pagination.py) ใช้ opaque cursor ของ created_at/ID เรียงใหม่ไปเก่า จำกัดครั้งละ 1–20 รายการและ query เพิ่มหนึ่งแถวเพื่อบอก next cursor ไม่ใช้ cursor เป็น authorization แม้ส่ง cursor ของบัญชีอื่น query ยังต้องกรอง owner จาก session ของผู้เรียก
 
-เพิ่ม [3 cursor tests](tests/test_pagination.py) และ PostgreSQL tests อีก 4 กรณี (SQL suite30): catalog/detail projection, owner pagination/foreign cursor, operator safe views และ invalid limit/cursor ข้อมูลและ pagination ผ่าน [CI 40006125391](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40006125391) แล้ว รวม 76 tests ณ source นั้น ยังไม่มีหน้า Portal ที่พร้อมใช้
+เพิ่ม [3 cursor tests](tests/test_pagination.py) และ PostgreSQL tests อีก 4 กรณี (SQL suite30): catalog/detail projection, owner pagination/foreign cursor, operator safe views และ invalid limit/cursor ข้อมูลและ pagination ผ่าน CI ของ source ดังกล่าว; Portal/Cloud Run ที่ deploy จริงต้องตรวจแยกใน Tasks
 
 ## Portal API, session และข้อมูลส่วนตัว
 
@@ -381,7 +376,7 @@ Customer เห็น catalog และ order ของตน Operator ดู or
 
 [create-secrets.py](scripts/create-secrets.py) สร้างโฟลเดอร์ใหม่ mode700/ไฟล์600: auth.json กับ hash scrypt ที่กำหนด cost ชัดเจน, demo-logins.json สำหรับผู้เรียน และ DB bundles แยก Portal/worker/dispatcher/bootstrap ไม่มี cloud call ไม่พิมพ์รหัสและไม่เขียนทับ หากสร้างไปแล้วต้องเก็บชุดเดิมจน resolve ผลการติดตั้ง ไม่สร้างใหม่เพื่อกลบคำตอบ network ที่หาย
 
-[Portal runtime](app/portal_runtime.py) อ่าน auth mount แบบ bounded/numeric version และใช้ DB role Portal เท่านั้น ไม่โหลด admin bundle [12 API tests](tests/test_portal_http.py) และ [5 auth/runtime tests](tests/test_auth_config.py) ชุดใหม่รอ CI ยังไม่มี browser UI/การพิสูจน์ Cloud login/Secret IAM จริง
+[Portal runtime](app/portal_runtime.py) อ่าน auth mount แบบ bounded/numeric version และใช้ DB role Portal เท่านั้น ไม่โหลด admin bundle [12 API tests](tests/test_portal_http.py) และ [5 auth/runtime tests](tests/test_auth_config.py) CI contracts ไม่ยืนยัน Cloud login/Secret IAM; Browser/Secret IAM ที่ deploy จริงต้องตรวจแยกใน Tasks
 
 ## หน้าจอสั่งซื้อและการกลับมาหางานเดิม
 
@@ -393,7 +388,7 @@ Customer เห็น catalog และ order ของตน Operator ดู or
 
 บันทึกใน Browser ไม่ใช่ฐานข้อมูลหลัก: sessionStorage อยู่เฉพาะ tab/Browser นั้นและหายได้เมื่อปิด tab หรือเคลียร์ข้อมูล หากบันทึกเสียหายหน้าจอจะหยุดส่งงาน ไม่ลบแล้วสร้างคำขอใหม่เงียบ ๆ ให้ตรวจรายการคำสั่งซื้อ/ประสาน operator ก่อนตัดสินใจซื้อใหม่ ไม่เก็บ password, cookie หรือ CSRF ใน storage
 
-การตรวจอัตโนมัติจำกัด 30 รอบและไม่เริ่มรอบใหม่หลัง 90 วินาที แต่ละ request มี abort timeout 10 วินาทีและ response limit 64 KiB การหยุดตรวจไม่ใช่การยกเลิก order บน server เลือกรายละเอียดเพื่อเริ่มตรวจงานเดิมต่อได้ Operator มีหน้าดู order/outbox และ metadata โดยไม่เปิดเผย payload หรือ lease token; replay mutation มีแล้วผ่าน API/CLI ตามหัวข้อ Audited replay ส่วนเครื่องมือ DLQ inspect/ack ยังต้องต่อ
+การตรวจอัตโนมัติจำกัด 30 รอบและไม่เริ่มรอบใหม่หลัง 90 วินาที แต่ละ request มี abort timeout 10 วินาทีและ response limit 64 KiB การหยุดตรวจไม่ใช่การยกเลิก order บน server เลือกรายละเอียดเพื่อเริ่มตรวจงานเดิมต่อได้ Operator มีหน้าดู order/outbox และ metadata โดยไม่เปิดเผย payload หรือ lease token; replay mutation มีแล้วผ่าน API/CLI ตามหัวข้อ Audited replay DLQ inspect/ack tools อยู่ในส่วน DLQ ด้านล่าง; การ forward/ack บน Pub/Sub จริงต้องตรวจใน Tasks
 
 ## Container สำหรับ serving services
 
@@ -443,7 +438,7 @@ Audit กับการ prepare commit ใน transaction เดียว ใ�
 
 เครื่องมือนี้สำหรับ **Cloud Shell/Linux** หลัง deploy Portal และตรวจ private bundle แล้ว รันจากโฟลเดอร์ Lab นี้ ค่า PORTAL_URL ต้องเป็น origin ของ lab007-portal ที่ได้จาก deployment; EVENT_ID และ SOURCE_DIGEST ต้องมาจากรายการต้นทางที่ตรวจแล้ว ไม่ใส่ค่าทดลองแทนข้อมูลจริงเพื่อให้คำสั่งผ่าน
 
-ตัวอย่างรูปแบบการเรียก (ยังไม่ใช่ขั้น DLQ inspect/ack ซึ่งกำลังจัดทำ):
+ตัวอย่างรูปแบบคำขอ Audited replay; การ inspect/ack DLQ มีขั้นแยกด้านล่าง:
 
 ```bash
 python scripts/operator-replay.py \
@@ -568,7 +563,9 @@ Expected: JSON มี `event=secret_publish_complete`, `instance=lab007-orders`,
 การตรวจใน CI ใช้ Google API mock เท่านั้น ไม่ได้สร้าง Secret, เปลี่ยนรหัสผ่านบน GCP หรือยืนยัน Cloud SQL login จริง ช่อง Cloud verification จึงคงเป็น **Not run** จนกว่าจะมีหลักฐานจาก sandbox จริง
 
 
-Lab07 เพิ่ม private Secret publisher 12 unit tests เพื่อครอบคลุม private bundle, Secret replication region, numeric versions, first-run password guard, rerun และ unknown API outcomes. CI run 40064473767 ผ่านทุก Lab07 job โดยรวม 170 automated tests; Terraform format/init/validate ผ่านโดยไม่ใช้ Cloud credentials และไม่ provision ทรัพยากร. นี่เป็น local/CI evidence เท่านั้น ไม่ใช่ GCP Cloud verification.\n\n## Bootstrap ฐานข้อมูลใหม่โดยไม่ reset ระบบเดิม
+Secret publisher CI tests ใช้ Google API doubles เพื่อตรวจ private bundle, replication, numeric versions, first-run guard และ unknown outcomes; ไม่ได้สร้าง Secret หรือเปลี่ยนรหัสผ่านจริง และไม่ใช่ Cloud verification.
+
+## Bootstrap ฐานข้อมูลใหม่โดยไม่ reset ระบบเดิม
 
 ใช้ [bootstrap image แยก](bootstrap/Dockerfile) รัน [one-off Job](bootstrap/run.py) ก่อนเปิด Portal/dispatcher/worker ไม่ใช้ serving service ทำ DDL หรือโหลด admin Secret ระหว่างรับ request ตัว image รัน non-root และมีเฉพาะ installer/runtime, SQL สองไฟล์ และตัวตรวจ JSON ไม่คัดลอก private bundles หรือโค้ด serving ทั้งชุด
 
@@ -615,4 +612,312 @@ Expected เมื่อครบทุกขั้น: disposition=installed �
 
 [5 bootstrap runtime tests](tests/test_bootstrap_runtime.py) ใช้ Connector mock เฉพาะ Google control-plane contract เพื่อยืนยัน private/LAZY/numeric mounts/job guards, การปิด admin ก่อน probes ทีละ role, failure cleanup และ stdout sanitization ไม่อ้างว่าได้เชื่อม private Cloud SQL ผ่าน Cloud Run จริง
 
-image build/import/exclusion ผ่าน UID10001; schema/role SQL อยู่เฉพาะ bootstrap image ไม่ใช่ serving image ขั้นถัดไปต้องเตรียม Secret/version และ infrastructure ให้ครบก่อนผู้เรียนรัน Job บน GCP ช่องผล Cloud ยัง Not run ไม่ถือ container CI เป็นหลักฐาน IAM/network/Secret mounts หรือ Cloud SQL login จริง
+image build/import/exclusion ผ่าน CI ด้วย UID10001; schema/role SQL อยู่เฉพาะ bootstrap image. ขั้นเตรียม Secret/version, infrastructure และรัน Job อยู่ใน Tasks; Cloud verification ยังคง Not run จนกว่าจะมีหลักฐานจาก sandbox จริง
+
+
+## ลงมือสร้าง Solution — คู่มือ Tasks
+
+Tasks ต่อไปนี้สร้างระบบจริงใน **Project sandbox แยกสำหรับ Lab 07** จึงมีค่าใช้จ่ายตามเวลาที่เปิด Cloud SQL, Cloud Run, Artifact Registry, Cloud Build, Pub/Sub, logs และ backups. ตั้ง Budget alert และตรวจ Pricing Calculator ตาม region/tier ก่อนเริ่ม; Budget alert เป็นการแจ้งเตือน ไม่ใช่ hard cap. งานเอกสาร/CI ใน repository ไม่ได้สร้าง GCP resources
+
+### Task 00 — เตรียม sandbox และ Cloud Shell
+
+1. ใช้ Project ใหม่แยกจาก production/Lab อื่น เปิด Billing และเตรียมสิทธิ์สำหรับ APIs, IAM, VPC/PSA, Cloud SQL, Secret Manager, Artifact Registry, Cloud Build, Cloud Run, Pub/Sub และ Cloud Scheduler
+2. ใน Console เปิด **Billing → Budgets & alerts → Create budget**, เลือก Project, กำหนด threshold และผู้รับแจ้งเตือน
+3. เปิด Cloud Shell จากปุ่ม terminal ของ Console แล้ว clone branch นี้ (ถ้ามีอยู่แล้วให้เข้า directory เดิม):
+
+~~~bash
+git clone --branch docs/gcp-solution-labs --single-branch https://github.com/somkid-s5/Portfolio-Lab.git "$HOME/Portfolio-Lab"
+cd "$HOME/Portfolio-Lab/GCP/LAB-007-queued-order-processing"
+git status --short --branch
+gcloud version
+terraform version
+python3 --version
+~~~
+
+ใช้ Terraform 1.9.8 ตาม versions.tf; หากไม่ตรงให้หยุดและเตรียมเวอร์ชันที่กำหนด. Cloud SQL ใช้ db-custom-2-7680, zonal SSD 20 GiB พร้อม backup/PITR จึงไม่ใช่ free-tier exercise
+
+**Expected:** sandbox/Cloud Shell พร้อมและยังไม่มี Lab 07 resources ที่สร้างจากขั้นนี้  
+**Actual / Evidence:** Project ID, active account, วันเริ่ม, budget alert, CLI versions, branch/commit: __________________
+
+### Task 01 — สร้าง VPC, PSA และ Cloud SQL foundation
+
+~~~bash
+export PROJECT_ID="ใส่-project-id-ของ-sandbox"
+export REGION="asia-southeast1"
+gcloud config set project "$PROJECT_ID"
+cd "$HOME/Portfolio-Lab/GCP/LAB-007-queued-order-processing/infra/foundation"
+cp terraform.tfvars.example lab007.auto.tfvars
+nano lab007.auto.tfvars
+chmod 600 lab007.auto.tfvars
+terraform init -input=false
+terraform fmt -check -recursive
+terraform validate -no-color
+terraform plan -var-file=lab007.auto.tfvars -out=foundation.tfplan
+terraform show foundation.tfplan
+~~~
+
+ใส่ Project ID จริงและคง allow_destroy=false. อ่าน plan ให้มีเฉพาะ APIs, lab007-vpc/subnet, PSA range/peering, PostgreSQL16 instance lab007-orders, database order_queue, Secret containers, Artifact Registry lab007-images และ service accounts ของ Lab 07. ตรวจ Project/region ก่อน:
+
+~~~bash
+terraform apply foundation.tfplan
+terraform output
+~~~
+
+ใน Console เปิด **SQL → Instances → lab007-orders → Connections** ยืนยัน Public IP ปิดและมี private address; เปิด VPC network lab007-vpc ตรวจ subnet/PSA. ห้ามเปิด public IP เพื่อแก้ปัญหาเชื่อมต่อ
+
+**Expected:** foundation สำเร็จ, PostgreSQL16 private, allow_destroy=false. ถ้า quota/org policy ปฏิเสธให้บันทึกเหตุผลและหยุดประสานผู้ดูแล; ห้ามลด security หรือย้ายไป production  
+**Actual / Evidence:** apply operation, connection name (ปกปิด project numberได้), public-IP state, subnet/PSA, เวลา: __________________
+
+### Task 02 — สร้าง private credentials และ Secret versions
+
+~~~bash
+cd "$HOME/Portfolio-Lab/GCP/LAB-007-queued-order-processing"
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+umask 077
+python3 scripts/create-secrets.py --out "$HOME/lab007-private"
+gcloud auth list
+python3 scripts/publish_secrets.py \
+  --project "$PROJECT_ID" \
+  --bundle "$HOME/lab007-private" \
+  --initialize-postgres-password
+~~~
+
+bundle มี auth.json, demo-logins.json และ DB credentials; เก็บนอก Git/Terraform/screenshots/logs. Flag initialize ใช้ครั้งแรกของ instance ใหม่เท่านั้น. ผลสำเร็จมี event=secret_publish_complete และ numeric versions; จด map: lab007-auth→auth, lab007-db-portal→portal, lab007-db-worker→worker, lab007-db-dispatcher→dispatcher, lab007-db-bootstrap→bootstrap. ถ้าผลไม่แน่นอนคง bundle/state เดิม ห้ามสร้างใหม่หรือ rotate; ทำตามคำแนะนำ Secret publisher ก่อน retry
+
+**Expected:** Secret ทั้งห้ามี numeric versions; ไม่มี password/payload ใน output  
+**Actual / Evidence:** เวลา publish, numeric versions ต่อ Secret ID, active account และผล retry (ไม่แนบค่า Secret): __________________
+
+### Task 03 — Build serving และ bootstrap images
+
+ตรวจ Cloud Build identity ก่อน:
+
+~~~bash
+gcloud builds get-default-service-account --project="$PROJECT_ID" --region="$REGION"
+cd "$HOME/Portfolio-Lab/GCP/LAB-007-queued-order-processing"
+export AR="asia-southeast1-docker.pkg.dev/$PROJECT_ID/lab007-images"
+export BUILD_TAG="$(date -u +%Y%m%d%H%M%S)"
+export SERVING_TAG="$AR/order-queue:lab-$BUILD_TAG"
+export BOOTSTRAP_TAG="$AR/bootstrap:lab-$BUILD_TAG"
+gcloud builds submit --project="$PROJECT_ID" --region="$REGION" --tag="$SERVING_TAG" .
+gcloud builds submit --project="$PROJECT_ID" --region="$REGION" \
+  --config=cloudbuild-bootstrap.yaml --substitutions="_IMAGE=$BOOTSTRAP_TAG" .
+gcloud artifacts docker images list "$AR/order-queue" --include-tags
+gcloud artifacts docker images list "$AR/bootstrap" --include-tags
+~~~
+
+ถ้า push denied ให้ตรวจ IAM ของ service account ที่ได้จากคำสั่ง และ grant Artifact Registry Writer เฉพาะ lab007-images เมื่อจำเป็น. Bootstrap build ใช้ cloudbuild-bootstrap.yaml กับ bootstrap/Dockerfile เพื่อแยก admin/DDL code. จด digest sha256 ของ tag รอบนี้และใช้ digest ไม่ใช่ mutable tag. Cloud Build submit ครั้งแรกอาจสร้าง source bucket ชื่อ [PROJECT_NAME]_cloudbuild และไม่ลบ source objects ให้อัตโนมัติ; จดเพื่อ cleanup ([Cloud Build submit](https://docs.cloud.google.com/build/docs/running-builds/submit-build-via-cli-api))
+
+**Expected:** image สองชุดแยกกันพร้อม digest; build ไม่ใช่ Cloud Run verification  
+**Actual / Evidence:** build IDs, tags/digests, build identity และ IAM: __________________
+
+### Task 04 — Deploy Cloud Run, Pub/Sub, Scheduler และ Job
+
+~~~bash
+cd "$HOME/Portfolio-Lab/GCP/LAB-007-queued-order-processing/infra/workloads"
+cp terraform.tfvars.example lab007.auto.tfvars
+nano lab007.auto.tfvars
+chmod 600 lab007.auto.tfvars
+terraform init -input=false
+terraform fmt -check -recursive
+terraform validate -no-color
+terraform plan -var-file=lab007.auto.tfvars -out=workloads.tfplan
+terraform show workloads.tfplan
+~~~
+
+กรอก Project ID, image references ที่ลงท้าย @sha256 digest และ Secret numeric versions; worker_max_instances=1, worker_fault_mode=off, allow_destroy=false. operator_member ใช้ user:อีเมลบัญชีตรวจ DLQ หรือคงว่างเมื่อตั้งใจ grant subscription scope แยก. ตรวจแผนว่า Portal public invoker แต่แอปบังคับ login/CSRF/owner; worker/dispatcher ไม่มี allUsers. แล้ว Apply:
+
+~~~bash
+terraform apply workloads.tfplan
+terraform output
+export PORTAL_URL="$(terraform output -raw portal_url)"
+~~~
+
+**Expected:** Portal, worker, dispatcher, Scheduler, push subscription, DLQ topic/subscription และ bootstrap Job ถูกสร้าง; service อื่น IAM-protected. หาก data source/Secret mount ไม่พบ ให้ตรวจ Project/region/state root/version/IAM ไม่เปลี่ยนเป็น latest หรือเปิด worker public  
+**Actual / Evidence:** plan/apply IDs, sandbox Portal URL, IAM, push/DLQ settings: __________________
+
+### Task 05 — ติดตั้ง schema/seed/roles
+
+~~~bash
+gcloud run jobs execute lab007-bootstrap \
+  --project="$PROJECT_ID" --region="$REGION" --wait
+~~~
+
+เปิด **Cloud Run → Jobs → lab007-bootstrap → Executions** ดู execution/logs. Expected disposition=installed หรือ already_installed, schema_version=1, seed_version=catalog-v1, runtime_logins_checked=3. Logs ต้องไม่มี password, Secret payload, credential fingerprint หรือ SCRAM verifier. ถ้า exit 2 อย่าลบ schema/สร้าง bundle ใหม่/use latest; ตรวจ reason, IAM/private path/connection/numeric mounts แล้ว retry image/versions/bundles เดิมเพื่อ resolve unknown
+
+**Actual / Evidence:** execution name, disposition, schema/seed version, login count, sanitized failure reason: __________________
+
+### Task 06 — Browser journey และ baseline workload
+
+เปิด Portal URL, login เป็น alice จาก private demo-logins.json, ซื้อ BOOK-01 หนึ่งชิ้น, รอ accepted→confirmed/rejected แล้ว refresh งานเดิมโดยไม่สร้างคำสั่งซื้อใหม่. ตรวจ order ID และ stock ก่อน/หลัง. เปิด session แยกเป็น bob; Bob ต้องไม่เห็น order ของ Alice. ถ้า POST response หายให้ตรวจคำสั่งเดิมด้วย idempotency key เดิม
+
+จากนั้นรัน bounded workload 10 รายการ; tool จำกัด 100 orders, 2 requests/sec, send/observe ไม่เกิน 60 วินาที:
+
+~~~bash
+cd "$HOME/Portfolio-Lab/GCP/LAB-007-queued-order-processing"
+source .venv/bin/activate
+python3 scripts/load-orders.py \
+  --portal "$PORTAL_URL" \
+  --demo-logins "$HOME/lab007-private/demo-logins.json" \
+  --journal "$HOME/lab007-private/workload-baseline.json" \
+  --customer alice --count 10 --sku BOOK-01 --quantity 1 \
+  --rate 1 --observe-seconds 30
+~~~
+
+อ่าน run_id, order IDs/states, HTTP 202/200 replay counts, terminal count, stock_before/after/decrease และ observation_error. เก็บ journal private; ห้ามแนบ PR. Exit 2 หากงานยังไม่ terminal หมายถึงต้องตรวจต่อ ไม่ใช่ส่ง journal ใหม่. เมื่อไม่มีงานอื่นรบกวน BOOK-01 เริ่ม stock 200
+
+**Expected:** 10 known orders; states/stock ledger สอดคล้องและ Bob ไม่เห็นงาน Alice  
+**Actual / Evidence:** run ID, owner test, count/rate/window, terminal/pending, stock before/after; screenshots ไม่มี password/cookie/CSRF: __________________
+
+### Task 07 — ตรวจ IAM, backlog และ Cloud SQL metrics
+
+~~~bash
+gcloud run services get-iam-policy lab007-portal --project="$PROJECT_ID" --region="$REGION"
+gcloud run services get-iam-policy lab007-worker --project="$PROJECT_ID" --region="$REGION"
+gcloud run services get-iam-policy lab007-dispatcher --project="$PROJECT_ID" --region="$REGION"
+gcloud pubsub subscriptions describe lab007-orders-worker --project="$PROJECT_ID"
+~~~
+
+ยืนยัน Portal public invoker ไม่เท่ากับ anonymous data; worker จำกัด push identity; dispatcher จำกัด Scheduler identity; subscription มี OIDC/audience และ DLQ policy. ใน **Monitoring → Metrics Explorer** เลือก Pub/Sub Subscription ดู num_unacked_messages_by_region, oldest_unacked_message_age_by_region, push_request_count, dead_letter_message_count. ใน **SQL → lab007-orders → System insights** ดู CPU/connections/activity; ใน **Logging → Logs Explorer** filter resource.type="cloud_run_revision" กับ service name. Metric samples อาจห่างหลายนาที จด time/filter และอย่าตีความไม่มี datapoint เป็น zero/PASS ([Pub/Sub monitoring](https://docs.cloud.google.com/pubsub/docs/monitoring), [Cloud SQL System Insights](https://docs.cloud.google.com/sql/docs/postgres/use-system-insights))
+
+**Actual / Evidence:** IAM principal/role, subscription settings, metric names/windows, SQL CPU/connections, sanitized correlation IDs: __________________
+
+### Task 08 — Transient failure: worker 503 ก่อน DB write
+
+เปลี่ยน worker_fault_mode เป็น retryable_503, คง worker=1; plan/show/apply worker revision เท่านั้น. ส่งสามรายการด้วย journal ใหม่; exit 2 คาดไว้เพราะ accepted แต่ NACK ก่อน transaction:
+
+~~~bash
+cd "$HOME/Portfolio-Lab/GCP/LAB-007-queued-order-processing"
+set +e
+python3 scripts/load-orders.py \
+  --portal "$PORTAL_URL" --demo-logins "$HOME/lab007-private/demo-logins.json" \
+  --journal "$HOME/lab007-private/retryable-503.json" \
+  --customer alice --count 3 --sku BOOK-01 --quantity 1 \
+  --rate 1 --observe-seconds 30
+LAB_RESULT=$?
+set -e
+test "$LAB_RESULT" -eq 2
+~~~
+
+ตรวจ backlog/oldest age, worker logs และ stock; อย่าสร้าง journal ใหม่. ปิด faultเป็น off, plan/apply แล้ว resume งานเดิม:
+
+~~~bash
+python3 scripts/load-orders.py \
+  --portal "$PORTAL_URL" --demo-logins "$HOME/lab007-private/demo-logins.json" \
+  --journal "$HOME/lab007-private/retryable-503.json" --resume
+~~~
+
+**Expected:** ช่วง fault ไม่มี reservation เพิ่ม; หลังปิด fault งานเดิม terminal โดยไม่มีผลธุรกิจซ้ำ. หาก exit 2 ให้ตรวจ summary แล้ว resume journal เดิม  
+**Actual / Evidence:** revision/fault window, push class, backlog/age ก่อน–ระหว่าง–หลัง, same run ID, stock delta: __________________
+
+### Task 09 — Post-commit NACK และ DLQ audit/ack
+
+หลัง Task 08 ยืนยัน fault=off แล้วเปลี่ยน worker_fault_mode=terminal_nack และ Apply. ส่งหนึ่ง order ด้วย observation 0; mode นี้ตอบ HTTP 400 หลัง DB commit:
+
+~~~bash
+python3 scripts/load-orders.py \
+  --portal "$PORTAL_URL" --demo-logins "$HOME/lab007-private/demo-logins.json" \
+  --journal "$HOME/lab007-private/terminal-nack.json" \
+  --customer alice --count 1 --sku BOOK-01 --quantity 1 \
+  --rate 1 --observe-seconds 0
+~~~
+
+ตรวจ order terminal และ stock ลดหนึ่งครั้ง. เฝ้า dead-letter metric/worker logs จน forwarding ยืนยัน; delivery attempts/backoff best-effort ไม่รับประกันเวลา. อย่าปิด fault ก่อนเห็น DLQ; ถ้าไม่เห็น ให้ปิด fault ตรวจ IAM/metrics และบันทึกว่ายังไม่ยืนยัน ห้ามสร้าง poison จาก public endpoint. เมื่อเห็นรายการให้ปิด faultและ Apply แล้ว inspect ไปยัง directory ใหม่:
+
+~~~bash
+python3 scripts/dead-letter.py \
+  --project "$PROJECT_ID" --project-number "$PROJECT_NUMBER" \
+  inspect --out "$HOME/lab007-private/dlq-pull-001"
+~~~
+
+Inspect ≤5 ข้อความและไม่ auto-ack; เทียบ source_digest/event/order กับ Portal/DB. Receipt เป็น private อายุ 90 วินาที. เลือกเฉพาะ receipt ที่ proof ตรง แล้วใช้ชื่อจริง:
+
+~~~bash
+export RECEIPT_FILE="$HOME/lab007-private/dlq-pull-001/ชื่อ-receipt-จริง.json"
+export TERMINAL_AUDIT_JOURNAL="$HOME/lab007-private/operator-journals/action-จริง.json"
+python3 scripts/dead-letter.py \
+  --project "$PROJECT_ID" --project-number "$PROJECT_NUMBER" \
+  ack --receipt "$RECEIPT_FILE" --portal "$PORTAL_URL" \
+  --demo-logins "$HOME/lab007-private/demo-logins.json" \
+  --reason delivery_restored --journal "$TERMINAL_AUDIT_JOURNAL"
+~~~
+
+ใช้ operator login และ action journal ใหม่; unknown ack ให้ใช้ receipt/journal เดิม ตรวจ proof ก่อน. ห้าม ack batch/สร้าง order ทดแทน
+
+**Expected:** order/stock/ledger ไม่เปลี่ยนซ้ำ, audit ก่อน ack token เดียว; absence_verified=false ไม่ใช่ absence ถาวร  
+**Actual / Evidence:** order/event/digest แบบย่อ, response, forwarding metric/time, inspect/held/ack count, proof/audit ID (ไม่แนบ receipt): __________________
+
+### Task 10 — Change Request: Worker 1 → 3 → 1
+
+Pool ceiling จาก config: Portal 2×2=4, dispatcher 1×1=1, worker baseline 1×2=2 รวม 7; worker 3 เป็น 11 ก่อนหัก headroom/operator/bootstrap. Cloud SQL max_connections=64; นี่เป็น config ceiling ไม่ใช่ connection จริง/SLA. เปิด Monitoring/SQL Insights แล้วรัน baseline:
+
+~~~bash
+python3 scripts/load-orders.py \
+  --portal "$PORTAL_URL" --demo-logins "$HOME/lab007-private/demo-logins.json" \
+  --journal "$HOME/lab007-private/capacity-worker-1.json" \
+  --customer alice --count 10 --sku BOOK-01 --quantity 1 \
+  --rate 2 --observe-seconds 60
+~~~
+
+เปลี่ยนเฉพาะ worker_max_instances=3; plan/show/apply แล้วรันค่าเดียวกันด้วย journal capacity-worker-3.json. เทียบ Pub/Sub backlog/oldest age/push status, SQL CPU/connections, terminal states, stock delta, errors ใน time windows เดียวกัน. Backout เป็น Worker 1, plan/show/apply, ตรวจ fault=off. producer duration รวมเวลาส่งและ observe จึงไม่ใช่ worker latency/throughput; ห้ามอ้างเร็วขึ้นกี่เท่าจากค่านี้
+
+**Expected:** invariants เท่าเดิม, connections ตาม budget, backout สำเร็จ  
+**Actual / Evidence:** run IDs, instance settings, metric windows, backlog/age, CPU/connections, stock delta, decision: __________________
+
+### Task 11 — Troubleshoot และ Case Study evidence
+
+| อาการ | ตรวจ | หลีกเลี่ยง |
+|---|---|---|
+| accepted นาน | Portal/outbox state, Scheduler execution, dispatcher logs, Pub/Sub age | สร้าง order ซ้ำ/แก้ DB |
+| Worker 503/backlog | revision/fault, worker logs, push response, SQL connectivity | ปิด retry/DLQ หรือเปิด public worker |
+| Worker 400/DLQ | parser/binding reason, source metadata, canonical proof | แก้ owner/payload |
+| bootstrap_not_confirmed | Job logs, digest, numeric mounts, IAM/private path; ใช้ bundle เดิม | ลบ schema/rotate/use latest |
+| SQL connect error | private address, Direct VPC/PSA, Connector TLS/IAM/Secret version | เปิด Public IP/ฝัง password |
+| Ack unknown | receipt/action journal เดิม, terminal proof/audit | journal ใหม่/ack subscription ทั้งหมด |
+
+Logs Explorer filter resource.type="cloud_run_revision" และ service name; จำกัดเวลาแล้วจด request ID/order ID ที่ปลอดภัย. หลัง fault ยืนยัน fault=off, worker=1, backlog trend ฟื้น, unknown orders ถูก reconcile. Case study ต้องใช้ผลจริง: problem/invariant, topology/event-flow, Terraform/image digests/numeric secret versions, normal order/stock, retry/DLQ proof/audit, capacity metrics และ limitations. Screenshot ห้ามมี password/cookie/CSRF/ack token/Secret/raw payload. แยก Expected/Actual/Evidence/Interpretation; งานที่ไม่ได้รันให้เขียน Not run; CI screenshot ไม่ใช่ Cloud evidence
+
+**Actual / Evidence:** root cause/recovery, sanitized evidence links, run IDs, วันที่และค่าที่พิสูจน์ได้: __________________
+
+### Task 12 — Cleanup แบบย้อนกลับไม่ได้
+
+Cleanup ลบ order/ledger/Queue/ฐานข้อมูลสังเคราะห์ ไม่ใช่ restore. Export sanitized evidence และหยุด producer ก่อน
+1. ปิด fault, ตั้ง worker=1, ตรวจ/resolve unknown outcomes, outbox และ DLQ; หยุดรับ orders
+2. Pause Scheduler และตรวจ Console ว่า paused:
+
+~~~bash
+gcloud scheduler jobs pause lab007-outbox-dispatch \
+  --project="$PROJECT_ID" --location="$REGION"
+~~~
+
+3. ตั้ง allow_destroy=true ใน workloads tfvars; plan/show/apply เพื่อปลด Cloud Run deletion protection แล้วตรวจ destroy plan:
+
+~~~bash
+cd "$HOME/Portfolio-Lab/GCP/LAB-007-queued-order-processing/infra/workloads"
+terraform plan -destroy -var-file=lab007.auto.tfvars -out=workloads-destroy.tfplan
+terraform show workloads-destroy.tfplan
+~~~
+
+ตรวจ Project/resource list แล้วจึง terraform apply workloads-destroy.tfplan; ห้ามใช้ -target หรือกวาดทั้ง Project
+4. หลัง Cloud Run/PubSub ถูกลบ list images/เก็บ digest แล้วลบเฉพาะ packages ที่ตรวจแล้ว:
+
+~~~bash
+gcloud artifacts docker images delete "$AR/order-queue" --delete-tags --project="$PROJECT_ID"
+gcloud artifacts docker images delete "$AR/bootstrap" --delete-tags --project="$PROJECT_ID"
+~~~
+
+อ่าน confirmation prompt; คำสั่งลบทุก tags/digests ของ package นั้น ([Artifact Registry delete](https://docs.cloud.google.com/sdk/gcloud/reference/artifacts/docker/images/delete))
+5. ตั้ง allow_destroy=true ใน foundation tfvars, plan/apply เพื่อปลด SQL protection; ทำ destroy plan แยก ตรวจเฉพาะ lab007 resources แล้วจึง apply
+6. ตรวจ SQL backups, Secret retention/soft-delete, Artifact Registry, Cloud Storage, Cloud Build History และ Billing. Cloud Build source bucket [PROJECT_NAME]_cloudbuild อยู่นอก Terraform; ตรวจชื่อ/content/retentionก่อนลบ ([bucket details](https://docs.cloud.google.com/build/docs/running-builds/submit-build-via-cli-api))
+7. เก็บ Terraform state จน inventory/cost ตรวจครบ; อย่าปิด APIs ระดับ Project/ลบ Project/backend/resource อื่น. ค่อยลบ private bundle ผ่าน Cloud Shell file manager และปิด budget alert เมื่อ Project ไม่ใช้แล้ว
+
+**Expected:** workloads→images→foundation ถูกลบตามลำดับ, Scheduler หยุดก่อน, protection ปลดผ่าน reviewed plans, ไม่มี Lab resource คิดเงินโดยไม่ตั้งใจ; backup/soft-delete/log retention อาจยังคงตาม policy  
+**Actual / Evidence:** destroy IDs, post-delete inventory, backup/bucket decision, billing check, resources ที่ยังอยู่: __________________
+
+## เอกสารอ้างอิงสำหรับ Tasks
+
+- [Cloud Build container builds](https://docs.cloud.google.com/build/docs/building/build-containers) และ [submit ผ่าน CLI/API](https://docs.cloud.google.com/build/docs/running-builds/submit-build-via-cli-api)
+- [Cloud Build default service account](https://docs.cloud.google.com/build/docs/cloud-build-service-account-updates) และ [Artifact Registry image management](https://cloud.google.com/artifact-registry/docs/docker/manage-images)
+- [Cloud Run Jobs execute](https://docs.cloud.google.com/run/docs/execute/jobs), [Pub/Sub push](https://docs.cloud.google.com/pubsub/docs/push), [Pub/Sub monitoring](https://docs.cloud.google.com/pubsub/docs/monitoring)
+- [Push troubleshooting](https://docs.cloud.google.com/pubsub/docs/push-troubleshooting) และ [Cloud SQL System Insights](https://docs.cloud.google.com/sql/docs/postgres/use-system-insights)

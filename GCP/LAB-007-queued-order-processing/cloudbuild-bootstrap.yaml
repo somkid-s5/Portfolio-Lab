@@ -1,0 +1,13 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=bootstrap/Dockerfile
+      - --tag=${_IMAGE}
+      - .
+images:
+  - ${_IMAGE}
+substitutions:
+  _IMAGE: "asia-southeast1-docker.pkg.dev/REPLACE_WITH_PROJECT_ID/lab007-images/bootstrap:lab007"
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -437,6 +437,8 @@ jobs:
         run: node --check GCP/LAB-007-queued-order-processing/app/static/app.js
       - name: Verify bounded Portal workload journal without network
         run: python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_load_orders.py -v
+      - name: Validate Lab 07 guide tasks and shell snippets
+        run: python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_guide.py -v
       - name: Verify order and wrapped PubSub contracts without cloud calls
         run: |
           python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_domain.py -v
