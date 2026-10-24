@@ -8,7 +8,7 @@ last_verified: null
 ---
 # Lab 09 — ระบบส่ง Webhook ให้ระบบคู่ค้า
 
-**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี pure domain contract และ Firestore transaction ledger สำหรับ event/outbox/idempotency พร้อมชุดทดสอบที่เตรียมรันกับ Firestore Emulator; Cloud Tasks adapters, services, Terraform และ Guide ยังไม่ครบ. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
+**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี pure domain contract, Firestore transaction ledger สำหรับ event/outbox/idempotency และ Cloud Tasks OIDC enqueue adapter พร้อม unit/emulator tests; Reconciler/worker/API, Terraform และ Guide ยังไม่ครบ. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
 
 ## Build materials checkpoint
 
