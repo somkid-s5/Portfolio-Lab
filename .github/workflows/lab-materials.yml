@@ -929,3 +929,31 @@ jobs:
           terraform fmt -check -diff -recursive
           terraform init -backend=false -input=false
           terraform validate -no-color
+
+  lab010-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 10 design contracts and icon provenance
+        run: python3 -m unittest discover -s GCP/LAB-010-catalog-cache/tests -p test_design.py -v
+      - name: Install SVG renderer
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+      - name: Render design diagrams at guide width
+        run: |
+          mkdir -p lab010-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-010-catalog-cache/assets/solution.svg -o lab010-diagram-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-010-catalog-cache/assets/cache-flow.svg -o lab010-diagram-previews/cache-flow.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab010-design-preview
+          path: |
+            lab010-diagram-previews/*.png
+            GCP/LAB-010-catalog-cache/assets/*.svg
+            GCP/LAB-010-catalog-cache/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
