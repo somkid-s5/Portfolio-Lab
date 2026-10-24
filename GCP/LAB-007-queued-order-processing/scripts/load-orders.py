@@ -176,12 +176,20 @@ def new_journal(origin, customer, count, sku, quantity, rate, observe_seconds):
     }
 
 
+def journal_identifier(value):
+    try:
+        return identifier(value)
+    except (TypeError, ValueError):
+        raise SafeFailure("journal_schema_invalid") from None
+
+
 def validate_journal(value):
     fields = {"schema_version", "run_id", "created_at", "origin", "customer",
               "count", "sku", "quantity", "rate_per_second", "observe_seconds", "orders"}
-    if not isinstance(value, dict) or set(value) != fields or value["schema_version"] != 1:
+    if (not isinstance(value, dict) or set(value) != fields
+            or type(value["schema_version"]) is not int or value["schema_version"] != 1):
         raise SafeFailure("journal_schema_invalid")
-    identifier(value["run_id"])
+    journal_identifier(value["run_id"])
     if not isinstance(value["created_at"], str) or len(value["created_at"]) > 40:
         raise SafeFailure("journal_schema_invalid")
     validate_settings(value["count"], value["sku"], value["quantity"],
@@ -196,13 +204,18 @@ def validate_journal(value):
         if (not isinstance(entry, dict)
                 or set(entry) != {"idempotency_key", "items", "attempts",
                                   "last_http_status", "order_id", "state", "replayed"}
-                or entry["items"] != expected_items):
+                or not isinstance(entry["items"], list) or len(entry["items"]) != 1
+                or not isinstance(entry["items"][0], dict)
+                or set(entry["items"][0]) != {"sku", "quantity"}
+                or entry["items"][0].get("sku") != value["sku"]
+                or type(entry["items"][0].get("quantity")) is not int
+                or entry["items"][0].get("quantity") != value["quantity"]):
             raise SafeFailure("journal_schema_invalid")
-        identifier(entry["idempotency_key"])
+        journal_identifier(entry["idempotency_key"])
         if type(entry["attempts"]) is not int or not 0 <= entry["attempts"] <= 3:
             raise SafeFailure("journal_schema_invalid")
         if entry["order_id"] is not None:
-            identifier(entry["order_id"])
+            journal_identifier(entry["order_id"])
         if entry["state"] not in (None, "accepted", "confirmed", "rejected"):
             raise SafeFailure("journal_schema_invalid")
         if entry["replayed"] is not None and type(entry["replayed"]) is not bool:
@@ -249,13 +262,17 @@ class Portal:
         except urllib.error.HTTPError as error:
             status = error.code
             error.close()
-            if method == "POST" and path == "/api/orders" and status >= 500:
+            if method == "POST" and path == "/api/orders" and (status >= 500 or 300 <= status < 400):
                 raise OutcomeUnknown() from None
             raise PortalFailure("portal_http_" + str(status), status) from None
         except (urllib.error.URLError, TimeoutError, OSError):
             if method == "POST" and path == "/api/orders":
                 raise OutcomeUnknown() from None
             raise PortalFailure("portal_network_unavailable") from None
+        except PortalFailure as failure:
+            if method == "POST" and path == "/api/orders" and failure.code == "redirect_refused":
+                raise OutcomeUnknown() from None
+            raise
         if len(raw) > 65536:
             if method == "POST" and path == "/api/orders" and status in (200, 202):
                 raise OutcomeUnknown() from None
@@ -440,10 +457,11 @@ def execute(args, *, client_factory=Portal, clock=time.monotonic,
                         items, next_cursor = client.orders_page(
                             cursor, timeout=min(HTTP_TIMEOUT_SECONDS, max(0.1, remaining)))
                         for item in items:
-                            if isinstance(item, dict) and item.get("order_id") in order_ids:
+                            candidate_id = item.get("order_id") if isinstance(item, dict) else None
+                            if isinstance(candidate_id, str) and candidate_id in order_ids:
                                 state = item.get("state")
                                 if state in ("accepted", "confirmed", "rejected"):
-                                    found[item["order_id"]] = state
+                                    found[candidate_id] = state
                         if next_cursor is None:
                             break
                         if next_cursor in visited:
