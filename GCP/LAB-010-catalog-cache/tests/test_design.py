@@ -75,7 +75,7 @@ class DesignTests(unittest.TestCase):
                        "Direct VPC egress", "Private Services Access",
                        "Cloud SQL", "Memorystore", "Secret Manager",
                        "Cloud Logging", "Cloud Monitoring", "Source of truth",
-                       "AUTH + TLS", "IAM DB auth"):
+                       "AUTH + TLS", "IAM DB auth", "TCP 3307"):
             self.assertIn(phrase, content)
         self.assertIn("asia-southeast1", root.find(SVG_NS + "desc").text)
 

@@ -73,7 +73,7 @@ Test profile ที่ล็อก: 2,000 products, hot set 20 รายกา�
 - **VPC:** สร้าง catalog-vpc เฉพาะ Lab; ใช้ subnet catalog-run-egress ขนาด /26 สำหรับ Cloud Run Direct VPC egress. จอง IP ranges ที่ไม่ทับกันสำหรับ Private Services Access และสร้าง service networking connection ก่อนสร้าง managed private endpoints.
 - **Cloud Run:** ใช้ image digest เดียวกัน แต่ deploy สอง service: catalog-public เปิด public GET/UI เท่านั้น และ catalog-admin บังคับ Cloud Run IAM invoker. ทั้งคู่ใช้ Direct VPC egress เฉพาะ private ranges, minimum instances 0; public service max 2 instances, admin max 1.
 - **Cloud SQL:** PostgreSQL 16, Enterprise, single-zone, db-custom-1-3840 (1 vCPU/3.75 GiB), 10 GiB SSD, private IP ผ่าน PSA, ไม่มี public IP. เลือกขนาดเพื่อทดสอบได้ใน sandbox ไม่อ้าง SLA/HA. Database เป็น source of truth.
-- **Database authentication:** ใช้ Cloud SQL Python Connector กับ private IP และ automatic IAM database authentication; ไม่ใส่ database password ใน Terraform, image หรือ environment. แยก reader, operator และ migrator IAM database users กับ PostgreSQL grants. Runtime service accounts ได้เฉพาะ Cloud SQL Client + Cloud SQL Instance User ที่ต้องใช้ใน dedicated Lab project.
+- **Database authentication:** ใช้ Cloud SQL Python Connector กับ private IP และ automatic IAM database authentication; allow connector egress TCP 3307 ไปยัง instance และ TCP 443 ไปยัง Cloud SQL Admin API; ไม่ใส่ database password ใน Terraform, image หรือ environment. แยก reader, operator และ migrator IAM database users กับ PostgreSQL grants. Runtime service accounts ได้เฉพาะ Cloud SQL Client + Cloud SQL Instance User ที่ต้องใช้ใน dedicated Lab project.
 - **Memorystore:** Memorystore for Redis 7.0 Basic Tier, 1 GiB, private connection ผ่าน PSA, AUTH เปิดและ TLS server authentication เปิด. Cache ยอมรับ cold restart/cache flush ได้; ถ้า cache หายให้เติมจาก PostgreSQL. ไม่มี Redis failover/HA ใน baseline.
 - **Redis secret handling:** เก็บ AUTH string และ server CA ใน Secret Manager แยกจาก Terraform state/image; Cloud Run revision อ้าง secret version แบบ pin. เฉพาะ reader/admin service accounts อ่านค่าได้. AUTH ต้องใช้พร้อม TLS ไม่ส่ง token ผ่าน plaintext.
 - **Run identities:** public service ใช้ reader DB user (SELECT only), admin service ใช้ operator DB user (เฉพาะ SELECT/INSERT/UPDATE บน product table) และ migrator ใช้ schema-owner privileges เฉพาะตอนรัน one-shot Cloud Run Job. Public service ไม่มี write grant; admin service ไม่ให้ allUsers.
@@ -151,6 +151,7 @@ Service glyphs are embedded from the pinned Google Cloud icon collection; source
 - [Cloud SQL private connection from Cloud Run and connection limits](https://docs.cloud.google.com/sql/docs/postgres/connect-run)
 - [Cloud SQL IAM database authentication](https://docs.cloud.google.com/sql/docs/postgres/iam-authentication)
 - [Automatic IAM database authentication with Cloud SQL Python Connector](https://docs.cloud.google.com/sql/docs/postgres/iam-logins)
+- [Cloud SQL connector network egress requirements](https://docs.cloud.google.com/sql/docs/postgres/sql-proxy)
 - [Cloud SQL private IP options](https://docs.cloud.google.com/sql/docs/postgres/private-ip)
 - [Memorystore for Redis networking and Private Service Access](https://docs.cloud.google.com/memorystore/docs/redis/networking)
 - [Memorystore Redis AUTH and TLS](https://docs.cloud.google.com/memorystore/docs/redis/manage-redis-auth)

@@ -46,6 +46,8 @@ text{font-family:Arial,sans-serif;fill:#1f2937}.title{font-size:30px;font-weight
 <text x="1462" y="432" class="small">ERROR → BYPASS from DB</text>
 <path d="M1380 406H1440" class="flow-teal"/>
 
+<path d="M1205 472V510" class="flow-orange"/>
+
 <rect x="58" y="510" width="1668" height="80" rx="7" class="failure"/>
 <text x="82" y="542" class="node">DB error or pool exhausted → sanitized 503</text>
 <text x="82" y="567" class="body">Circuit breaker is per Cloud Run instance; error detail/token/product payload is never returned or logged.</text>
