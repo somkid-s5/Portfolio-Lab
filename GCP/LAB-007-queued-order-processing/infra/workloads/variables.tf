@@ -11,7 +11,7 @@ variable "serving_image" {
   type        = string
   description = "Immutable Artifact Registry image reference ending in @sha256:<digest>."
   validation {
-    condition = can(regex(
+    condition     = can(regex(
       "^asia-southeast1-docker[.]pkg[.]dev/${var.project_id}/lab007-images/order-queue@sha256:[a-f0-9]{64}$",
       var.serving_image
     ))
@@ -23,7 +23,7 @@ variable "bootstrap_image" {
   type        = string
   description = "Immutable, separate bootstrap image reference ending in @sha256:<digest>."
   validation {
-    condition = can(regex(
+    condition     = can(regex(
       "^asia-southeast1-docker[.]pkg[.]dev/${var.project_id}/lab007-images/bootstrap@sha256:[a-f0-9]{64}$",
       var.bootstrap_image
     ))
@@ -41,7 +41,7 @@ variable "secret_versions" {
   })
   description = "Numeric versions printed by publish_secrets.py; secret payloads never enter Terraform."
   validation {
-    condition = alltrue([
+    condition     = alltrue([
       for version in values(var.secret_versions) :
       can(regex("^[1-9][0-9]{0,9}$", version))
     ])
@@ -64,7 +64,7 @@ variable "operator_member" {
   default     = ""
   description = "Optional IAM member (for example user:you@example.com) allowed to pull the dead-letter inspection subscription."
   validation {
-    condition = var.operator_member == "" || can(regex("^(user|group|serviceAccount):.+$", var.operator_member))
+    condition     = var.operator_member == "" || can(regex("^(user|group|serviceAccount):.+$", var.operator_member))
     error_message = "Use a user:, group:, or serviceAccount: IAM member, or leave empty and grant access manually."
   }
 }

@@ -210,6 +210,13 @@ class SecretPublisherTests(unittest.TestCase):
             module.publish("lab-project", self.directory, initialize=True, api=self.api)
         self.assertEqual(self.api.password_updates, [])
 
+    def test_secret_replica_must_match_lab_region(self):
+        self.api.wrong_secret_replica = True
+        with self.assertRaisesRegex(module.SafeFailure, "secret_location_does_not_match_lab"):
+            module.publish("lab-project", self.directory, initialize=True, api=self.api)
+        self.assertEqual(self.api.password_updates, [])
+        self.assertEqual(self.api.add_calls, [])
+
     def test_stdout_contains_no_private_bundle_value(self):
         module.publish("lab-project", self.directory, initialize=True, api=self.api)
         self.api.password_updates.clear()
