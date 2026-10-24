@@ -13,7 +13,7 @@
 | 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 08 | [ระบบรายงานยอดขายรายวันและ Batch ที่รันย้อนหลังได้](LAB-008-daily-batch-reports/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 09 | [ระบบส่ง Webhook ให้ระบบคู่ค้า](LAB-009-partner-webhook-delivery/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 10 | [ระบบ Catalog ที่ใช้ Cache ลดภาระ Database](LAB-010-catalog-cache/README.md) | Build materials in progress | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 10 | [ระบบ Catalog ที่ใช้ Cache ลดภาระ Database](LAB-010-catalog-cache/README.md) | Review in progress (CI #310 pending) | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 11 | ระบบบริการบน GKE ที่ Deploy และขยายได้ | Planned | Not run | — |
 | 12 | ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้ | Planned | Not run | — |
 | 13 | ระบบประมวลผลข้อมูลนำเข้าแบบขนาน | Planned | Not run | — |
@@ -361,3 +361,6 @@ Lab10 / Guide authoring checkpoint (2026-10-24 11:03 UTC): CI [run #307](https:/
 
 
 Lab10 / Guide CI correction: [run #308](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40088384966) จาก commit 4a5af9070025e9426a66c9d0e096cab08862caf1 ผ่าน Lab10 design/diagram และ Terraform infra checks. App job รันครบ 33 tests; Catalog integration, TTL inspection (allowlisted route และ TTL 15 contract), cache, grants และ load checks ผ่าน แต่ shared `test_workload_and_cleanup_contracts_stay_bounded_and_reversible` ล้มเพราะ assertion ใช้คำ `ไม่ใช้ wildcard...` ขณะที่ README เขียน `ห้ามใช้ wildcard...`. แก้ test wording พร้อมปรับ label diagram/guide ให้ตรงชื่อ service `catalog-operator` และเพิ่ม run-ID extraction; rerun pending. No GCP provisioning; Cloud verification Not run.
+
+
+Lab10 / Full authoring CI passed: [run #309](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40088537578), source 963cf5f91d5a2369756a714ac768a6cd9fa68b44, completed success 35/35 jobs. Lab10 app integration (33 discovered tests including the guide check invoked by broad unittest discovery), guide Task order/Expected-Actual-Evidence/Bash syntax/local links, design/SVG icon provenance/render, and Terraform fmt/init/validate passed. TTL diagnostic integration tests passed. During self-review added a troubleshooting matrix and clean rebuild path to the Thai README; final guide CI for that addition is pending. No GCP apply/provisioning; Cloud verification Not run.

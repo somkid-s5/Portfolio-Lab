@@ -642,6 +642,42 @@ rm -f terraform.tfstate terraform.tfstate.backup \
 **Case-study claim status:** `Not run` จนกว่าจะมี Cloud run ID และหลักฐานจริง. Lab นี้ไม่มีการรับรอง production SLA หรือค่า latency ที่คาดหวัง.
 
 
+## Troubleshooting และ Clean rebuild
+
+ใช้ลำดับ **ดู symptom → ตรวจ revision/IAM/log → เปลี่ยนเฉพาะสาเหตุที่ยืนยันได้ → ทดสอบซ้ำด้วยขอบเขตเดิม**. อย่าแก้ปัญหาด้วยการเปิด public IP, ปิด TLS/IAM, ให้ Owner หรือเพิ่ม load โดยไม่จำกัด.
+
+| อาการ | จุดตรวจ | วิธีแก้/เกณฑ์หยุด |
+|---|---|---|
+| Terraform API/permission denied | project ID/ billing, API enable permission, resource/IAM permission ที่ขาด | ขอ role เฉพาะใน dedicated project; ไม่ให้ `roles/owner`. ถ้า org policy ห้าม ให้หยุดและรายงานข้อจำกัด |
+| PSA, Cloud SQL หรือ Redis สร้างไม่สำเร็จ | VPC/subnet, ช่วง PSA /16 ที่ไม่ทับ, operation state, region/quota | รอ managed service พร้อมหรือแก้ range/quota ตาม plan; ห้ามใช้ public IP/authorized network แทน |
+| Migration Job login denied | Job service account, Cloud SQL IAM user type/username, `roles/cloudsql.client`, `roles/cloudsql.instanceUser`, database role ของ migrator | ตรวจ IAM propagation และ `cloudsqlsuperuser` ที่ assign ให้ migrator ก่อน rerun; ไม่ใส่ static DB password |
+| Operator ตอบ 401/403 | active principal เทียบ `operator_member`, token audience ต้องตรง `OPERATOR_URL`, `roles/run.invoker` binding | สร้าง identity token ใหม่ด้วย audience URL ปัจจุบัน; ถ้า anonymous ได้ 2xx ให้หยุดและแก้ IAM ก่อนทำต่อ |
+| Public readiness 503 / API 503 | Cloud Run revision logs, `error_class`, Cloud SQL RUNNABLE/private route, IAM DB login/grants, migration execution | แก้ source-of-truth path ก่อน; Redis เป็น optional และไม่ควรทำให้ DB 503 เมื่อ DB ปกติ |
+| Cache แสดง BYPASS ทุกครั้ง | revision env `CACHE_ENABLED`, Redis host/port 6378, secret version state/reader access, TLS CA/AUTH | แยก disabled, circuit-open, connection/TLS/AUTH error จาก logs; ห้ามแก้ด้วยการปิด TLS หรือพิมพ์ secret |
+| TTL diagnostic เป็น missing/unavailable | เรียก GET category ก่อนเพื่อสร้าง key; ตรวจว่า category อยู่ใน allowlist; ดู `ttl_state` และ `reason` | `missing` หมายถึง key ยังไม่มี/หมดอายุ; `unavailable` ให้ตรวจ cache flag/revision/Redis path โดยไม่ลอง arbitrary key |
+| Change Request ยังเห็น TTL 60 | revision มี `CATEGORY_LIST_TTL_SECONDS=15`, plan/apply ใช้ไฟล์ tfvars ที่ถูกต้อง, category cache ถูก clear หลัง rollout | ใช้ operator clear, GET รายการเพื่อเติม key ใหม่ แล้วตรวจ TTL endpoint; product key คง TTL 60 |
+| Update ได้ 412 | version ล่าสุดของ product เปลี่ยนแล้ว | GET product ใหม่และส่ง `If-Match` ตาม version ล่าสุด; อย่าลองส่ง stale version ซ้ำ |
+| Load tool แจ้ง profile ซ้ำ/เกิน budget | `experiment.json` จอง profile/request ไว้ก่อนยิงจริง | อย่าแก้ manifest ย้อนหลัง; เริ่ม `experiment-02` ใหม่และคงขอบเขต 500/profile, 2,500/experiment, 10 workers |
+| Cleanup ติด `prevent_destroy` | Cloud Run workload ถูกลบ/ protection ปิดแล้วหรือไม่, Redis guard ถูกถอดจาก working copy เฉพาะ cleanup หรือยัง | ย้อนดู Task 14; ตรวจ destroy plan ก่อน apply. ห้ามถอด guard ใน commit หรือใช้ auto-approve |
+
+### เริ่มใหม่จาก clean state
+
+หลัง Task 14 ต้องยืนยันว่า GCP resources หาย, Redis guard ถูกใส่กลับใน source, และ Terraform state/plan ถูกลบแล้ว. ถ้าต้องการทำซ้ำ ให้ใช้ Cloud Shell working copy เดิมใน branch เดิม; สร้าง tfvars ใหม่และทำ cost/permission gate ใหม่. Redis AUTH และ CA เป็นค่าของ instance เดิมที่ถูกลบ จึงต้องเพิ่ม version ใหม่หลัง foundation รอบใหม่. ใช้ result directory ใหม่เพื่อเก็บ run แยกจากหลักฐานเดิม:
+
+```bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT/GCP/LAB-010-catalog-cache"
+if [[ -e infra/terraform.tfvars ]]; then
+  echo "พบ terraform.tfvars เดิม: ตรวจสอบและเก็บค่าที่จำเป็นก่อนสร้างไฟล์ใหม่"
+  exit 1
+fi
+cp infra/terraform.tfvars.example infra/terraform.tfvars
+chmod 600 infra/terraform.tfvars
+git diff -- infra/main.tf
+```
+
+เมื่อ source diff ว่างและ project/billing ยืนยันแล้ว ให้กลับไป Task 00 และทำตาม Tasks ตั้งแต่ต้น. หากใช้ project เดิม ให้ตรวจว่าไม่มีทรัพยากร/secret ของรอบก่อนตกค้าง; API services ที่ถูกเปิดไว้อาจยัง enabled ได้. สำหรับ measurement รอบใหม่ใช้ `--out-dir lab10-results/experiment-02`; เก็บ raw JSON แยกรอบและคัดเฉพาะ summary ที่ตรวจแล้วเข้าส่วน case study.
+
 ## References used for Design and future Guide
 
 - [Connect to a Redis instance from Cloud Run using Direct VPC egress](https://docs.cloud.google.com/memorystore/docs/redis/connect-redis-instance-cloud-run)

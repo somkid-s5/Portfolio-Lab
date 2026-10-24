@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–09 Guide-ready; Lab 10 Design complete and Build materials in progress (App/CI added; Terraform next); Lab 11–20 ยัง Planned
+**สถานะ:** Lab 01–09 Guide-ready; Lab 10 มี App/infra และ Tasks 00–14 โดย checks ผ่าน CI #309; เพิ่ม troubleshooting/clean rebuild แล้วและรอ CI #310 ก่อนปิด Guide-ready; Lab 11–20 ยัง Planned
 
 ## ผลลัพธ์ปลายทาง
 
@@ -92,4 +92,4 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## สถานะดำเนินงาน
 
-Lab 01–09 Guide-ready; Lab 10 design/app/infra และ reversible workload toggles ผ่าน CI #307 (34/34 jobs); เพิ่ม TTL diagnostics และ Tasks 00–14 ใน authoring checkpoint นี้; CI #308 ผ่าน design/infra แต่เจอ assertion wording mismatch ใน guide test (จุดเดียว) และกำลังแก้/รันใหม่; Lab 11–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md; ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานทดสอบบน GCP จริง.
+Lab 01–09 Guide-ready; Lab 10 app/infra/toggles ผ่าน CI #307 และ Tasks 00–14 + TTL diagnostics ผ่าน CI #309 (35/35 jobs); เพิ่ม troubleshooting/clean rebuild ใน authoring checkpoint นี้, รอ CI #310; Lab 11–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md; ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานทดสอบบน GCP จริง.

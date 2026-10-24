@@ -111,6 +111,10 @@ class Lab10GuideTests(unittest.TestCase):
         ):
             self.assertIn(phrase, self.text)
         self.assertIn("inspect_list_ttl", (ROOT / "app" / "cache.py").read_text(encoding="utf-8"))
+        self.assertIn("## Troubleshooting", self.text)
+        self.assertIn("เริ่มใหม่จาก clean state", self.text)
+        self.assertIn("lab10-results/experiment-02", self.text)
+        self.assertIn("[[ -e infra/terraform.tfvars ]]", self.text)
 
 
 if __name__ == "__main__":
