@@ -74,7 +74,7 @@
 <text class="scope gke-title" x="548" y="287">GKE Autopilot • regional</text>
 <text class="tiny" x="548" y="305">private nodes • DNS control-plane endpoint</text>
 <rect x="480" y="320" width="365" height="168" rx="6" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.2"/>
-<text class="service app-title" x="496" y="341">App namespace • NetworkPolicy ingress-only</text>
+<text class="service app-title" x="496" y="341">App ingress • NetworkPolicy</text>
 <rect class="node" x="485" y="356" width="107" height="82" rx="5"/>
 <path d="M501 370h18v15h-18zM506 374h18v15h-18z" fill="none" stroke="#2563EB" stroke-width="1.5"/>
 <text class="service" x="538" y="410" text-anchor="middle">Storefront</text>
