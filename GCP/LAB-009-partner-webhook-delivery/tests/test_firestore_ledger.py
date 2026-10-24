@@ -164,6 +164,49 @@ class FirestoreLedgerTests(unittest.TestCase):
             )
         self.assertEqual(self.ledger.get_delivery(result.delivery_id)["status"], "enqueue_pending")
 
+
+    def test_enqueue_error_is_bounded_and_keeps_durable_outbox_pending(self):
+        event = self.event()
+        result = self.accept(event)
+        self.assertTrue(self.ledger.record_enqueue_error(
+            result.delivery_id, generation=1, error_code="DeadlineExceeded", now=NOW
+        ))
+        record = self.ledger.get_delivery(result.delivery_id)
+        self.assertEqual(record["status"], "enqueue_pending")
+        self.assertEqual(record["enqueue_attempts"], 1)
+        self.assertEqual(record["last_enqueue_error"], "DeadlineExceeded")
+        self.assertFalse(self.ledger.record_enqueue_error(
+            result.delivery_id, generation=2, error_code="DeadlineExceeded", now=NOW
+        ))
+        with self.assertRaises(ValidationError):
+            self.ledger.record_enqueue_error(
+                result.delivery_id, generation=1, error_code="token=secret", now=NOW
+            )
+
+    def test_unknown_task_outcome_requires_review_and_never_reopens_terminal_state(self):
+        event = self.event()
+        result = self.accept(event)
+        self.assertTrue(self.ledger.mark_task_enqueued(
+            result.delivery_id, generation=1, task_name=self.task_name(event), now=NOW
+        ))
+        reason = "task_missing_after_already_exists"
+        self.assertTrue(self.ledger.mark_retry_ended_unknown(
+            result.delivery_id, generation=1, reason=reason, now=NOW
+        ))
+        self.assertTrue(self.ledger.mark_retry_ended_unknown(
+            result.delivery_id, generation=1, reason=reason, now=NOW
+        ))
+        record = self.ledger.get_delivery(result.delivery_id)
+        self.assertEqual(record["status"], "retry_ended_unknown")
+        self.assertTrue(record["review_required"])
+        self.assertEqual(record["review_reason"], reason)
+        self.ledger.deliveries.document(result.delivery_id).update(
+            {"status": "delivered", "updated_at": NOW}
+        )
+        self.assertFalse(self.ledger.mark_retry_ended_unknown(
+            result.delivery_id, generation=1, reason=reason, now=NOW
+        ))
+
     def test_duplicate_key_with_corrupt_idempotency_reference_fails_closed(self):
         event = self.event()
         self.accept(event)
