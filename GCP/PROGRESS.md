@@ -12,7 +12,7 @@
 | 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 08 | [ระบบรายงานยอดขายรายวันและ Batch ที่รันย้อนหลังได้](LAB-008-daily-batch-reports/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 09 | [ระบบส่ง Webhook ให้ระบบคู่ค้า](LAB-009-partner-webhook-delivery/README.md) | Design complete | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 09 | [ระบบส่ง Webhook ให้ระบบคู่ค้า](LAB-009-partner-webhook-delivery/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 10 | ระบบ Catalog ที่ใช้ Cache ลดภาระ Database | Planned | Not run | — |
 | 11 | ระบบบริการบน GKE ที่ Deploy และขยายได้ | Planned | Not run | — |
 | 12 | ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้ | Planned | Not run | — |
@@ -324,3 +324,5 @@ Lab 09 / Brief complete: กำหนด Partner Webhook Relay สำหรั�
 
 
 Lab09 / Design complete: ปิด region/resource map, API/IAM/ingress boundary, schema/idempotency, Firestore outbox-ledger, generation/task recovery, Cloud Tasks retry policy, HMAC/simulator scenarios, per-partner isolation, operator redrive/audit, cost/test limits และ Build Materials sequence. เพิ่ม accessible topology/state diagrams พร้อม pinned icon provenance และ CI validation/render job. Singapore เป็น common region ตาม availability ของ Cloud Tasks และบริการที่เกี่ยวข้อง ณ วันที่ทำ Design. ยังไม่มี App, Tasks, Terraform หรือ GCP provisioning; Cloud verification Not run. ขั้นถัดไป: Lab09 Build materials.
+
+Lab09 / Build materials started: เพิ่ม pure domain module สำหรับ bounded JSON/schema validation, canonical event bytes, project-scoped idempotency key hash, generation-specific task naming, IDs-only task payload, HMAC signing/verification, Retry-After/status classification และ receipt dedupe; เพิ่ม unit tests และ CI job. ยังไม่มี Cloud SDK adapters, container, Terraform หรือ Guide Tasks; ไม่มี GCP provisioning และ Cloud verification Not run. ขั้นถัดไป: เชื่อม Firestore ledger/state transactions และ Cloud Tasks Reconciler พร้อม emulator/adapter tests.
