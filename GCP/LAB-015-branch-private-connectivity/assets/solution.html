@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 15 — Private Branch Connectivity</title>
+<style>
+:root{color-scheme:light;font-family:Arial,"Noto Sans Thai",sans-serif;color:#1f2937;background:#f7faff}
+body{margin:0;padding:24px;max-width:1800px;margin-inline:auto}
+h1{font-size:1.45rem;margin:0 0 8px}p{color:#526174;margin:0 0 20px}
+svg{display:block;width:100%;height:auto;background:#fff;border:1px solid #cbd5e1}
+</style>
+</head>
+<body>
+<h1>Lab 15 — เชื่อมสำนักงานสาขากับ Inventory API แบบ Private</h1>
+<p>Topology and trust boundaries for the controlled GCP lab. Diagram status is planned; no cloud resources have been verified.</p>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1170" viewBox="0 0 1800 1170" role="img" aria-labelledby="title desc">
+<title id="title">Lab 15: Private branch-to-cloud Inventory API</title>
+<desc id="desc">One GCP project in asia-southeast1. Branch and hub VPCs connect through two HA VPN tunnel pairs with Cloud Router BGP. A branch probe VM reaches private DNS and an internal Application Load Balancer, which routes to an IAM-protected Cloud Run Inventory API. Administrators use IAP only for SSH. Cloud Build publishes an image to Artifact Registry.</desc>
+<defs>
+  <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#2563EB"/></marker>
+  <marker id="arrow-teal" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#0F766E"/></marker>
+  <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#7C3AED"/></marker>
+  <marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#64748B"/></marker>
+  <style>
+    text{font-family:Arial,'Noto Sans Thai',sans-serif;fill:#1F2937}
+    .title{font-size:28px;font-weight:700}.sub{font-size:15px;fill:#526174}
+    .scope{font-size:18px;font-weight:700}.node{font-size:16px;font-weight:700}
+    .small{font-size:13px;fill:#475569}.tiny{font-size:12px;fill:#526174}
+    .flow{fill:none;stroke:#2563EB;stroke-width:3;marker-end:url(#arrow-blue)}
+    .vpn{fill:none;stroke:#0F766E;stroke-width:3;marker-end:url(#arrow-teal)}
+    .build{fill:none;stroke:#7C3AED;stroke-width:2.5;stroke-dasharray:8 6;marker-end:url(#arrow-purple)}
+    .dns{fill:none;stroke:#64748B;stroke-width:2;stroke-dasharray:6 6}
+    .control{fill:none;stroke:#64748B;stroke-width:1.8;stroke-dasharray:4 4}
+    .management{fill:none;stroke:#64748B;stroke-width:2;stroke-dasharray:5 4;marker-end:url(#arrow-gray)}
+  </style>
+</defs>
+<rect width="1800" height="1170" fill="#F7FAFF"/>
+<text class="title" x="56" y="48">Lab 15 — เชื่อมสำนักงานสาขากับ Inventory API แบบ Private</text>
+<text class="sub" x="58" y="76">Regional private service • HA VPN + BGP • identity-aware access • controlled fault and recovery</text>
+
+<rect id="project-scope" x="40" y="100" width="1720" height="1025" rx="12" fill="#FFFFFF" stroke="#334155" stroke-width="2.2"/>
+<rect x="58" y="112" width="180" height="34" rx="5" fill="#334155"/>
+<text x="72" y="135" fill="#FFFFFF" font-size="17" font-weight="700">Google Cloud Project</text>
+
+<!-- Cloud DNS private zone is project-scoped, outside the regional boundary. -->
+<g id="private-dns">
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRo
+PSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRl
+ZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0Mjg1ZjQ7fS5jbHMtMntmaWxsOiM2
+NjlkZjY7fS5jbHMtM3tmaWxsOiNhZWNiZmE7fS5jbHMtNHtmaWxsOiNmZmY7
+fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfRE5TX0NvbG9yPC90
+aXRsZT48ZyBkYXRhLW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxnIGRhdGEtbmFt
+ZT0iY29sb3JlZC0zMi9kbnMiPjxnID48cG9seWdvbiBpZD0iRmlsbC0xIiBj
+bGFzcz0iY2xzLTEiIHBvaW50cz0iMTMgMTggMTEgMTggMTEgOCAxMyA4IDEz
+IDE4Ii8+PHBvbHlnb24gaWQ9IkZpbGwtMiIgY2xhc3M9ImNscy0yIiBwb2lu
+dHM9IjIgMjEgMjIgMjEgMjIgMTkgMiAxOSAyIDIxIi8+PHBvbHlnb24gaWQ9
+IkZpbGwtMyIgY2xhc3M9ImNscy0zIiBwb2ludHM9IjEwIDIyIDE0IDIyIDE0
+IDE4IDEwIDE4IDEwIDIyIi8+PC9nPjwvZz48cmVjdCBjbGFzcz0iY2xzLTMi
+IHg9IjIiIHk9IjIiIHdpZHRoPSIyMCIgaGVpZ2h0PSI2Ii8+PHJlY3QgY2xh
+c3M9ImNscy0yIiB4PSIxMiIgeT0iMiIgd2lkdGg9IjEwIiBoZWlnaHQ9IjYi
+Lz48cmVjdCBjbGFzcz0iY2xzLTQiIHg9IjQiIHk9IjQiIHdpZHRoPSIyIiBo
+ZWlnaHQ9IjIiLz48cmVjdCBjbGFzcz0iY2xzLTMiIHg9IjIiIHk9IjEwIiB3
+aWR0aD0iMjAiIGhlaWdodD0iNiIvPjxyZWN0IGNsYXNzPSJjbHMtMiIgeD0i
+MTIiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iNiIvPjxyZWN0IGNsYXNz
+PSJjbHMtNCIgeD0iNCIgeT0iMTIiIHdpZHRoPSIyIiBoZWlnaHQ9IjIiLz48
+L2c+PC9zdmc+
+" x="355" y="148" width="56" height="56" preserveAspectRatio="xMidYMid meet"/>
+  <text class="node" x="425" y="174">Cloud DNS private zone</text>
+  <text class="small" x="425" y="198">lab.internal. • hub + branch authorized</text>
+  <text class="small" x="425" y="219">inventory.lab.internal → 10.60.0.10</text>
+</g>
+
+<rect id="region-scope" x="76" y="255" width="1648" height="830" rx="12" fill="#FCFDFF" stroke="#2563EB" stroke-width="2" stroke-dasharray="10 6"/>
+<rect x="92" y="266" width="220" height="34" rx="5" fill="#DBEAFE"/>
+<text class="scope" x="108" y="290" fill="#1D4ED8">Region: asia-southeast1</text>
+
+<!-- Build and runtime services are regional but are not contained in either VPC. -->
+<g id="cloud-build">
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRo
+PSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRl
+ZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0Mjg1ZjQ7fS5jbHMtMntmaWxsOiM2
+NjlkZjY7fS5jbHMtM3tmaWxsOiNhZWNiZmE7fTwvc3R5bGU+PC9kZWZzPjx0
+aXRsZT5JY29uXzI0cHhfQ2xvdWRCdWlsZF9Db2xvcjwvdGl0bGU+PGcgZGF0
+YS1uYW1lPSJQcm9kdWN0IEljb25zIj48ZyA+PGcgPjxnID48cG9seWdvbiBj
+bGFzcz0iY2xzLTEiIHBvaW50cz0iMTIuMTUgMTYuMjQgMTUuNjcgMTQuMjEg
+MTUuNjcgMTAuMTUgMTQuNDkgOS40NiAxMC45NyAxNS41NiAxMi4xNSAxNi4y
+NCIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSI4LjYzIDEwLjE1
+IDguNjMgMTQuMjEgOS44MSAxNC44OSAxMy4zNCA4LjggMTIuMTUgOC4xMSA4
+LjYzIDEwLjE1Ii8+PC9nPjwvZz48L2c+PHBvbHlnb24gY2xhc3M9ImNscy0z
+IiBwb2ludHM9IjExLjQ2IDE3LjQ1IDcuMjQgMTUuMDEgNy4yNCAxMC4xNSAz
+LjQ5IDcuOTggMy40OSAxNy4xOCAxMS40NiAyMS43OCAxMS40NiAxNy40NSIv
+Pjxwb2x5Z29uIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSI3LjkzIDguOTUgMTIu
+MTUgNi41MSAxNi4zNyA4Ljk1IDIwLjEzIDYuNzggMTIuMTUgMi4xNyA0LjE3
+IDYuNzggNy45MyA4Ljk1Ii8+PHBvbHlnb24gY2xhc3M9ImNscy0zIiBwb2lu
+dHM9IjE3LjA2IDE1LjAxIDEyLjg0IDE3LjQ1IDEyLjg0IDIxLjc4IDIwLjgy
+IDE3LjE4IDIwLjgyIDcuOTggMTcuMDYgMTAuMTUgMTcuMDYgMTUuMDEiLz48
+L2c+PC9zdmc+
+" x="1010" y="320" width="56" height="56" preserveAspectRatio="xMidYMid meet"/>
+  <text class="node" x="1005" y="395">Cloud Build</text>
+  <text class="tiny" x="1001" y="414">custom builder SA</text>
+</g>
+<g id="artifact-registry">
+  <image href="data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIGJhc2VQcm9maWxlPSJ0aW55IiBpZD0iTGF5
+ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxu
+czp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIKCSB4PSIw
+cHgiIHk9IjBweCIgd2lkdGg9IjI0cHgiIGhlaWdodD0iMjRweCIgdmlld0Jv
+eD0iMCAwIDI0IDI0IiBvdmVyZmxvdz0idmlzaWJsZSIgeG1sOnNwYWNlPSJw
+cmVzZXJ2ZSI+CjxnID4KCTxyZWN0IHk9IjAiIGZpbGw9Im5vbmUiIHdpZHRo
+PSIyNCIgaGVpZ2h0PSIyNCIvPgoJPHBvbHlnb24gZmlsbC1ydWxlPSJldmVu
+b2RkIiBmaWxsPSIjNUM4NURFIiBwb2ludHM9IjYsMi40IDAuOCw1LjQgMC44
+LDE5LjEgNiwyMi4xIDYsMTkuNSAzLDE3LjggMyw2LjcgNiw1IAkiLz4KCTxw
+b2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdENiIgcG9p
+bnRzPSIwLjgsOCAwLjgsMTYuNSAzLDE3LjggMyw2LjcgCSIvPgoJPHBvbHln
+b24gZmlsbC1ydWxlPSJldmVub2RkIiBmaWxsPSIjMzM2N0Q2IiBwb2ludHM9
+IjAuOCw4IDMsNy41IDMsNi43IAkiLz4KCTxwb2x5Z29uIGZpbGwtcnVsZT0i
+ZXZlbm9kZCIgZmlsbD0iIzVDODVERSIgcG9pbnRzPSIxOCwyLjQgMTgsNSAy
+MSw2LjcgMjEsMTcuOCAxOCwxOS41IDE4LDIyLjEgMjMuMiwxOS4xIDIzLjIs
+NS40IAkiLz4KCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0i
+IzMzNjdENiIgcG9pbnRzPSIyMSwxNy44IDIzLjIsMTYuNSAyMy4yLDggMjEs
+Ni43IAkiLz4KCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0i
+IzMzNjdENiIgcG9pbnRzPSIyMSw3LjUgMjMuMiw4IDIxLDYuNyAJIi8+Cgk8
+cG9seWdvbiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiMzMzY3RDYiIHBv
+aW50cz0iMjEsMTcuMSAyMSwxNy44IDIzLjIsMTYuNSAJIi8+Cgk8ZyB0cmFu
+c2Zvcm09InRyYW5zbGF0ZSg2Ljg2MDAwMCwgNi41MDAwMDApIj4KCQk8ZyB0
+cmFuc2Zvcm09InRyYW5zbGF0ZSg0LjU0MDAwMCwgMC4wMDAwMDApIj4KCQkJ
+PHBvbHlnb24gZmlsbC1ydWxlPSJldmVub2RkIiBmaWxsPSIjNUM4NURFIiBw
+b2ludHM9IjAuNiwtMSAtMi40LDAuNiAwLjYsMi4yIDMuNiwwLjYgCQkJIi8+
+CgkJCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdE
+NiIgcG9pbnRzPSIxLDUuOSAzLjksNC4zIDMuOSwxLjIgMSwyLjggCQkJIi8+
+CgkJCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdE
+NiIgcG9pbnRzPSIwLjMsMi44IC0yLjcsMS4yIC0yLjcsNC4zIDAuMyw1Ljkg
+CQkJIi8+CgkJPC9nPgoJCTxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAuMDAw
+MDAwLCA3Ljk3NjE5MCkiPgoJCQk8cG9seWdvbiBmaWxsLXJ1bGU9ImV2ZW5v
+ZGQiIGZpbGw9IiM1Qzg1REUiIHBvaW50cz0iMS43LC0zLjEgLTEuMiwtMS41
+IDEuNywwLjEgNC41LC0xLjUgCQkJIi8+CgkJCTxwb2x5Z29uIGZpbGwtcnVs
+ZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdENiIgcG9pbnRzPSIxLjksMy44IDQu
+OCwyLjIgNC44LC0xIDEuOSwwLjYgCQkJIi8+CgkJCTxwb2x5Z29uIGZpbGwt
+cnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdENiIgcG9pbnRzPSIxLjQsMC42
+IC0xLjUsLTEgLTEuNSwyLjIgMS40LDMuOCAJCQkiLz4KCQk8L2c+CgkJPGcg
+dHJhbnNmb3JtPSJ0cmFuc2xhdGUoOS4zNjAwMDAsIDcuOTc2MTkwKSI+CgkJ
+CTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzVDODVERSIg
+cG9pbnRzPSItMC43LC0zLjEgLTMuNiwtMS41IC0wLjcsMC4xIDIuMiwtMS41
+IAkJCSIvPgoJCQk8cG9seWdvbiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9
+IiMzMzY3RDYiIHBvaW50cz0iLTAuNCwzLjggMi41LDIuMiAyLjUsLTEgLTAu
+NCwwLjYgCQkJIi8+CgkJCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIg
+ZmlsbD0iIzMzNjdENiIgcG9pbnRzPSItMSwwLjYgLTMuOSwtMSAtMy45LDIu
+MiAtMSwzLjggCQkJIi8+CgkJPC9nPgoJPC9nPgo8L2c+Cjwvc3ZnPgo=
+" x="1170" y="320" width="56" height="56" preserveAspectRatio="xMidYMid meet"/>
+  <text class="node" x="1134" y="395">Artifact Registry</text>
+  <text class="tiny" x="1139" y="414">digest-pinned image</text>
+</g>
+<g id="inventory-run">
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRo
+PSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRl
+ZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNhZWNiZmE7fS5jbHMtMSwuY2xzLTJ7
+ZmlsbC1ydWxlOmV2ZW5vZGQ7fS5jbHMtMntmaWxsOiM0Mjg1ZjQ7fTwvc3R5
+bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfQ2xvdWRSdW5fQ29sb3I8L3Rp
+dGxlPjxnIGRhdGEtbmFtZT0iUHJvZHVjdCBJY29ucyI+PGcgPjxwb2x5Z29u
+IGNsYXNzPSJjbHMtMSIgcG9pbnRzPSI4LjkgMi42MyAxMi4wMiAxMiAyMS4z
+OCAxMiA4LjkgMi42MyIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRz
+PSIyMS4zOCAxMiAxMi4wMiAxMiA4LjkgMjEuMzggMjEuMzggMTIiLz48cG9s
+eWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMy40NCAyMS4zOCA2LjU3IDE5
+LjgxIDguOSAxMiA1Ljc4IDEyIDMuNDQgMjEuMzgiLz48cG9seWdvbiBjbGFz
+cz0iY2xzLTEiIHBvaW50cz0iMy40NCAyLjYzIDUuNzggMTIgOC45IDEyIDYu
+NTcgNC4xOSAzLjQ0IDIuNjMiLz48L2c+PC9nPjwvc3ZnPg==
+" x="1455" y="320" width="60" height="60" preserveAspectRatio="xMidYMid meet"/>
+  <text class="node" x="1620" y="344">Cloud Run</text>
+  <text class="small" x="1620" y="364">lab015-inventory</text>
+  <text class="tiny" x="1620" y="384">internal-only • branch SA</text>
+</g>
+<path id="build-to-registry" class="build" d="M1072 354H1162"/>
+<text class="tiny" x="1080" y="342">build / push</text>
+<path id="registry-to-run" class="build" d="M1234 354H1445"/>
+<text class="tiny" x="1284" y="342">Terraform deploy by digest</text>
+
+<rect id="branch-vpc" x="112" y="470" width="650" height="560" rx="12" fill="#F0FDFA" stroke="#0F766E" stroke-width="2.5"/>
+<rect x="128" y="484" width="255" height="34" rx="5" fill="#CCFBF1"/>
+<text class="scope" x="143" y="508" fill="#0F766E">Branch Simulator VPC</text>
+<text class="small" x="145" y="537">lab015-branch-vpc • regional routing</text>
+
+<rect x="145" y="565" width="300" height="310" rx="8" fill="#FFFFFF" stroke="#14B8A6" stroke-width="1.5"/>
+<text class="node" x="163" y="591">Branch subnet</text>
+<text class="small" x="163" y="612">10.70.0.0/24 • no external address</text>
+<g id="branch-probe">
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRo
+PSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRl
+ZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNhZWNiZmE7fS5jbHMtMntmaWxsOiM2
+NjlkZjY7fS5jbHMtM3tmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0
+aXRsZT5JY29uXzI0cHhfQ29tcHV0ZUVuZ2luZV9Db2xvcjwvdGl0bGU+PGcg
+ZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48cmVjdCBjbGFzcz0iY2xzLTEi
+IHg9IjkiIHk9IjkiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiLz48cmVjdCBjbGFz
+cz0iY2xzLTIiIHg9IjExIiB5PSIyIiB3aWR0aD0iMiIgaGVpZ2h0PSI0Ii8+
+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSI3IiB5PSIyIiB3aWR0aD0iMiIgaGVp
+Z2h0PSI0Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIxNSIgeT0iMiIgd2lk
+dGg9IjIiIGhlaWdodD0iNCIvPjxyZWN0IGNsYXNzPSJjbHMtMyIgeD0iMTEi
+IHk9IjE4IiB3aWR0aD0iMiIgaGVpZ2h0PSI0Ii8+PHJlY3QgY2xhc3M9ImNs
+cy0zIiB4PSI3IiB5PSIxOCIgd2lkdGg9IjIiIGhlaWdodD0iNCIvPjxyZWN0
+IGNsYXNzPSJjbHMtMyIgeD0iMTUiIHk9IjE4IiB3aWR0aD0iMiIgaGVpZ2h0
+PSI0Ii8+PHJlY3QgY2xhc3M9ImNscy0zIiB4PSIxOSIgeT0iMTAiIHdpZHRo
+PSIyIiBoZWlnaHQ9IjQiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDggMzIpIHJv
+dGF0ZSgtOTApIi8+PHJlY3QgY2xhc3M9ImNscy0zIiB4PSIxOSIgeT0iMTQi
+IHdpZHRoPSIyIiBoZWlnaHQ9IjQiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQg
+MzYpIHJvdGF0ZSgtOTApIi8+PHJlY3QgY2xhc3M9ImNscy0zIiB4PSIxOSIg
+eT0iNiIgd2lkdGg9IjIiIGhlaWdodD0iNCIgdHJhbnNmb3JtPSJ0cmFuc2xh
+dGUoMTIgMjgpIHJvdGF0ZSgtOTApIi8+PHJlY3QgY2xhc3M9ImNscy0yIiB4
+PSIzIiB5PSIxMCIgd2lkdGg9IjIiIGhlaWdodD0iNCIgdHJhbnNmb3JtPSJ0
+cmFuc2xhdGUoLTggMTYpIHJvdGF0ZSgtOTApIi8+PHJlY3QgY2xhc3M9ImNs
+cy0yIiB4PSIzIiB5PSIxNCIgd2lkdGg9IjIiIGhlaWdodD0iNCIgdHJhbnNm
+b3JtPSJ0cmFuc2xhdGUoLTEyIDIwKSByb3RhdGUoLTkwKSIvPjxyZWN0IGNs
+YXNzPSJjbHMtMiIgeD0iMyIgeT0iNiIgd2lkdGg9IjIiIGhlaWdodD0iNCIg
+dHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTQgMTIpIHJvdGF0ZSgtOTApIi8+PHBh
+dGggY2xhc3M9ImNscy0xIiBkPSJNNSw1VjE5SDE5VjVaTTE3LDE3SDdWN0gx
+N1oiLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iOSAxNSAxNSAx
+NSAxMiAxMiA5IDE1Ii8+PHBvbHlnb24gY2xhc3M9ImNscy0zIiBwb2ludHM9
+IjEyIDEyIDE1IDE1IDE1IDkgMTIgMTIiLz48L2c+PC9zdmc+
+" x="245" y="666" width="70" height="70" preserveAspectRatio="xMidYMid meet"/>
+  <text class="node" x="190" y="758">Branch probe VM</text>
+  <text class="small" x="175" y="779">lab015-branch-probe</text>
+  <text class="tiny" x="176" y="799">private VM • no public IP</text>
+</g>
+<g id="iap-admin">
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRo
+PSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRl
+ZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0Mjg1ZjQ7fS5jbHMtMntmaWxsOiM2
+NjlkZjY7fS5jbHMtM3tmaWxsOiNhZWNiZmE7fTwvc3R5bGU+PC9kZWZzPjx0
+aXRsZT5JY29uXzI0cHhfSWRlbnRpdHlBd2FyZVByb3h5X0NvbG9yPC90aXRs
+ZT48ZyBkYXRhLW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxwYXRoIGNsYXNzPSJj
+bHMtMSIgZD0iTTExLjg1LDdhNS4xLDUuMSwwLDEsMCw1LjEsNS4xaDBBNS4x
+LDUuMSwwLDAsMCwxMS44NSw3Wm0wLDkuMDhhNCw0LDAsMSwxLDQtNGgwQTQs
+NCwwLDAsMSwxMS44NSwxNi4wOVoiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9
+Ik0xMy43NywxMi43MWEyLjA5LDIuMDksMCwwLDAtLjI4LS4yMiwzLjExLDMu
+MTEsMCwwLDAtMi42MS0uMjgsMi4zMSwyLjMxLDAsMCwwLS44OS40Ny44Ni44
+NiwwLDAsMC0uMzcuNjV2MWg0LjQ3di0uODJBMSwxLDAsMCwwLDEzLjc3LDEy
+LjcxWiIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTExLjg1LDExLjUzYTEu
+MTYsMS4xNiwwLDEsMC0xLjE3LTEuMTVoMEExLjE3LDEuMTcsMCwwLDAsMTEu
+ODUsMTEuNTNaIi8+PHBvbHlnb24gY2xhc3M9ImNscy0zIiBwb2ludHM9IjIw
+Ljc4IDEwLjcyIDE5Ljc0IDEwLjcyIDIwLjUxIDExLjQ5IDE4LjMgMTEuNDkg
+MTguMyAxMi4zOSAyMC41MSAxMi4zOSAxOS43NCAxMy4xNyAyMC43OCAxMy4x
+NyAyMiAxMS45NCAyMC43OCAxMC43MiIvPjxwb2x5Z29uIGNsYXNzPSJjbHMt
+MiIgcG9pbnRzPSIxNy41NCA4LjUgMTguMTggOS4xNCAxOS4xNiA4LjE3IDE5
+LjE2IDkuMjYgMTkuODkgOC41MiAxOS44OSA2Ljc5IDE4LjE2IDYuNzkgMTcu
+NDMgNy41MyAxOC41MiA3LjUzIDE3LjU0IDguNSIvPjxwb2x5Z29uIGNsYXNz
+PSJjbHMtMiIgcG9pbnRzPSIxOS4xNiAxNS44MyAxOC4xOCAxNC44NiAxNy41
+NCAxNS40OSAxOC41MiAxNi40NyAxNy40MyAxNi40NyAxOC4xNiAxNy4yIDE5
+Ljg5IDE3LjIgMTkuODkgMTUuNDcgMTkuMTYgMTQuNzQgMTkuMTYgMTUuODMi
+Lz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0zLjM1LDEwLjY1QTEuMzUsMS4z
+NSwwLDEsMCw0LjcxLDEyYTEuMzUsMS4zNSwwLDAsMC0xLjM2LTEuMzVabTAs
+Mi4xQS43Ni43NiwwLDEsMSw0LjExLDEyaDBhLjc2Ljc2LDAsMCwxLS43Ni43
+NVoiLz48L2c+PC9zdmc+
+" x="48" y="676" width="40" height="40" preserveAspectRatio="xMidYMid meet"/>
+  <text class="tiny" x="18" y="733">IAP admin</text>
+  <text class="tiny" x="18" y="750">TCP/22</text>
+</g>
+
+<rect x="145" y="895" width="300" height="100" rx="8" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.5" stroke-dasharray="7 5"/>
+<text class="node" x="162" y="921" fill="#9A3412">Change Request only</text>
+<text class="small" x="162" y="945">10.70.1.0/24 + probe VM</text>
+<text class="tiny" x="162" y="968">advertise after approval/preflight</text>
+
+<g id="branch-vpn">
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRo
+PSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRl
+ZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM2NjlkZjY7fS5jbHMtMntmaWxsOiM0
+Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfVlBOLTAx
+X0NvbG9yPC90aXRsZT48ZyBkYXRhLW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxn
+ID48cmVjdCBjbGFzcz0iY2xzLTEiIHg9IjE0LjczIiB5PSIxMS4yOCIgd2lk
+dGg9IjQuMTgiIGhlaWdodD0iMS4zOCIvPjxyZWN0IGNsYXNzPSJjbHMtMSIg
+eD0iMTcuOTUiIHk9IjYuMTIiIHdpZHRoPSIxLjM4IiBoZWlnaHQ9IjExLjcx
+Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIxNi4zIiB5PSIxNy4zMiIgd2lk
+dGg9IjQuNjgiIGhlaWdodD0iNC42OCIgcng9IjAuMjgiLz48cmVjdCBjbGFz
+cz0iY2xzLTIiIHg9IjE2LjMiIHk9IjIiIHdpZHRoPSI0LjY4IiBoZWlnaHQ9
+IjQuNjgiIHJ4PSIwLjI4Ii8+PHJlY3QgY2xhc3M9ImNscy0xIiB4PSI2Ljk4
+IiB5PSIxMS4yOCIgd2lkdGg9IjQuMjgiIGhlaWdodD0iMS4zOCIvPjxyZWN0
+IGNsYXNzPSJjbHMtMiIgeD0iMy4wMyIgeT0iOS42MyIgd2lkdGg9IjQuNjgi
+IGhlaWdodD0iNC42OCIgcng9IjAuMjgiLz48cGF0aCBjbGFzcz0iY2xzLTIi
+IGQ9Ik0xMywxNC4xN2EyLjIsMi4yLDAsMSwxLDIuMi0yLjJBMi4xOSwyLjE5
+LDAsMCwxLDEzLDE0LjE3Wm0wLTMuNTdBMS4zOCwxLjM4LDAsMSwwLDE0LjMz
+LDEyLDEuMzcsMS4zNywwLDAsMCwxMywxMC42WiIvPjwvZz48L2c+PC9zdmc+
+" x="555" y="550" width="72" height="72" preserveAspectRatio="xMidYMid meet"/>
+  <text class="node" x="533" y="641">HA VPN</text>
+  <text class="tiny" x="512" y="660">interface 0 + 1</text>
+</g>
+<g id="branch-router">
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRo
+PSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRl
+ZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZz
+Pjx0aXRsZT5JY29uXzI0cHhfUm91dGVyX0NvbG9yPC90aXRsZT48ZyBkYXRh
+LW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxnID48ZyA+PGcgZGF0YS1uYW1lPSIg
+MjQgcm91dGVyIj48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xOSwxNHYzbC01
+LTUsNS01djNoM3Y0Wk01LDEwSDJ2NEg1djNsNS01TDUsN1ptOSw3VjE0SDEw
+djNIN2w1LDUsNS01Wk0xNCw3djNIMTBWN0g3bDUtNSw1LDVaIi8+PC9nPjwv
+Zz48L2c+PC9nPjwvc3ZnPg==
+" x="568" y="706" width="52" height="52" preserveAspectRatio="xMidYMid meet"/>
+  <text class="node" x="536" y="780">Cloud Router</text>
+  <text class="small" x="536" y="801">ASN 64515</text>
+</g>
+<text class="tiny" x="468" y="842">Egress allow: 10.60.0.10:80</text>
+<text class="tiny" x="468" y="861">deny other egress</text>
+
+<rect id="hub-vpc" x="1038" y="470" width="650" height="560" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="2.5"/>
+<rect x="1054" y="484" width="210" height="34" rx="5" fill="#DBEAFE"/>
+<text class="scope" x="1070" y="508" fill="#1D4ED8">Hub / Service VPC</text>
+<text class="small" x="1070" y="537">lab015-hub-vpc • 10.60.0.0/24</text>
+
+<g id="hub-vpn">
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRo
+PSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRl
+ZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM2NjlkZjY7fS5jbHMtMntmaWxsOiM0
+Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfVlBOLTAx
+X0NvbG9yPC90aXRsZT48ZyBkYXRhLW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxn
+ID48cmVjdCBjbGFzcz0iY2xzLTEiIHg9IjE0LjczIiB5PSIxMS4yOCIgd2lk
+dGg9IjQuMTgiIGhlaWdodD0iMS4zOCIvPjxyZWN0IGNsYXNzPSJjbHMtMSIg
+eD0iMTcuOTUiIHk9IjYuMTIiIHdpZHRoPSIxLjM4IiBoZWlnaHQ9IjExLjcx
+Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIxNi4zIiB5PSIxNy4zMiIgd2lk
+dGg9IjQuNjgiIGhlaWdodD0iNC42OCIgcng9IjAuMjgiLz48cmVjdCBjbGFz
+cz0iY2xzLTIiIHg9IjE2LjMiIHk9IjIiIHdpZHRoPSI0LjY4IiBoZWlnaHQ9
+IjQuNjgiIHJ4PSIwLjI4Ii8+PHJlY3QgY2xhc3M9ImNscy0xIiB4PSI2Ljk4
+IiB5PSIxMS4yOCIgd2lkdGg9IjQuMjgiIGhlaWdodD0iMS4zOCIvPjxyZWN0
+IGNsYXNzPSJjbHMtMiIgeD0iMy4wMyIgeT0iOS42MyIgd2lkdGg9IjQuNjgi
+IGhlaWdodD0iNC42OCIgcng9IjAuMjgiLz48cGF0aCBjbGFzcz0iY2xzLTIi
+IGQ9Ik0xMywxNC4xN2EyLjIsMi4yLDAsMSwxLDIuMi0yLjJBMi4xOSwyLjE5
+LDAsMCwxLDEzLDE0LjE3Wm0wLTMuNTdBMS4zOCwxLjM4LDAsMSwwLDE0LjMz
+LDEyLDEuMzcsMS4zNywwLDAsMCwxMywxMC42WiIvPjwvZz48L2c+PC9zdmc+
+" x="1049" y="550" width="72" height="72" preserveAspectRatio="xMidYMid meet"/>
+  <text class="node" x="1035" y="641">HA VPN</text>
+  <text class="tiny" x="1025" y="660">interface 0 + 1</text>
+</g>
+<g id="hub-router">
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRo
+PSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRl
+ZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZz
+Pjx0aXRsZT5JY29uXzI0cHhfUm91dGVyX0NvbG9yPC90aXRsZT48ZyBkYXRh
+LW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxnID48ZyA+PGcgZGF0YS1uYW1lPSIg
+MjQgcm91dGVyIj48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xOSwxNHYzbC01
+LTUsNS01djNoM3Y0Wk01LDEwSDJ2NEg1djNsNS01TDUsN1ptOSw3VjE0SDEw
+djNIN2w1LDUsNS01Wk0xNCw3djNIMTBWN0g3bDUtNSw1LDVaIi8+PC9nPjwv
+Zz48L2c+PC9nPjwvc3ZnPg==
+" x="1059" y="706" width="52" height="52" preserveAspectRatio="xMidYMid meet"/>
+  <text class="node" x="1035" y="780">Cloud Router</text>
+  <text class="small" x="1043" y="801">ASN 64514</text>
+</g>
+<rect x="1260" y="565" width="400" height="400" rx="8" fill="#FFFFFF" stroke="#60A5FA" stroke-width="1.5"/>
+<text class="small" x="1280" y="592">Hub subnet 10.60.0.0/24 • VIP 10.60.0.10</text>
+<text class="tiny" x="1280" y="613">Proxy-only subnet 10.60.1.0/26 • ACTIVE</text>
+<g id="internal-lb">
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRo
+PSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRl
+ZnM+PHN0eWxlPi5jbHMtMXtmaWxsOm5vbmU7fS5jbHMtMntmaWxsOiM2Njlk
+ZjY7fS5jbHMtM3tmaWxsOiM0Mjg1ZjQ7fS5jbHMtNHtmaWxsOiNhZWNiZmE7
+fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfTG9hZEJhbGFuY2lu
+Z19Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48
+ZyBkYXRhLW5hbWU9ImNvbG9yZWQtMzIvbG9hZC1iYWxhbmNpbmciPjxyZWN0
+IGNsYXNzPSJjbHMtMSIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+PGcgPjxy
+ZWN0IGNsYXNzPSJjbHMtMiIgeD0iMTgiIHk9IjEyIiB3aWR0aD0iMiIgaGVp
+Z2h0PSI0Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIxMSIgeT0iMTIiIHdp
+ZHRoPSIyIiBoZWlnaHQ9IjQiLz48cmVjdCBjbGFzcz0iY2xzLTIiIHg9IjQi
+IHk9IjEyIiB3aWR0aD0iMiIgaGVpZ2h0PSI0Ii8+PHBvbHlnb24gaWQ9IkZp
+bGwtMiIgY2xhc3M9ImNscy0zIiBwb2ludHM9IjEzIDExIDExIDExIDExIDcg
+MTMgNyAxMyAxMSIvPjxyZWN0IGNsYXNzPSJjbHMtMiIgeD0iNCIgeT0iMTEi
+IHdpZHRoPSIxNiIgaGVpZ2h0PSIyIi8+PHJlY3QgY2xhc3M9ImNscy00IiB4
+PSI2IiB5PSIyIiB3aWR0aD0iMTIiIGhlaWdodD0iNSIvPjxyZWN0IGNsYXNz
+PSJjbHMtMiIgeD0iMTIiIHk9IjIiIHdpZHRoPSI2IiBoZWlnaHQ9IjUiLz48
+cmVjdCBjbGFzcz0iY2xzLTQiIHg9IjE2IiB5PSIxNiIgd2lkdGg9IjYiIGhl
+aWdodD0iNiIvPjxyZWN0IGNsYXNzPSJjbHMtNCIgeD0iMiIgeT0iMTYiIHdp
+ZHRoPSI2IiBoZWlnaHQ9IjYiLz48cmVjdCBjbGFzcz0iY2xzLTIiIHg9IjUi
+IHk9IjE2IiB3aWR0aD0iMyIgaGVpZ2h0PSI2Ii8+PHJlY3QgY2xhc3M9ImNs
+cy00IiB4PSI5IiB5PSIxNiIgd2lkdGg9IjYiIGhlaWdodD0iNiIvPjxyZWN0
+IGNsYXNzPSJjbHMtMiIgeD0iMTIiIHk9IjE2IiB3aWR0aD0iMyIgaGVpZ2h0
+PSI2Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIxOSIgeT0iMTYiIHdpZHRo
+PSIzIiBoZWlnaHQ9IjYiLz48L2c+PC9nPjwvZz48L3N2Zz4=
+" x="1420" y="650" width="76" height="76" preserveAspectRatio="xMidYMid meet"/>
+  <text class="node" x="1350" y="744">Internal Application LB</text>
+  <text class="small" x="1384" y="765">regional • HTTP/80 • VIP .10</text>
+  <text class="tiny" x="1388" y="785">serverless NEG backend</text>
+</g>
+<text class="tiny" x="1302" y="843">No VM firewall rule to Cloud Run NEG</text>
+
+<path id="tunnel-a" class="vpn" d="M627 582H1049"/>
+<path id="tunnel-b" class="vpn" d="M627 610H1049"/>
+<rect x="747" y="548" width="214" height="24" rx="5" fill="#FFFFFF" stroke="#99F6E4"/>
+<text class="small" x="762" y="565">Tunnel A • 0 ↔ 0 • BGP</text>
+<rect x="747" y="621" width="214" height="24" rx="5" fill="#FFFFFF" stroke="#99F6E4"/>
+<text class="small" x="762" y="638">Tunnel B • 1 ↔ 1 • BGP</text>
+
+<path id="branch-request-to-vpn" class="flow" d="M315 701H500V582H555"/>
+<path id="iap-to-branch-probe" class="management" d="M90 702H245"/>
+<path id="branch-router-control" class="control" d="M591 622V706"/>
+<path id="hub-router-control" class="control" d="M1085 622V706"/>
+<text class="tiny" x="600" y="688">BGP</text>
+<text class="tiny" x="1094" y="688">BGP</text>
+<path id="vpn-to-service" class="flow" d="M1122 586H1195V690H1415"/>
+<path id="lb-to-run" class="flow" d="M1458 650V390"/>
+<text class="tiny" x="1540" y="629">private request</text>
+<path id="dns-authorization" class="dns" d="M435 230V470H300"/>
+<path class="dns" d="M530 230V455H1360V470"/>
+<text class="tiny" x="614" y="244">private-zone visibility only; not request traffic</text>
+
+<rect x="465" y="900" width="490" height="88" rx="8" fill="#F1F5F9" stroke="#94A3B8"/>
+<text class="node" x="484" y="927">Routing &amp; security checkpoints</text>
+<text class="small" x="484" y="951">Hub advertises 10.60.0.0/24; branch advertises 10.70.0.0/24</text>
+<text class="small" x="484" y="974">Change prefix 10.70.1.0/24 only after approved request</text>
+
+<rect x="100" y="1042" width="1600" height="34" rx="6" fill="#F8FAFC" stroke="#CBD5E1"/>
+<line x1="125" y1="1059" x2="184" y2="1059" stroke="#2563EB" stroke-width="3" marker-end="url(#arrow-blue)"/>
+<text class="tiny" x="195" y="1064">request / response path</text>
+<line x1="392" y1="1059" x2="451" y2="1059" stroke="#0F766E" stroke-width="3" marker-end="url(#arrow-teal)"/>
+<text class="tiny" x="463" y="1064">HA VPN tunnel + BGP</text>
+<line x1="660" y1="1059" x2="719" y2="1059" stroke="#7C3AED" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#arrow-purple)"/>
+<text class="tiny" x="731" y="1064">image build/deploy</text>
+<line x1="910" y1="1059" x2="969" y2="1059" stroke="#64748B" stroke-width="2" stroke-dasharray="6 6"/>
+<text class="tiny" x="981" y="1064">DNS VPC authorization (not request)</text>
+<text class="tiny" x="1435" y="1064">Planned design • Cloud not verified</text>
+</svg>
+</body>
+</html>

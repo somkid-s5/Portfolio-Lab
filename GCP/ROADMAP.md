@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–14 Guide-ready. Lab 14 ผ่าน repository CI [#367](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40111516650) ครบ 50/50 jobs บน commit `8fd825f93c795ec0453b92cdf3b6141c798e5fde`; ตรวจ app/build contracts, Terraform, guide และ diagram แบบ offline. ยังไม่มี GCP provisioning และ Cloud verification ยังคง Not run; Lab 15–20 Planned.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–14 Guide-ready; Lab 15 อยู่ระหว่างจัดทำ Guide หลัง Brief/Design checkpoint; Lab 16–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -315,25 +315,29 @@
 
 **โจทย์:** สาขาต้องใช้บริการภายใน Cloud ได้ และยังทำงานเมื่อ VPN tunnel หนึ่งหยุด
 
-**สร้างอะไร:** จำลอง branch ด้วย peer VPC, HA VPN/BGP, private Inventory API, DNS และ firewall matrix
+**สร้างอะไร:** จำลอ<a id="lab-15"></a>
 
-**ดูแลและพิสูจน์อะไร:** ตรวจ routes/BGP, tunnel failover, CIDR conflict scenario, DNS failure และ restore connectivity
+### 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud
 
-**Change request:** เพิ่ม subnet ของสาขาใหม่พร้อมควบคุม prefix/สิทธิ์เข้าถึง
+**สถานะ:** Brief และ Design ปิดแล้ว; Guide กำลัง author/review โดยยังไม่สร้าง GCP resources
 
-**วิธีหลักที่วางไว้:** Console + CLI + Terraform
+**โจทย์:** สาขาต้องใช้ Inventory API ภายใน Cloud และตรวจได้ว่าเส้นทางกลับมาทำงานเมื่อ VPN tunnel หนึ่งถูกถอน
 
-**ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
+**สร้างอะไร:** Branch Simulator VPC และ Hub VPC ใน asia-southeast1, HA VPN tunnel pairs 0↔0/1↔1, Cloud Router/BGP ASN 64515/64514, private Cloud DNS, regional internal Application Load Balancer/serverless NEG, internal-only Cloud Run, IAP-only probe VM, restricted egress firewall และ Cloud Build/Artifact Registry
+
+**ดูแลและพิสูจน์อะไร:** DNS/VIP/route/IAM boundaries, learned BGP prefixes, negative unauthenticated request, bounded tunnel withdrawal/restore, DNS authorization failure, CIDR overlap preflight และ Cloud Run logs
+
+**Change request:** เพิ่ม branch subnet 10.70.1.0/24 และ probe VM โดย advertise เฉพาะ prefix ที่อนุมัติ
+
+**ข้อจำกัด:** Branch เป็น peer VPC จำลอง ไม่ใช่ on-prem device; การถอน tunnel ไม่ใช่ physical/ISP fault และไม่รับรอง zero packet loss. Cloud Run API ใช้ synthetic in-memory inventory เพื่อทดสอบ network/identity ไม่ใช่ transactional database. ไม่มี load/SLA test
+
+**วิธีหลัก:** Terraform + Cloud Shell CLI; อ่าน Plan ก่อนทุก apply และเก็บ Expected/Actual/Evidence แยกกัน
+
+**ขอบเขตเมื่อจบ:** flow private ใช้งานได้ใน Lab, มีผลจริงจาก BGP/DNS/API/fault/recovery/change request, มี cleanup/rebuild record และไม่กล่าวอ้างผล Cloud ก่อนทดสอบจริง
 
 ---
 
-<a id="lab-16"></a>
-
-### 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud
-
-**โจทย์:** ทีมต้องย้ายระบบเดิมโดยควบคุมช่วงหยุดและมีแผนถอยที่ไม่ทำข้อมูลหาย
-
-**สร้างอะไร:** Simulated legacy App/PostgreSQL, target Cloud Run/VM + Cloud SQL, migration tooling, cutover routing
+pp/PostgreSQL, target Cloud Run/VM + Cloud SQL, migration tooling, cutover routing
 
 **ดูแลและพิสูจน์อะไร:** ซ้อมย้าย, schema compatibility, write freeze, data reconciliation, cutover และ backout boundary
 
@@ -489,13 +493,12 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 
 ## ลำดับถัดไป
 
-Lab 10 — [Catalog Cache](LAB-010-catalog-cache/README.md) — Guide-ready หลัง [CI #310](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40088902566) และ [CI #311](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40089135500) ผ่านครบ 35/35 jobs ต่อรอบ: app/TTL integration, Guide Tasks/evidence/Bash syntax/links, design/diagram และ Terraform fmt/init/validate. คู่มือมี troubleshooting, cleanup และ clean rebuild path. ไม่ได้ provision GCP; Cloud verification ยังคง Not run.
+Lab 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud — Brief/Design complete; กำลังทำ sample API, Terraform, bounded probes, architecture diagram และคู่มือ Tasks 00–15. เกณฑ์ Cloud verification ยัง Not run; งานนี้ตรวจได้ด้วย offline tests/CI เท่านั้น
 
-Lab 11 — [GKE Quote Engine](LAB-011-gke-quote-engine/README.md) — Guide-ready หลัง [CI #315](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40092884085) ผ่านครบ 39/39 jobs. ครอบคลุม App/API-worker, Terraform foundation, regional GKE Autopilot, HTTPS Gateway, private worker, per-workload Secret Manager access, bounded HPA/load observation, logs, readiness rollback, pod recovery, pricing change request, token rotation และ cleanup. CI ตรวจ source/config เท่านั้น; ไม่ได้ provision GCP และ Cloud verification ยัง Not run.
+เมื่อ Lab 15 ผ่าน Guide-ready review แล้ว ให้เริ่ม Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud — จาก Brief ก่อนเขียน Tasks ตามลำดับ
 
-Lab 12 — [Microservices tracing](LAB-012-cross-service-tracing/README.md) — Guide-ready หลัง [CI #330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ผ่านครบ 43/43 jobs; ครอบคลุม app/build, Terraform, manifest/IAM, guide checks และ diagram. Architecture/icon checkpoint ก่อนหน้าอยู่ใน [CI #324](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40095281229). ทั้งหมดเป็น repository evidence; ไม่มี GCP provisioning และ Cloud verification Not run.
+ตัวอย่างรูปแบบการอ่าน: [Lab Test 2](../test/lab-test-2/README.md) ใช้เป็น reference ด้านการอ่าน ไม่ใช่ผลการทำ GCP Lab
 
-ตัวอย่างรูปแบบการอ่านที่ยืนยันแล้ว: [Lab Test 2](../test/lab-test-2/README.md) เป็นตัวอย่างรูปแบบ ไม่ถือเป็นผลการทำ Lab ใด
 
 ## แหล่งอ้างอิงในการจัดขอบเขต
 

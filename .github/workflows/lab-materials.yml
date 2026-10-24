@@ -1347,3 +1347,85 @@ jobs:
             GCP/LAB-014-secure-app-delivery/assets/**
           if-no-files-found: error
           retention-days: 14
+
+
+  lab015-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile Lab 15 Python materials
+        run: python3 -m py_compile GCP/LAB-015-branch-private-connectivity/app/inventory_api.py GCP/LAB-015-branch-private-connectivity/scripts/probe.py GCP/LAB-015-branch-private-connectivity/scripts/cidr_check.py
+      - name: Test Inventory API, bounded probe and CIDR preflight
+        run: python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_app.py' -v && python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_probe.py' -v && python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_cidr_check.py' -v
+      - name: Build and smoke test non-root Inventory container
+        run: |
+          docker build -t lab015-inventory:ci GCP/LAB-015-branch-private-connectivity/app
+          test "$(docker image inspect --format '{{.Config.User}}' lab015-inventory:ci)" = "10001:10001"
+          container_id="$(docker run --detach --rm --publish 127.0.0.1:18015:8080 lab015-inventory:ci)"
+          trap 'docker logs "$container_id" || true; docker stop "$container_id" >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18015/healthz >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+          python3 -c 'import json,urllib.request; d=json.load(urllib.request.urlopen("http://127.0.0.1:18015/v1/items",timeout=3)); assert d["count"] == 3, d'
+
+  lab015-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Format and validate Lab 15 Terraform without credentials or provisioning
+        working-directory: GCP/LAB-015-branch-private-connectivity/infra
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+      - name: Check private network, identity and fault-injection contracts
+        run: python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_infra_contract.py' -v
+
+  lab015-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify diagram accessibility, pinned icons, scopes and topology
+        run: python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_design.py' -v
+      - name: Install SVG renderer and Thai fallback font
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin fonts-noto-core
+      - name: Render Lab 15 diagram at reading width
+        run: |
+          mkdir -p lab015-diagram-preview
+          rsvg-convert --width 1440 GCP/LAB-015-branch-private-connectivity/assets/solution.svg -o lab015-diagram-preview/solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab015-diagram-preview
+          path: |
+            lab015-diagram-preview/solution.png
+            GCP/LAB-015-branch-private-connectivity/assets/**
+          if-no-files-found: error
+          retention-days: 14
+
+  lab015-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 15 task sequence, evidence fields and local links
+        run: python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_guide.py' -v

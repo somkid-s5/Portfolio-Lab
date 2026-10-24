@@ -8,4 +8,4 @@
 
 ตัวอย่างรูปแบบคู่มือ: [Lab Test 2](../test/lab-test-2/README.md)
 
-สถานะปัจจุบัน: [Lab 01](LAB-001-multi-zone-web/README.md) ถึง [Lab 12 — Microservices tracing](LAB-012-cross-service-tracing/README.md) อยู่ระดับ Guide-ready; Lab 12 ผ่าน repository CI [#330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ครบ 43/43 jobs. Lab 13–20 ยัง Planned ตาม [Progress](PROGRESS.md). ไม่มีการ provision GCP; Cloud verification ยังคง Not run.
+สถานะปัจจุบัน: Lab 01–14 อยู่ระดับ Guide-ready; [Lab 15](LAB-015-branch-private-connectivity/README.md) กำลังทำ Guide หลัง Brief/Design; Lab 16–20 Planned ตาม [Progress](PROGRESS.md). ไม่มีการ provision GCP; Cloud verification ยังคง Not run.

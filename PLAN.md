@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–14 Guide-ready; Lab 14 ผ่าน repository CI [#367](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40111516650) ครบ 50/50 jobs บน commit `8fd825f93c795ec0453b92cdf3b6141c798e5fde`. CI ตรวจ App/API/build contracts, Terraform foundation, diagram และคู่มือแบบ offline; ไม่ใช่การทดสอบ GCP จริง. Cloud verification ทุก Lab ยังคง Not run; Lab 15–20 ยัง Planned.
+**สถานะ:** Lab 01–14 Guide-ready; Lab 15 อยู่ระหว่างจัดทำ Guide หลังปิด Brief/Design; Lab 16–20 Planned. Cloud verification ทุก Lab ยังคง Not run.
 
 ## ผลลัพธ์ปลายทาง
 
@@ -92,4 +92,4 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## สถานะดำเนินงาน
 
-Lab 01–14 Guide-ready. Lab 14 ผ่าน repository CI [#367](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40111516650) ครบ 50/50 jobs บน commit `8fd825f93c795ec0453b92cdf3b6141c798e5fde`; CI ตรวจ source/config/documentation เท่านั้น. ไม่มี GCP provisioning และ Cloud verification ทุก Lab ยังคง Not run; Lab 15–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.
+Lab 01–14 Guide-ready. Lab 15 — Private branch connectivity — อยู่ระหว่าง Guide authoring/review; Lab 16–20 Planned. ไม่มี GCP provisioning และ Cloud verification ทุก Lab ยังคง Not run. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.
