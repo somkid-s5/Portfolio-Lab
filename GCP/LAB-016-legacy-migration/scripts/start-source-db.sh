@@ -11,7 +11,9 @@ container_name=lab016-postgres
 image_ref="${POSTGRES_IMAGE:-postgres:16}"
 
 if docker container inspect "$container_name" >/dev/null 2>&1; then
-  docker start "$container_name" >/dev/null
+  if [[ "$(docker inspect --format '{{.State.Running}}' "$container_name")" != true ]]; then
+    docker start "$container_name" >/dev/null
+  fi
   echo "Reused existing PostgreSQL container; data and credentials were not reset."
 else
   if [[ -d "$data_dir" ]] && find "$data_dir" -mindepth 1 -print -quit | grep -q .; then

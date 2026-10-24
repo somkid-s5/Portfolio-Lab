@@ -16,14 +16,14 @@ WRITE_GATE = (SCRIPTS / "source-write-gate.sh").read_text(encoding="utf-8")
 
 class Lab016InfraContracts(unittest.TestCase):
     def test_cloud_sql_is_private_same_region_and_deletable_for_cleanup(self):
-        self.assertIn('database_version = "POSTGRES_16"', MAIN)
-        self.assertIn('availability_type = "ZONAL"', MAIN)
+        self.assertRegex(MAIN, r'database_version\s*=\s*"POSTGRES_16"')
+        self.assertRegex(MAIN, r'availability_type\s*=\s*"ZONAL"')
         self.assertRegex(MAIN, r"ipv4_enabled\s*=\s*false")
         self.assertIn("google_compute_network.lab.id", MAIN)
         self.assertIn("google_compute_global_address.psa_range.name", MAIN)
-        self.assertIn("deletion_protection = false", MAIN)
+        self.assertRegex(MAIN, r"deletion_protection\s*=\s*false")
         self.assertIn('resource "google_service_networking_connection"', MAIN)
-        self.assertIn("reserved_peering_ranges =", MAIN)
+        self.assertRegex(MAIN, r"reserved_peering_ranges\s*=")
 
     def test_source_vm_has_no_external_nic_and_nat_is_scoped(self):
         instance = MAIN.split('resource "google_compute_instance" "source"')[1]
