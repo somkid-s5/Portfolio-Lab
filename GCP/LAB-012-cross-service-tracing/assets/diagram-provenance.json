@@ -66,7 +66,7 @@
   },
   "layout_decision": "Connectivity-first: the external Gateway sits outside the VPC; the regional proxy-only subnet provides the Gateway-to-backend path. Storefront and Order are horizontal; Catalog and Payment mock are stacked vertically for short two-way fan-out from Order. The telemetry collector is below the app namespace; Cloud Trace/Logging are project-level services outside the VPC. Build/image delivery is a separate bottom lane.",
   "verification": {
-    "diagram_render": "To be rendered at 960px by GitHub Actions design CI; repository check only.",
+    "diagram_render": "GitHub Actions lab012-design renders the current diagram at 960px and uploads a review artifact; this verifies repository rendering only.",
     "cloud_deployment": "not-run"
   }
 }

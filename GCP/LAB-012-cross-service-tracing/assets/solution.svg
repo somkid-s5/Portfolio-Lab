@@ -47,7 +47,7 @@
 <path id="flow-order-payment" class="flow-call" d="M732 407H744V443H760"/>
 <path id="flow-services-collector" class="flow-trace" d="M665 478V510"/>
 <path id="flow-collector-trace" class="flow-trace" d="M822 540H900V320H1004"/>
-<path id="flow-services-logging" class="flow-log" d="M845 462H930V520H1004"/>
+<path id="flow-services-logging" class="flow-log" d="M845 488V580H945V520H1004"/>
 <path id="flow-build-artifacts" class="flow-build" d="M302 785H365V658H420"/>
 <path id="flow-artifacts-gke" class="flow-build" d="M488 658H860V584H858"/>
 
@@ -93,11 +93,11 @@
 <text x="738" y="348" text-anchor="middle" font-size="10" fill="#526174">GET item</text>
 <text x="744" y="458" text-anchor="middle" font-size="10" fill="#526174">authorize</text>
 <rect class="telemetry" x="603" y="510" width="219" height="59" rx="5"/>
-<circle cx="623" cy="530" r="7" fill="none" stroke="#7C3AED" stroke-width="1.6"/>
-<circle cx="642" cy="530" r="7" fill="none" stroke="#7C3AED" stroke-width="1.6"/>
-<circle cx="661" cy="530" r="7" fill="none" stroke="#7C3AED" stroke-width="1.6"/>
-<path d="M623 530H661" stroke="#7C3AED" stroke-width="1.5"/>
-<text class="telemetry-title" x="712" y="533" text-anchor="middle" font-size="13" font-weight="700">OpenTelemetry Collector</text>
+<circle cx="614" cy="530" r="5" fill="none" stroke="#7C3AED" stroke-width="1.6"/>
+<circle cx="628" cy="530" r="5" fill="none" stroke="#7C3AED" stroke-width="1.6"/>
+<circle cx="642" cy="530" r="5" fill="none" stroke="#7C3AED" stroke-width="1.6"/>
+<path d="M619 530H637" stroke="#7C3AED" stroke-width="1.5"/>
+<text class="telemetry-title" x="657" y="533" font-size="12" font-weight="700">OpenTelemetry Collector</text>
 <text x="712" y="552" text-anchor="middle" font-size="11">collector KSA • trace-write only</text>
 <text class="tiny" x="716" y="499" text-anchor="middle">OTLP/gRPC :4317</text>
 
@@ -108,8 +108,8 @@
 <image id="icon-Logging" x="1004" y="482" width="72" height="72" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0Mjg1ZjQ7fS5jbHMtMntmaWxsOm5vbmU7fS5jbHMtM3tmaWxsOiM2NjlkZjY7fS5jbHMtNHtmaWxsOiNhZWNiZmE7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfTG9nZ2luZ19Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48cmVjdCBjbGFzcz0iY2xzLTEiIHg9IjYiIHk9IjExIiB3aWR0aD0iNCIgaGVpZ2h0PSIyIi8+PHJlY3QgY2xhc3M9ImNscy0xIiB4PSI0IiB5PSIxOCIgd2lkdGg9IjYiIGhlaWdodD0iMiIvPjxnIGRhdGEtbmFtZT0iY29sb3JlZC0zMi9sb2dzIj48cmVjdCBjbGFzcz0iY2xzLTIiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIvPjxnID48cG9seWdvbiBpZD0iRmlsbC0zIiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iNCAxOCA2IDE4IDYgNiA0IDYgNCAxOCIvPjxwb2x5Z29uIGlkPSJGaWxsLTQiIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSI5IDcgMjIgNyAyMiAzIDkgMyA5IDciLz48cG9seWdvbiBpZD0iRmlsbC00LTIiIGRhdGEtbmFtZT0iRmlsbC00IiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iOSAxNCAyMiAxNCAyMiAxMCA5IDEwIDkgMTQiLz48cG9seWdvbiBpZD0iRmlsbC00LTMiIGRhdGEtbmFtZT0iRmlsbC00IiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iOSAyMSAyMiAyMSAyMiAxNyA5IDE3IDkgMjEiLz48cG9seWdvbiBpZD0iRmlsbC03IiBjbGFzcz0iY2xzLTQiIHBvaW50cz0iMiA4IDggOCA4IDIgMiAyIDIgOCIvPjwvZz48L2c+PC9nPjwvc3ZnPg=="/>
 <text class="service" x="1040" y="572" text-anchor="middle">Cloud Logging</text>
 <text class="tiny" x="1040" y="589" text-anchor="middle">structured stdout • trace IDs</text>
-<text class="tiny" x="918" y="310" text-anchor="middle">OTLP/HTTP TLS</text>
-<text class="tiny" x="884" y="451" text-anchor="middle">JSON stdout → GKE logs</text>
+<text class="tiny" x="995" y="310" text-anchor="end">OTLP/HTTP TLS</text>
+
 <rect x="985" y="632" width="330" height="99" rx="6" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.3"/>
 <text class="service identity-title" x="1003" y="657">Identity boundary</text>
 <text class="small" x="1003" y="679">Apps: no Google Cloud IAM roles</text>
