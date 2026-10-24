@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–09 Guide-ready; Lab 10 มี App/infra และ Tasks 00–14 โดย checks ผ่าน CI #309; เพิ่ม troubleshooting/clean rebuild แล้วและรอ CI #310 ก่อนปิด Guide-ready; Lab 11–20 ยัง Planned
+**สถานะ:** Lab 01–10 Guide-ready; Lab 11–20 ยัง Planned. Lab 10 ผ่าน CI #310 ครบ 35/35 jobs; ไม่มี GCP provisioning และ Cloud verification ยัง Not run.
 
 ## ผลลัพธ์ปลายทาง
 
@@ -92,4 +92,4 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## สถานะดำเนินงาน
 
-Lab 01–09 Guide-ready; Lab 10 app/infra/toggles ผ่าน CI #307 และ Tasks 00–14 + TTL diagnostics ผ่าน CI #309 (35/35 jobs); เพิ่ม troubleshooting/clean rebuild ใน authoring checkpoint นี้, รอ CI #310; Lab 11–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md; ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานทดสอบบน GCP จริง.
+Lab 01–10 Guide-ready; Lab 10 Tasks 00–14 พร้อม troubleshooting/cleanup/rebuild ผ่าน [CI #310](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40088902566) (35/35 jobs). CI เป็นหลักฐานตรวจ repository เท่านั้น ไม่มี GCP provisioning และ Cloud verification ยังคง Not run. Lab 11–20 ยัง Planned; ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.

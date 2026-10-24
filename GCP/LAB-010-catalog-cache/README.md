@@ -1,14 +1,14 @@
 ---
 lab: LAB-010
 platform: GCP
-phase: authoring
-guide_status: authoring
+phase: guide-ready
+guide_status: guide-ready
 cloud_verification: not-run
 last_verified: null
 ---
 # Lab 10 — ลดภาระอ่าน Catalog ด้วย Cache-aside
 
-**สถานะ:** กำลังจัดทำ Guide — Design, App/API, synthetic seed, bounded load tool และ Terraform foundation/workload ผ่าน repository CI โดยไม่มี credentials หรือการ provision. เพิ่ม Operator diagnostics สำหรับตรวจ category TTL แบบ read-only และกำลังเขียน Tasks 00–14 ให้ทำตามและบันทึกผลจริงได้. Cloud verification: Not run.
+**สถานะ:** Guide-ready — คู่มือ Tasks 00–14, App/API, synthetic seed, bounded load tool, Terraform, operator TTL diagnostics, troubleshooting, cleanup และ clean rebuild ผ่าน repository CI #310 ครบ 35/35 jobs โดยไม่มี credentials หรือการ provision. Cloud verification: Not run.
 
 ## สถานการณ์
 

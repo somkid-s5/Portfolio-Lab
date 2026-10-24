@@ -21,8 +21,8 @@ EXPECTED_SERVICES = {
 
 class DesignTests(unittest.TestCase):
     def test_readme_is_build_not_a_claim_of_cloud_execution(self):
-        self.assertIn("phase: authoring", README)
-        self.assertIn("guide_status: authoring", README)
+        self.assertIn("phase: guide-ready", README)
+        self.assertIn("guide_status: guide-ready", README)
         self.assertIn("cloud_verification: not-run", README)
         self.assertIn("last_verified: null", README)
         self.assertEqual(PROVENANCE["verification"]["cloud_deployment"], "not-run")

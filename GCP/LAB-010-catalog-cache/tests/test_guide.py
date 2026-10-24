@@ -89,7 +89,7 @@ class Lab10GuideTests(unittest.TestCase):
 
     def test_cloud_and_guide_status_remain_distinct(self):
         front_matter = self.text.split("---", 2)[1]
-        self.assertIn("guide_status: authoring", front_matter)
+        self.assertIn("guide_status: guide-ready", front_matter)
         self.assertIn("cloud_verification: not-run", front_matter)
         self.assertIn("Cloud verification: Not run", self.text)
         self.assertIn("Case-study claim status:** " + chr(96) + "Not run" + chr(96), self.text)
