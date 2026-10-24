@@ -772,6 +772,8 @@ jobs:
         run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_worker_api.py -v
       - name: Test create-only receipt adapter without GCP writes
         run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_receipt_store.py -v
+      - name: Test bounded Operator CLI output and receipt lookup without cloud calls
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_operator_cli.py -v
       - name: Test HMAC partner simulator and bounded fault modes
         run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_simulator.py -v
       - name: Test public simulator HTTP route contract
@@ -780,6 +782,8 @@ jobs:
         run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_runtime_config.py -v
       - name: Test pinned Secret Manager access contract without RPC
         run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_secret_manager.py -v
+      - name: Test fixed shared-image entrypoint contract
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_entrypoint.py -v
       - name: Compile Lab 09 Python application modules
         run: .ci-lab009/bin/python -m py_compile GCP/LAB-009-partner-webhook-delivery/app/*.py
       - name: Exercise event and outbox transactions against the loopback emulator
@@ -821,6 +825,39 @@ jobs:
           if [[ -f "$RUNNER_TEMP/lab009-firestore.log" ]]; then
             tail -100 "$RUNNER_TEMP/lab009-firestore.log"
           fi
+
+  lab009-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the shared non-root Lab 09 image without cloud credentials
+        working-directory: GCP/LAB-009-partner-webhook-delivery
+        run: docker build --tag lab009:ci .
+      - name: Verify image user, imports and build-context exclusions
+        run: |
+          test "$(docker image inspect --format '{{.Config.User}}' lab009:ci)" = "10001:10001"
+          docker run --rm --entrypoint python lab009:ci -c "import os; import app.api, app.domain, app.entrypoint, app.event_service, app.ledger, app.operator_cli, app.receipt_store, app.reconciler, app.reconciler_api, app.reconciler_service, app.runtime_config, app.secret_manager, app.simulator, app.simulator_api, app.simulator_service, app.task_queue, app.worker, app.worker_api, app.worker_service; assert not os.path.exists('/app/tests'); assert not os.path.exists('/app/infra')"
+
+  lab009-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate Lab 09 foundation and workload gate without credentials or provisioning
+        working-directory: GCP/LAB-009-partner-webhook-delivery/infra
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
 
   lab009-diagrams:
     runs-on: ubuntu-latest

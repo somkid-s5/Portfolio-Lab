@@ -17,6 +17,7 @@ from app.domain import (
     idempotency_document_id,
     payload_sha256,
     task_id,
+    task_resource_name,
 )
 
 
@@ -592,6 +593,145 @@ class FirestoreLedger:
         snapshot = self.deliveries.document(delivery).get(timeout=10)
         return snapshot.to_dict() if snapshot.exists else None
 
+
+    def redrive(
+        self,
+        delivery: str,
+        *,
+        project_id: str,
+        location_id: str,
+        actor_email: str,
+        reason: str,
+        evidence_ref: str,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Start an audited new generation after an operator reviews a terminal outcome."""
+        if not isinstance(delivery, str) or not _HASH.fullmatch(delivery):
+            raise ValidationError("delivery_id must be lowercase SHA-256 hex")
+        if not isinstance(actor_email, str) or not re.fullmatch(
+            r"[^@\s]{1,128}@[^@\s]{1,255}", actor_email
+        ):
+            raise ValidationError("actor_email must be an email address")
+        for name, value, limit in (
+            ("reason", reason, 240),
+            ("evidence_ref", evidence_ref, 500),
+        ):
+            if (
+                not isinstance(value, str)
+                or not value.strip()
+                or len(value) > limit
+                or any(ord(character) < 32 or ord(character) == 127 for character in value)
+            ):
+                raise ValidationError(f"{name} must be non-empty, bounded text without control characters")
+
+        transition_time = now or self._clock()
+        if not isinstance(transition_time, datetime) or transition_time.tzinfo is None:
+            raise ValidationError("transition time must be timezone-aware")
+        if transition_time.utcoffset() != timezone.utc.utcoffset(transition_time):
+            raise ValidationError("transition time must be UTC")
+        transition_time = transition_time.astimezone(timezone.utc)
+
+        ref = self.deliveries.document(delivery)
+        transaction = self._client.transaction(max_attempts=5)
+
+        @firestore.transactional
+        def commit(txn: Any) -> dict[str, Any]:
+            snapshot = ref.get(transaction=txn, timeout=10)
+            if not snapshot.exists:
+                raise LedgerInvariantError("delivery record does not exist")
+            record = snapshot.to_dict() or {}
+            current_generation = record.get("generation")
+            if type(current_generation) is not int or not 1 <= current_generation < 999999:
+                raise LedgerInvariantError("delivery generation is invalid")
+            previous_status = record.get("status")
+            if previous_status not in ("retry_ended_unknown", "permanent_failed"):
+                raise LedgerInvariantError("only reviewed unknown or permanent failures can be redriven")
+            if previous_status == "retry_ended_unknown" and record.get("review_required") is not True:
+                raise LedgerInvariantError("unknown delivery is not marked for operator review")
+
+            event_id = record.get("event_id")
+            partner_id = record.get("partner_id")
+            stored_hash = record.get("payload_sha256")
+            if (
+                not isinstance(event_id, str)
+                or not isinstance(partner_id, str)
+                or not isinstance(stored_hash, str)
+                or not _HASH.fullmatch(stored_hash)
+            ):
+                raise LedgerInvariantError("delivery identity or payload hash is invalid")
+
+            event_ref = self.events.document(event_id)
+            event_snapshot = event_ref.get(transaction=txn, timeout=10)
+            if not event_snapshot.exists:
+                raise LedgerInvariantError("delivery event record is missing")
+            event_record = event_snapshot.to_dict() or {}
+            if event_record.get("payload_sha256") != stored_hash:
+                raise LedgerInvariantError("delivery and event payload hashes do not match")
+
+            next_generation = current_generation + 1
+            next_task_name = task_resource_name(
+                project_id, location_id, partner_id, delivery, next_generation
+            )
+            audit_ref = ref.collection("redrive_audit").document(
+                f"g{next_generation:03d}"
+            )
+            audit_snapshot = audit_ref.get(transaction=txn, timeout=10)
+            if audit_snapshot.exists:
+                raise LedgerInvariantError("redrive audit generation already exists")
+
+            redrive_count = record.get("redrive_count", 0)
+            if type(redrive_count) is not int or redrive_count < 0:
+                raise LedgerInvariantError("redrive_count is invalid")
+            audit_record = {
+                "event_id": event_id,
+                "partner_id": partner_id,
+                "payload_sha256": stored_hash,
+                "previous_generation": current_generation,
+                "generation": next_generation,
+                "previous_status": previous_status,
+                "actor_email": actor_email,
+                "reason": reason.strip(),
+                "evidence_ref": evidence_ref.strip(),
+                "created_at": transition_time,
+            }
+            txn.create(audit_ref, audit_record)
+            txn.update(
+                ref,
+                {
+                    "generation": next_generation,
+                    "status": "enqueue_pending",
+                    "task_name": next_task_name,
+                    "enqueue_pending_since": transition_time,
+                    "enqueue_attempts": 0,
+                    "last_enqueue_error": None,
+                    "attempt_count": 0,
+                    "redrive_count": redrive_count + 1,
+                    "last_redrive_at": transition_time,
+                    "last_redrive_actor": actor_email,
+                    "last_redrive_reason": reason.strip(),
+                    "review_required": False,
+                    "review_reason": firestore.DELETE_FIELD,
+                    "task_missing_at": firestore.DELETE_FIELD,
+                    "last_attempt_outcome": firestore.DELETE_FIELD,
+                    "last_http_status": firestore.DELETE_FIELD,
+                    "last_error_code": firestore.DELETE_FIELD,
+                    "lease_token": firestore.DELETE_FIELD,
+                    "lease_until": firestore.DELETE_FIELD,
+                    "updated_at": transition_time,
+                },
+            )
+            return {
+                "delivery_id": delivery,
+                "event_id": event_id,
+                "partner_id": partner_id,
+                "previous_generation": current_generation,
+                "generation": next_generation,
+                "previous_status": previous_status,
+                "status": "enqueue_pending",
+                "task_name": next_task_name,
+            }
+
+        return commit(transaction)
 
     def list_deliveries(self, status: str, *, limit: int = 25) -> list[dict[str, Any]]:
         """Read one bounded status page without a compound-order index."""

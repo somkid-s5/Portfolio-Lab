@@ -52,8 +52,9 @@ class FirestoreLedgerTests(unittest.TestCase):
         for collection in (self.ledger.events, self.ledger.deliveries, self.ledger.idempotency):
             for snapshot in collection.stream(timeout=10):
                 if collection is self.ledger.deliveries:
-                    for attempt in snapshot.reference.collection("attempts").stream(timeout=10):
-                        attempt.reference.delete(timeout=10)
+                    for child_collection in ("attempts", "redrive_audit"):
+                        for child in snapshot.reference.collection(child_collection).stream(timeout=10):
+                            child.reference.delete(timeout=10)
                 snapshot.reference.delete(timeout=10)
 
     def event(self, event_id=None):
@@ -210,6 +211,90 @@ class FirestoreLedgerTests(unittest.TestCase):
         self.assertFalse(self.ledger.mark_retry_ended_unknown(
             result.delivery_id, generation=1, reason=reason, now=NOW
         ))
+
+    def test_unknown_outcome_redrive_creates_new_generation_and_atomic_audit(self):
+        event = self.event()
+        accepted = self.accept(event)
+        self.assertTrue(self.ledger.mark_task_enqueued(
+            accepted.delivery_id,
+            generation=1,
+            task_name=self.task_name(event),
+            now=NOW,
+        ))
+        self.assertTrue(self.ledger.mark_retry_ended_unknown(
+            accepted.delivery_id,
+            generation=1,
+            reason="task_missing_after_already_exists",
+            now=NOW,
+        ))
+        redrive_time = NOW + timedelta(minutes=1)
+
+        result = self.ledger.redrive(
+            accepted.delivery_id,
+            project_id=PROJECT,
+            location_id="asia-southeast1",
+            actor_email="operator@example.com",
+            reason="receipt checked; safe to retry",
+            evidence_ref="runbook-step-09.8",
+            now=redrive_time,
+        )
+
+        record = self.ledger.get_delivery(accepted.delivery_id)
+        audit = self.ledger.deliveries.document(accepted.delivery_id).collection(
+            "redrive_audit"
+        ).document("g002").get(timeout=10).to_dict()
+        self.assertEqual(result["generation"], 2)
+        self.assertEqual(result["status"], "enqueue_pending")
+        self.assertEqual(result["task_name"], self.task_name(event, generation=2))
+        self.assertEqual(record["generation"], 2)
+        self.assertEqual(record["status"], "enqueue_pending")
+        self.assertEqual(record["attempt_count"], 0)
+        self.assertEqual(record["redrive_count"], 1)
+        self.assertFalse(record["review_required"])
+        self.assertEqual(audit["previous_status"], "retry_ended_unknown")
+        self.assertEqual(audit["actor_email"], "operator@example.com")
+        self.assertEqual(audit["evidence_ref"], "runbook-step-09.8")
+        self.assertEqual(audit["payload_sha256"], accepted.payload_sha256)
+        self.assertNotIn("canonical_body", audit)
+        self.assertNotIn("secret", audit)
+        with self.assertRaises(LedgerInvariantError):
+            self.ledger.redrive(
+                accepted.delivery_id,
+                project_id=PROJECT,
+                location_id="asia-southeast1",
+                actor_email="operator@example.com",
+                reason="duplicate request",
+                evidence_ref="runbook-step-09.8",
+                now=redrive_time,
+            )
+
+    def test_permanent_failure_can_be_redriven_after_operator_review(self):
+        event = self.event()
+        accepted = self.accept(event)
+        self.ledger.deliveries.document(accepted.delivery_id).update({
+            "status": "permanent_failed",
+            "last_attempt_outcome": "permanent_failed",
+            "last_http_status": 400,
+            "last_error_code": "partner_http_400",
+            "attempt_count": 1,
+            "permanent_failed_at": NOW,
+        })
+
+        result = self.ledger.redrive(
+            accepted.delivery_id,
+            project_id=PROJECT,
+            location_id="asia-southeast1",
+            actor_email="operator@example.com",
+            reason="partner configuration corrected",
+            evidence_ref="change-request-partner-a",
+            now=NOW + timedelta(minutes=1),
+        )
+        self.assertEqual(result["previous_status"], "permanent_failed")
+        self.assertEqual(result["generation"], 2)
+        self.assertEqual(
+            self.ledger.get_delivery(accepted.delivery_id)["task_name"],
+            self.task_name(event, generation=2),
+        )
 
     def _claim(self, event, result, *, generation=1, token="a" * 32, now=NOW):
         return self.ledger.claim_attempt(

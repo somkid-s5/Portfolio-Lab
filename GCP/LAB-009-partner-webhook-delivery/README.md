@@ -8,7 +8,7 @@ last_verified: null
 ---
 # Lab 09 — ระบบส่ง Webhook ให้ระบบคู่ค้า
 
-**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี pure domain contract, Firestore ledger/outbox, Cloud Tasks OIDC adapter, Event API, bounded Reconciler/Scheduler target, fenced Delivery Worker, HMAC partner simulator, create-only receipt adapter และ runtime entrypoints/config validation พร้อม tests; ยังขาด Terraform, Operator CLI และ Guide Tasks. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
+**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี domain/API/ledger, Cloud Tasks/Reconciler, fenced Worker, HMAC simulator, create-only receipt, strict runtime composition, shared non-root container, Terraform root แบบ foundation/workload gate และ Operator CLI สำหรับตรวจ/receipt/redrive พร้อม audit. คู่มือ Tasks 00–12 ยังอยู่ระหว่างเขียนและทดสอบ. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
 
 ## Build materials checkpoint
 
@@ -19,10 +19,11 @@ last_verified: null
 - `app/reconciler.py` อ่าน pending/queued/attempt_running อย่างมี page cap รวมไม่เกิน 25 records ต่อรอบ, ซ่อม task ที่ยังสด, และย้าย pending เกิน 15 นาที, queued ที่หา task ไม่พบ หรือ attempt_running ที่ lease หมดอายุและ task หายไป `retry_ended_unknown` เพื่อให้คนตรวจ. การบันทึก enqueue error ไม่เลื่อน `enqueue_pending_since` จึงไม่รีเซ็ต deadline.
 - `app/reconciler_api.py` เปิด `POST /internal/reconcile` สำหรับ Cloud Scheduler, ไม่รับ control fields จาก request, ส่ง HTTP 503 เมื่อมี record error เพื่อให้ Scheduler retry. ใช้ Cloud Run IAM เป็น auth boundary; test นี้ยืนยันเฉพาะ HTTP contract ไม่ได้ทดสอบ IAM จริง.
 - `app/worker.py` claim attempt ด้วย lease/fencing token, สร้าง HMAC ใหม่ต่อ outbound attempt, บันทึก delivered/permanent/retry ก่อนตอบ Cloud Tasks และใช้ Retry-After แบบมีเพดาน. `app/simulator.py` ตรวจ canonical body/signature/freshness และจำลอง fault mode ที่ตั้งจาก deploy config เท่านั้น; `app/receipt_store.py` ใช้ GCS generation-match 0 และเทียบ hash ก่อนยืนยัน duplicate. Worker/Simulator tests เพิ่มแล้วและรอ CI.
-- `app/event_service.py`, `app/reconciler_service.py`, `app/worker_service.py` และ `app/simulator_service.py` ประกอบ WSGI app จาก client credentials ของ runtime identity. `app/runtime_config.py` รับเฉพาะ allowlisted non-secret settings, pin Secret Manager version และตรวจ config ตั้งแต่ startup; `app/secret_manager.py` แยก configuration error ออกจาก transient access failure. ยังไม่มี container build หรือ live Cloud test.
+- `app/event_service.py`, `app/reconciler_service.py`, `app/worker_service.py` และ `app/simulator_service.py` ประกอบ WSGI app จาก client credentials ของ runtime identity. `app/runtime_config.py` รับเฉพาะ allowlisted non-secret settings, pin Secret Manager version และตรวจ config ตั้งแต่ startup; `app/secret_manager.py` แยก configuration error ออกจาก transient access failure. container build ยังรอ CI ตรวจ และยังไม่มี live Cloud test.
+- `Dockerfile` สร้าง image ร่วมแบบ non-root; `app/entrypoint.py` ยอมเลือกเฉพาะ role ที่กำหนด 4 แบบ, port ถูก validate และ `.dockerignore` ตัด tests/infra/assets/เอกสาร/secrets ออกจาก image. CI จะ build/import/check user โดยไม่ push Artifact Registry.
 - Emulator tests ครอบคลุม pending deadline, page bound, task หาย, lease ที่ยัง active/หมดอายุ และไม่เขียนทับ terminal state.
 - `tests/test_domain.py` ทดสอบ contract แบบ pure; `tests/test_firestore_ledger.py` ใช้ loopback Firestore Emulator ทดสอบ atomic write, concurrent replay และ state guard. ผลจะถือเป็น CI/emulator evidence เมื่อ workflow ผ่านเท่านั้น.
-- ขั้นถัดไปคือยืนยัน CI ของ Worker/Simulator/runtime code แล้วทำ container, Terraform, Operator CLI และ Tasks guide. ยังไม่มี Terraform หรือ Cloud SDK call ไปยัง project จริง.
+- ขั้นถัดไปคือยืนยัน CI ของ Worker/Simulator/runtime/container แล้วทำ Terraform, Operator CLI และ Tasks guide. ยังไม่มี Terraform หรือ Cloud SDK call ไปยัง project จริง.
 
 ## สถานการณ์
 
