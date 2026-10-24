@@ -1182,3 +1182,31 @@ jobs:
           persist-credentials: false
       - name: Check Lab 12 task order, recording fields, relative links and shell syntax
         run: python3 -m unittest discover -s GCP/LAB-012-cross-service-tracing/tests -p test_guide.py -v
+
+
+  lab013-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 13 design brief, routing and pinned icon provenance
+        run: python3 -m unittest discover -s GCP/LAB-013-parallel-data-processing/tests -p test_design.py -v
+      - name: Install SVG renderer and Thai fallback font
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin fonts-noto-core
+      - name: Render Lab 13 solution at guide width
+        run: |
+          mkdir -p lab013-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-013-parallel-data-processing/assets/solution.svg -o lab013-diagram-previews/solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab013-design-preview
+          path: |
+            lab013-diagram-previews/solution.png
+            GCP/LAB-013-parallel-data-processing/README.md
+            GCP/LAB-013-parallel-data-processing/assets/**
+          if-no-files-found: error
+          retention-days: 14

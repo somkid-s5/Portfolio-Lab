@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–12 Guide-ready. Lab 12 ผ่าน repository CI [#330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ครบ 43/43 jobs; CI ไม่ใช่ผล Cloud run และไม่มี Cloud verification จริง.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–12 Guide-ready; Lab 13 กำลังตรวจ Design checkpoint. Lab 12 ผ่าน repository CI [#330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ครบ 43/43 jobs; CI ไม่ใช่ผล Cloud run และไม่มี Cloud verification จริง.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -118,6 +118,8 @@
 **Change request:** เพิ่ม concurrency โดยรักษาความถูกต้องของการจองและ connection budget
 
 **วิธีหลักที่วางไว้:** CLI + Terraform
+
+**สถานะปัจจุบัน:** [Design checkpoint](LAB-013-parallel-data-processing/README.md) — CI pending; Cloud verification Not run.
 
 **ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
 
