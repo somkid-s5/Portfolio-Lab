@@ -97,9 +97,8 @@ def create_app(deps: CoordinatorDependencies) -> Flask:
                 "source_generation": record.get("source_generation"),
                 "source_sha256": record.get("source_sha256"),
             }
-            self.objects_verify = deps.objects.verify_report
             try:
-                self.objects_verify(
+                deps.objects.verify_report(
                     record.get("report_object"),
                     record.get("report_generation"),
                     expected_sha256=record.get("report_sha256"),
