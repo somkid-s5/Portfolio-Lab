@@ -1,15 +1,15 @@
 ---
 lab: LAB-014
 platform: GCP
-phase: brief
-guide_status: brief
+phase: design
+guide_status: design
 cloud_verification: not-run
 last_verified: null
 ---
 
 # Lab 14 — แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา
 
-> **สถานะเอกสาร:** Brief — กำหนดโจทย์ ขอบเขต สถาปัตยกรรมตั้งต้น และเกณฑ์พิสูจน์แล้ว; ยังไม่ได้เขียน Task Guide หรือไฟล์ deploy
+> **สถานะเอกสาร:** Design — สถาปัตยกรรมและแผนภาพ Solution ร่างเสร็จ; ยังไม่ได้เขียน Task Guide หรือ deploy files
 > **สถานะ Cloud:** Not run — เป็นแผนและแบบฝึกหัด ยังไม่มีการสร้างทรัพยากรหรือผลทดสอบ GCP จริง
 
 ## สถานการณ์
@@ -21,6 +21,14 @@ last_verified: null
 ## ขอบเขตบริการตัวอย่าง
 
 App เป็น Shipping Quote API แบบ stateless ใช้ข้อมูลจำลองและไม่เก็บข้อมูลลูกค้าจริง มี endpoint สำหรับ health, version และคำนวณ quote พร้อม structured logs ที่เชื่อม request กับ image digest/commit ได้ เนื้อหา App ทำหน้าที่ให้ทีมมี business path ที่ทดสอบจาก CI, staging และ production ไม่ใช่หัวข้อหลักที่ต้องใช้เวลาเขียน App ใหม่
+
+## Solution diagram
+
+![แผนภาพสถาปัตยกรรม Lab 14](assets/solution.svg)
+
+[เปิดแผนภาพ HTML แบบ standalone](assets/solution.html) · [ดูที่มาของไอคอนและ layout](assets/diagram-provenance.json)
+
+แผนภาพแยก GitHub ออกจากขอบเขต Google Cloud, แสดง WIF และ Binary Authorization เป็น project-level controls และวาง Cloud Run staging/production ซ้อนแนวตั้งใต้ Cloud Deploy เพื่อให้เส้น promotion/approval สั้นและไม่ตัดผ่าน service labels. สัญลักษณ์ของ Cloud Deploy, Binary Authorization และ Cloud KMS เป็น generic symbols พร้อมป้ายชื่อ ไม่ใช่ไอคอนผู้ให้บริการ
 
 ## Requirements และเกณฑ์ยอมรับ
 
@@ -115,6 +123,15 @@ App เป็น Shipping Quote API แบบ stateless ใช้ข้อมู
 - [สร้าง Binary Authorization attestation ด้วย Cloud KMS](https://docs.cloud.google.com/binary-authorization/docs/making-attestations) — signing และ attestor
 - [Artifact Registry IAM](https://docs.cloud.google.com/artifact-registry/docs/access-control) — role scope ของ repository
 
+## Design decisions
+
+- GitHub pull-request checks ไม่มี OIDC permission; WIF trust จำกัดด้วย immutable repository ID 1428247317 และ branch ref main. ขั้น authoring จะตรวจ claim mapping/attribute condition จากเอกสาร IAM และทดสอบ negative branch โดยไม่ขอ credential จริง
+- Cloud Build เป็นผู้สร้างและทดสอบ image; Artifact Registry เก็บ image แบบ digest; build, signer, deployer และ production approver ใช้ identity แยกหน้าที่
+- ใช้ custom Binary Authorization attestor ที่ตรวจ KMS-signed attestation แทน built-by-cloud-build ซึ่งเอกสาร Cloud Run ระบุสถานะ Preview. Project default policy ครอบคลุม Cloud Run ใน project นี้ จึงต้องสร้าง attestation ก่อน deploy staging และ production
+- Cloud Deploy ใช้ Cloud Run services; production target บังคับ approval และ canary verification. ต้องปล่อย baseline ให้มี revision เก่าก่อน เพราะ first deployment อาจข้าม canary phases
+- WIF และ Binary Authorization เป็น project-level controls; Cloud Build, Artifact Registry, Cloud Deploy, Cloud KMS key และ Cloud Run targets ใช้ region เดียวกัน. Lab baseline ใช้ project เดียวเพื่อลด setup; แยก project เป็น extension
+- ใช้ service endpoints แบบ bounded probes และเก็บ build/deploy/runtime/audit events ใน Cloud Logging. ไม่มีการทดสอบ load ที่ยิงไม่จำกัด
+
 ## ขั้นถัดไป
 
-Design จะล็อก request/data/identity flow, pipeline config, IAM bindings, attestation trust boundary, canary verification/rollback และ Diagram ก่อนเริ่มเขียน Task Guide จากนั้นจึงสร้าง App/infra/test materials และเขียน README ไฟล์นี้ต่อให้เป็นคู่มือครบหนึ่ง Lab ไม่มีการสร้าง GCP resources ในขั้นจัดทำเอกสาร
+ต่อไปตรวจ Terraform provider/API schema และ IAM permissions, ทำ architecture/pipeline tests พร้อม sample Quote API และ build/deploy/verify materials แล้วค่อยเติม Task Guide ใน README นี้ให้ละเอียดครบวงจร. ไม่มีการสร้าง GCP resources ในขั้นจัดทำเอกสาร

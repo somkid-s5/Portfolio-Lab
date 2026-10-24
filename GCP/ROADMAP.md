@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs บน commit `70d1269d854b212d9bb9567e833f932d54ced204`; Lab 14 Brief; Lab 15–20 Planned. CI เป็น repository checks เท่านั้น ไม่มี Cloud verification จริง.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs บน commit `70d1269d854b212d9bb9567e833f932d54ced204`; Lab 14 Design; Lab 15–20 Planned. CI เป็น repository checks เท่านั้น ไม่มี Cloud verification จริง.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -303,7 +303,7 @@
 
 **วิธีหลักที่วางไว้:** GitHub Actions + Workload Identity Federation, Cloud Build/Artifact Registry, Binary Authorization, Cloud Deploy + Terraform
 
-**สถานะปัจจุบัน:** Brief — [README](LAB-014-secure-app-delivery/README.md) ระบุ requirements และ trust boundaries; ยังไม่เริ่ม Task Guide และไม่มี GCP provisioning.
+**สถานะปัจจุบัน:** Design — [README](LAB-014-secure-app-delivery/README.md) มี requirements, trust boundaries และแผนภาพ solution; รอตรวจ diagram CI ก่อน authoring และไม่มี GCP provisioning.
 
 **ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
 

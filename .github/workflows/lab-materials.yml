@@ -1266,3 +1266,30 @@ jobs:
           persist-credentials: false
       - name: Check 20 ordered Tasks, evidence fields, Bash syntax and local links
         run: python3 -m unittest discover -s GCP/LAB-013-parallel-data-processing/tests -p test_guide.py -v
+
+  lab014-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 14 diagram accessibility, icon provenance, scopes and routing
+        run: python3 -m unittest discover -s GCP/LAB-014-secure-app-delivery/tests -p test_design.py -v
+      - name: Install SVG renderer and Thai fallback font
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin fonts-noto-core
+      - name: Render Lab 14 solution diagram
+        run: |
+          mkdir -p lab014-diagram-previews
+          rsvg-convert --width 1440 GCP/LAB-014-secure-app-delivery/assets/solution.svg -o lab014-diagram-previews/solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab014-design-preview
+          path: |
+            lab014-diagram-previews/solution.png
+            GCP/LAB-014-secure-app-delivery/README.md
+            GCP/LAB-014-secure-app-delivery/assets/**
+          if-no-files-found: error
+          retention-days: 14

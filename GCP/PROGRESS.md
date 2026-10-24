@@ -17,7 +17,7 @@
 | 11 | [ระบบคำนวณราคาเสนอค่าขนส่งบน GKE](LAB-011-gke-quote-engine/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 12 | [ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้](LAB-012-cross-service-tracing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) |
 | 13 | [ระบบประมวลผลข้อมูลนำเข้าแบบขนาน](LAB-013-parallel-data-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) — 47/47 jobs ผ่าน |
-| 14 | [แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา](LAB-014-secure-app-delivery/README.md) | Brief | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 14 | [แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา](LAB-014-secure-app-delivery/README.md) | Design | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 15 | ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud | Planned | Not run | — |
 | 16 | ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud | Planned | Not run | — |
 | 17 | ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้ | Planned | Not run | — |
@@ -33,7 +33,7 @@ Cloud verification: Not run → In progress → Verified / Failed / Blocked (ต
 
 Lab 13 / Guide-ready — เพิ่ม solution guide, app/worker, generator/uploader/reconciler, Terraform foundation, diagram, tests และ cleanup; [CI #342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ผ่านครบ 47/47 jobs บน commit `70d1269d854b212d9bb9567e833f932d54ced204`. เป็น repository CI เท่านั้น ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
 
-Lab 14 / Brief — กำหนด delivery platform จาก GitHub Actions ผ่าน WIF ไป Cloud Build/Artifact Registry, Binary Authorization, Cloud Deploy และ Cloud Run พร้อมเกณฑ์ untrusted identity, unapproved image, staging verification, production approval, canary, rollback และ expiring exception. ยังไม่มี Task Guide, app, infra หรือผล Cloud.
+Lab 14 / Design — วาง delivery platform จาก GitHub Actions ผ่าน WIF ไป Cloud Build/Artifact Registry, Binary Authorization, Cloud Deploy และ Cloud Run พร้อมเกณฑ์ untrusted identity, unapproved image, staging verification, production approval, canary, rollback และ expiring exception. เพิ่ม SVG/HTML diagram พร้อม official icon provenance และ layout tests; ยังไม่มี Task Guide, app, infra หรือผล Cloud.
 
 Lab 02 materials checkpoint: [CI 39810811347 / job lab002](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39810811347) รัน App สอง process กับ PostgreSQL 15 จริงและผ่าน 7 integration tests: shared data, auth/validation, retry/conflict, concurrent overdraw, concurrent duplicate key, non-destructive seed และ health/search ใช้ฐานข้อมูล CI ชั่วคราว ไม่ใช่ผล Deploy GCP; secret-generator/installer tests เพิ่มเติมยังอยู่ระหว่างตรวจ
 
@@ -380,4 +380,4 @@ Lab 13 / Design baseline: กำหนดโจทย์ synthetic product-data 
 
 Lab 13 / Guide-ready checkpoint (2026-10-24): [CI #342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327), commit `70d1269d854b212d9bb9567e833f932d54ced204`, ผ่านครบ 47/47 jobs รวม Lab13 guide/app/infra/design. Tests ตรวจ source, contracts, Terraform, diagram/render และคู่มือ; ไม่ใช่ GCP execution. ไม่มีการ provision และ Cloud verification Not run.
 
-Lab 14 / Brief checkpoint (2026-10-24): สร้าง [README](LAB-014-secure-app-delivery/README.md) สำหรับ secure app delivery platform โดยล็อก requirements R1–R11, trust boundaries, WIF/Cloud Build/Artifact Registry, custom Binary Authorization attestation, Cloud Deploy staging/production approval/canary verification/rollback และ cost/evidence boundaries. Brief อ้างอิงเอกสาร Google Cloud ทางการ; ยังต้องทำ architecture diagram, verify IAM/API details, build app/infra/tests และขยาย README เป็น task-by-task Guide ก่อน Guide-ready. No GCP resources created; Cloud verification Not run.
+Lab 14 / Design checkpoint (2026-10-24): เพิ่ม [README](LAB-014-secure-app-delivery/README.md), architecture SVG/standalone HTML และ pinned official-icon provenance. แผนภาพวาง GitHub/WIF/Binary Authorization นอก regional scope; Cloud Build, Artifact Registry, KMS, Cloud Deploy และ Cloud Run อยู่ใน asia-southeast1; staging/production วางแนวตั้งตาม release flow. เพิ่ม tests สำหรับ SVG accessibility, icon hashes, scope/connector alignment. รอบ Design CI ยัง pending; ยังต้องตรวจ IAM/API/Terraform, สร้าง app/infra/pipeline tests และขยาย README เป็น Guide ก่อน Guide-ready. No GCP resources created; Cloud verification Not run.

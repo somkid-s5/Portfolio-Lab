@@ -1,0 +1,39 @@
+{
+  "diagram": "assets/solution.svg",
+  "standalone_html": "assets/solution.html",
+  "official_icon_catalog": "https://cloud.google.com/icons",
+  "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+  "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+  "attribution": "Google Cloud icons are original assets from Google's official icon library, retained in original colors and geometry. Cloud Deploy, Binary Authorization, Cloud KMS and GitHub are represented by labeled generic symbols, not claimed as official product glyphs.",
+  "render_target_width": 1440,
+  "layout_decision": "The release path reads left-to-right. Cloud Run staging and production targets are stacked vertically below Cloud Deploy so promotion and approval connectors remain short. WIF and the Binary Authorization attestor/policy are project-level controls shown outside the regional frame; regional services are nested inside asia-southeast1. The policy control enters the runtime group through a dedicated gutter.",
+  "cloud_verification": "not-run",
+  "icons": {
+    "cloud_run.svg": {
+      "path": "assets/icons/cloud_run.svg",
+      "source_path": "cloud_run/cloud_run.svg",
+      "sha256": "97e1db08021eecae2a8c5124f382a9b451dc63deecaa87825dc5b396fab59c37",
+      "source_url": "https://cloud.google.com/icons",
+      "archive": "https://services.google.com/fh/files/misc/google-cloud-legacy-icons.zip",
+      "archive_sha256": "a6d9d7921758042538b462f03cf64614c2cebd96743b3ed63580a769fc7de3e9"
+    },
+    "cloud_build.svg": {
+      "path": "assets/icons/cloud_build.svg",
+      "source_path": "docs/images/cloud_build.svg",
+      "git_blob_sha": "21de5420f0480abe399d15c29c8353da9783bc39",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_build.svg"
+    },
+    "artifact_registry.svg": {
+      "path": "assets/icons/artifact_registry.svg",
+      "source_path": "docs/images/artifact_registry.svg",
+      "git_blob_sha": "81c46f8af7e0823a56c8c460e35758cbac8bfaf7",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/artifact_registry.svg"
+    },
+    "identity_and_access_management.svg": {
+      "path": "assets/icons/identity_and_access_management.svg",
+      "source_path": "docs/images/identity_and_access_management.svg",
+      "git_blob_sha": "4ba9ea6b0db107723fd70fc6f5207fe4a2760a11",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/identity_and_access_management.svg"
+    }
+  }
+}
