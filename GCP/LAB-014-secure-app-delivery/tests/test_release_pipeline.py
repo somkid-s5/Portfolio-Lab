@@ -145,7 +145,7 @@ class ReleaseWorkflowTests(unittest.TestCase):
             self.assertTrue(any("google-github-actions/auth@" in step.get("uses", "") for step in job["steps"]))
             self.assertTrue(any("@3d3c42e5aac5ba805825da76410c181273ba90b1" in step.get("uses", "") for step in job["steps"]))
         self.assertIn("needs.attest.result == 'success'", workflow["jobs"]["release"]["if"])
-        self.assertTrue(any("sign-and-create" in step.get("name", "") for step in workflow["jobs"]["attest"]["steps"]))
+        self.assertTrue(any("sign-and-create" in step.get("run", "") for step in workflow["jobs"]["attest"]["steps"]))
         self.assertTrue(any("shipping-quote-api=$IMAGE_URI" in step.get("run", "") for step in workflow["jobs"]["release"]["steps"]))
 
 
