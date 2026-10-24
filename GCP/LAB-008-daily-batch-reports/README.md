@@ -94,7 +94,7 @@ Cloud Logging เก็บ structured watchdog event; สร้าง log-based 
 
 ### Diagrams
 
-แผนภาพ topology แยก project, regional resources และ Pub/Sub global topic; Cloud Run ไม่ได้ถูกวาดเป็นทรัพยากรใน VPC. ภาพ run/recovery แยก schedule time, business date, batch ledger และ notification state.
+แผนภาพ topology แยก project, regional resources, Pub/Sub global topic และ Logging/Monitoring สำหรับ watchdog; Cloud Run ไม่ได้ถูกวาดเป็นทรัพยากรใน VPC. ภาพ run/recovery แสดง schedule time, business date, ledger, retry และการ alert เมื่อรายงานยังไม่พร้อม.
 
 [PNG topology](assets/solution.png) · [SVG source](assets/solution.svg) · [PNG run/recovery flow](assets/run-flow.png) · [SVG source](assets/run-flow.svg) · [icon provenance](assets/diagram-provenance.json)
 

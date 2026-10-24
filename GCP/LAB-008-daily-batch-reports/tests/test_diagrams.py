@@ -3,6 +3,7 @@ import base64
 import hashlib
 import json
 from pathlib import Path
+import struct
 import unittest
 import xml.etree.ElementTree as ET
 
@@ -28,6 +29,12 @@ class DiagramTests(unittest.TestCase):
                 hashes.add(hashlib.sha256(icon).hexdigest())
         self.assertEqual(hashes, EXPECTED)
 
+    def test_committed_png_previews_are_960px(self):
+        for name in ("solution", "run-flow"):
+            data = (ASSETS / f"{name}.png").read_bytes()
+            self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+            self.assertEqual(struct.unpack(">II", data[16:24])[0], 960)
+
     def test_flow_svg_is_accessible_and_provenance_is_complete(self):
         root = ET.parse(ASSETS / "run-flow.svg").getroot()
         self.assertEqual(root.attrib.get("role"), "img")
@@ -36,7 +43,7 @@ class DiagramTests(unittest.TestCase):
         self.assertGreaterEqual(len(root.findall(".//" + SVG_NS + "rect")), 17)
         self.assertEqual(PROVENANCE["archive_sha256"], "a6d9d7921758042538b462f03cf64614c2cebd96743b3ed63580a769fc7de3e9")
         self.assertEqual({i["service"] for i in PROVENANCE["icons"]},
-                         {"Cloud Run", "Cloud Scheduler", "Cloud Storage", "Firestore", "Pub/Sub"})
+                         {"Cloud Logging", "Cloud Monitoring", "Cloud Run", "Cloud Scheduler", "Cloud Storage", "Firestore", "Pub/Sub"})
         self.assertEqual(PROVENANCE["style_attribution"]["license"], "MIT")
         self.assertIn("cathrynlavery/diagram-design", PROVENANCE["style_attribution"]["upstream"])
 

@@ -27,20 +27,32 @@
       "service": "Pub/Sub",
       "path": "pubsub/pubsub.svg",
       "sha256": "bd71cb16b24c5a368fc7913525e093f03e426d06e8917c1f255187e9f6c10217"
+    },
+    {
+      "service": "Cloud Logging",
+      "path": "docs/images/cloud_logging.svg",
+      "sha256": "f7fdd93a1847fdebf174c78cce418fac52198be72893116e7787ca3e1659cf38",
+      "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+      "git_blob_sha1": "7691a3ed0450b744311427e8818c5d5bf4894c30"
+    },
+    {
+      "service": "Cloud Monitoring",
+      "path": "docs/images/cloud_monitoring.svg",
+      "sha256": "804f66b773fcc5cd59a3fb8e0da9ff3de9b69efa99c23f8e1797943647a8e79e",
+      "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+      "git_blob_sha1": "ab3111db6d740473ea85ca9606631b97a7241236"
     }
   ],
-  "layout_decision": "The regional schedule→coordinator→job chain is horizontal; data objects and run ledger sit below; global Pub/Sub stays outside the regional boundary; external operator and consumer remain outside the project.",
+  "layout_decision": "Regional schedule→coordinator→job stays horizontal; pinned source, Firestore ledger and create-only output sit below. Global Pub/Sub, Logging and Monitoring stay outside the region; external operator/consumer remain outside the project. Watchdog log alerts route from Logging through Monitoring.",
   "verification": "Design artifact only; no GCP deployment or Cloud verification is implied.",
   "style_attribution": {
     "upstream": "https://github.com/cathrynlavery/diagram-design",
     "license": "MIT",
     "note": "Diagram Design conventions adapted; official Google Cloud icons retain original colors and geometry."
   },
-  "visual_review": {
-    "workflow_run": "https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40069002002",
-    "workflow_job_id": 120798182613,
-    "render_width_px": 960,
-    "review": "Rendered solution and run-flow previews inspected; connector lanes and labels are separated with no observed clipping or overlap.",
-    "reviewed_date": "2026-10-24"
+  "pinned_icon_mirror": {
+    "repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+    "commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+    "note": "Pinned expansion of Google Cloud product icon downloads; original Google ownership and colors retained."
   }
 }
