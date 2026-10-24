@@ -52,6 +52,12 @@
       "git_blob_sha": "7691a3ed0450b744311427e8818c5d5bf4894c30",
       "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
       "source_path": "docs/images/cloud_logging.svg"
+    },
+    "cloud_nat.svg": {
+      "path": "assets/icons/cloud_nat.svg",
+      "git_blob_sha": "5e1653551b9491d13aeab7394c77a2b2eeffed7b",
+      "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+      "source_path": "docs/images/cloud_nat.svg"
     }
   },
   "cloud_verification": "not-run",
@@ -60,6 +66,7 @@
     "URL map selects one default backend at a time",
     "Cloud SQL is outside the customer VPC and reached through Direct VPC egress and Private Services Access",
     "migration diagram distinguishes baseline write-freeze from gated DMS continuous migration",
-    "routes use orthogonal connectors and preserve GCP scope boundaries"
+    "routes use orthogonal connectors and preserve GCP scope boundaries",
+    "the source VM has no external IP; Cloud NAT is scoped to the source subnet for outbound bootstrap only"
   ]
 }

@@ -33,12 +33,18 @@ class Lab016DesignTests(unittest.TestCase):
    self.assertEqual(hashlib.sha1(blob).hexdigest(),item["git_blob_sha"],filename); self.assertIn(icon,embedded,filename)
  def test_personal_custom_palette_scopes_and_relationships(self):
   root=ET.fromstring(SOLUTION); ids={n.attrib.get("id") for n in root.iter()}
-  for item in ("project-scope","region-scope","customer-vpc","legacy-backend","cloud-run-backend","target-database","secret-manager","url-map","url-map-to-legacy","url-map-to-run","run-to-sql"):
+  for item in ("project-scope","region-scope","customer-vpc","legacy-backend","cloud-run-backend","target-database","secret-manager","url-map","url-map-to-legacy","url-map-to-run","run-to-sql","source-cloud-nat","source-to-cloud-nat","source-nat-to-internet"):
    self.assertIn(item,ids)
   for color in ("#F7FAFF","#EFF6FF","#F0FDFA","#FFF7ED","#F5F3FF","#F1F5F9"): self.assertIn(color,SOLUTION)
   labels=" ".join(n.text or "" for n in root.iter() if n.tag.endswith("text"))
   for label in ("asia-southeast1","10.80.0.0/24","10.80.1.0/26","Private IP via PSA","one active backend at a time","unmanaged instance group","Serverless NEG"):
    self.assertIn(label.lower(),labels.lower())
+ def test_source_subnet_has_scoped_nat_egress(self):
+  root=ET.fromstring(SOLUTION); ids={n.attrib.get("id") for n in root.iter()}
+  self.assertIn("icon-cloud_nat",ids)
+  labels=" ".join(n.text or "" for n in root.iter() if n.tag.endswith("text"))
+  self.assertIn("Cloud NAT",labels); self.assertIn("outbound bootstrap egress",labels)
+  self.assertIn("10.80.0.0/24",labels); self.assertIn("no public IP",labels)
  def test_routes_are_orthogonal_and_migration_backout_is_explicit(self):
   root=ET.fromstring(SOLUTION); paths={n.attrib.get("id"):n for n in root.iter() if n.tag.endswith("path") and n.attrib.get("id")}
   for key in ("url-map-to-legacy","url-map-to-run","run-to-sql","secret-to-run"):

@@ -97,7 +97,7 @@ DMS เป็น Change Request ที่มี resource/cost เพิ่ม �
 | ทดสอบ TLS | orders.lab.test กับ self-signed certificate ที่สร้างในเครื่อง และ curl --resolve | ทดสอบ TLS/SAN โดยไม่ใช้ DNS สาธารณะ; private key อยู่ในเครื่องผู้เรียนเท่านั้น |
 | Source | Compute Engine VM + Orders API + PostgreSQL 16 ใน zonal unmanaged instance group | ใช้จำลองระบบเดิมที่ทีมควบคุมเองและทำ backup/restore ซ้ำได้; ไม่อ้างว่าแทนระบบ on-premises จริง |
 | Target | Orders API บน Cloud Run; PostgreSQL 16 บน Cloud SQL private IP | ใช้ Cloud SQL Auth Proxy/Cloud Run Cloud SQL connection ผ่าน Direct VPC egress และ Private Services Access; secret และ IAM จำกัดตาม runtime identity |
-| Network ranges | VM subnet 10.80.0.0/24, Direct VPC egress subnet 10.80.1.0/26, PSA reserved range 10.80.2.0/24 | เป็นค่าตั้งต้นของ Lab; ก่อนสร้างต้องตรวจ overlap กับทุก subnet, peering route, quota และ Cloud SQL prerequisites |
+| Network ranges | VM subnet 10.80.0.0/24, Direct VPC egress subnet 10.80.1.0/26, PSA reserved range 10.80.2.0/24; Cloud NAT ครอบคลุมเฉพาะ source subnet | เป็นค่าตั้งต้นของ Lab; ก่อนสร้างต้องตรวจ overlap กับทุก subnet, peering route, quota และ Cloud SQL prerequisites; VM ไม่มี external IP |
 | Migration หลัก | หยุด writers, ตรวจ transaction, pg_dump/restore, reconcile และค่อยเปลี่ยน URL map | เหมาะกับ dataset จำลองขนาดจำกัดและพิสูจน์ cutover/backout ได้; ผู้เรียนวัด write-freeze จริง ไม่มีคำกล่าวอ้าง zero downtime |
 | DMS | Change Request เท่านั้น; ต้องผ่าน source configuration, private connectivity, compatibility และ cost/access gate | DMS ทำ initial load/CDC แต่เพิ่มทรัพยากรและ prerequisites; หาก gate ไม่ผ่านให้บันทึกเหตุผลแล้วใช้เส้นทางหลัก |
 | Rollback | ก่อนเปิด writes ที่ target ให้คืน URL map ได้; หลัง target รับ writes ให้ forward-recover หรือทำ reverse synchronization ที่ออกแบบและพิสูจน์แล้ว | ป้องกัน split-brain และการทิ้งคำสั่งซื้อที่เขียนหลัง cutover |
@@ -107,7 +107,7 @@ DMS เป็น Change Request ที่มี resource/cost เพิ่ม �
 - Request: client → global HTTPS Load Balancer → URL map → backend service ที่เลือก → VM หรือ Cloud Run serverless NEG.
 - Target database: Cloud Run ใช้ Direct VPC egress จาก subnet ที่กำหนด แล้วเชื่อม Cloud SQL ผ่าน private IP/PSA; runtime service account ได้ Cloud SQL Client และ Secret Manager Secret Accessor เฉพาะ secret ที่ต้องอ่าน.
 - Public ingress: เปิด Cloud Run invocations ที่จำเป็นต่อ serverless NEG แต่จำกัด ingress ให้รับทาง external Application Load Balancer; ห้ามใช้ all ingress เป็นทางลัด.
-- Legacy backend: health-check firewall เปิดเฉพาะช่วง IP และ port ที่ Google ระบุในเอกสาร ณ วันที่เขียน Tasks; SSH ใช้ IAP/OS Login ตาม Lab และไม่เปิด 22 สู่ Internet.
+- Legacy backend: VM ไม่มี external IP; Cloud NAT ออกได้เฉพาะ outbound เพื่อดาวน์โหลดแพ็กเกจและ container image โดย NAT ผูกกับ source subnet เท่านั้น. Health-check firewall เปิดเฉพาะช่วง IP/port ที่ Google ระบุ ณ วันที่เขียน Tasks; SSH ใช้ IAP/OS Login และไม่เปิด 22 สู่ Internet.
 - DMS Change Request: private source connectivity ต้องตั้งตามวิธี DMS ที่เลือกจริง; destination Cloud SQL เป็นผู้เชื่อมต่อไป source ตาม migration flow ของ DMS. ไม่เปิด PostgreSQL สู่ public internet.
 - Secrets, dump files, certificates และ Terraform state ต้องไม่ commit; ใช้ไฟล์ชั่วคราวที่จำกัดสิทธิ์และลบทิ้งหลัง Lab.
 
