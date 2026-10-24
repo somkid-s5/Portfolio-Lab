@@ -86,18 +86,22 @@ class Lab14DesignTests(unittest.TestCase):
     def test_readme_locks_the_github_build_and_wif_trust_boundary(self):
         for phrase in (
             "GitHub WIF ไม่มีสิทธิ์ `cloudbuild.builds.create`",
+            "google.subject=assertion.sub",
             "attribute.repository_id=assertion.repository_id",
+            "attribute.ref=assertion.ref",
             "attribute.workflow_ref=assertion.workflow_ref",
             "attribute.environment=assertion.environment",
             "`gcp-attest`",
             "`gcp-release`",
             "trigger ID, commit SHA, builder identity",
             "`lab014-renderer`",
-            "`lab014-deployer`",
+            "`lab014-staging-deployer`",
+            "`lab014-production-deployer`",
             "`roles/containeranalysis.notes.occurrences.viewer`",
-            "Design checkpoint ปิดแล้ว",
         ):
             self.assertIn(phrase, README)
+        self.assertIn("cloud_verification: not-run", README)
+        self.assertIn("สถานะ Cloud:** Not run", README)
 
     def test_trust_and_delivery_labels_are_explicit(self):
         for phrase in (

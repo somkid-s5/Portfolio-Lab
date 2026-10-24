@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 import unittest
 from pathlib import Path
 
@@ -56,8 +57,12 @@ class ReleaseContractTests(unittest.TestCase):
                 service["spec"]["template"]["metadata"]["annotations"]["autoscaling.knative.dev/maxScale"],
                 "2",
             )
-            self.assertEqual(container["env"][0]["value"], "1.00")
+            factor = Decimal(container["env"][0]["value"])
+            self.assertGreaterEqual(factor, Decimal("0.50"))
+            self.assertLessEqual(factor, Decimal("2.00"))
             self.assertEqual(service["metadata"]["annotations"]["run.googleapis.com/binary-authorization"], "default")
+        staging_factor = Decimal(staging["spec"]["template"]["spec"]["containers"][0]["env"][0]["value"])
+        self.assertEqual(staging_factor, Decimal("1.00"))
 
     def test_cloud_build_is_pinned_to_custom_builder_identity(self):
         config = yaml.safe_load((ROOT / "cloudbuild.yaml").read_text(encoding="utf-8"))
@@ -67,6 +72,17 @@ class ReleaseContractTests(unittest.TestCase):
         )
         self.assertEqual(config["options"]["logging"], "CLOUD_LOGGING_ONLY")
         self.assertEqual(len(config["images"]), 1)
+
+    def test_untrusted_build_is_manual_and_separate_from_release_artifact(self):
+        config = yaml.safe_load((ROOT / "tools/cloudbuild-untrusted.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(
+            config["serviceAccount"],
+            "projects/$PROJECT_ID/serviceAccounts/lab014-builder@$PROJECT_ID.iam.gserviceaccount.com",
+        )
+        self.assertEqual(config["options"]["logging"], "CLOUD_LOGGING_ONLY")
+        self.assertEqual(len(config["images"]), 1)
+        self.assertIn("/untrusted-quote-api:", config["images"][0])
+        self.assertNotIn("trigger", config)
 
 
 if __name__ == "__main__":

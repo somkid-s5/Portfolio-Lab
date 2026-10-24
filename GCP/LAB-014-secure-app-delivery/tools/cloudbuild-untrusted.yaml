@@ -1,0 +1,28 @@
+steps:
+  - id: build-untrusted-negative-test-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --pull
+      - --file
+      - Dockerfile
+      - --tag
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/untrusted-quote-api:${_TAG}
+      - .
+  - id: push-untrusted-negative-test-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/untrusted-quote-api:${_TAG}
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/untrusted-quote-api:${_TAG}
+serviceAccount: projects/$PROJECT_ID/serviceAccounts/lab014-builder@$PROJECT_ID.iam.gserviceaccount.com
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_MEDIUM
+  substitutionOption: MUST_MATCH
+timeout: 600s
+substitutions:
+  _REGION: asia-southeast1
+  _REPOSITORY: lab014-apps
+  _TAG: manual

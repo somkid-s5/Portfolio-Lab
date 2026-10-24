@@ -232,7 +232,7 @@ resource "google_kms_key_ring" "attestation" {
 }
 resource "google_kms_crypto_key" "attestation" {
   name                       = "lab014-release-signing"
-  key_ring                  = google_kms_key_ring.attestation.id
+  key_ring                   = google_kms_key_ring.attestation.id
   purpose                    = "ASYMMETRIC_SIGN"
   destroy_scheduled_duration = "2592000s"
   version_template {

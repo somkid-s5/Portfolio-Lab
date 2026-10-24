@@ -73,7 +73,26 @@ Shipping Quote API มี endpoint:
 | `lab014-runtime` | ไม่มี role เพิ่มสำหรับ App นี้ | build, registry write, sign, deploy |
 | ผู้อนุมัติ Production | Cloud Deploy approver role ใน disposable project | build, sign, deploy หรือแก้ policy |
 
-Terraform ให้บาง role ระดับ project เพราะ Cloud Deploy/Cloud Build metadata APIs เป็น project-scoped; Artifact Registry write/read, KMS signing, note attachment และ actAs ถูกจำกัดลงถึง resource เท่าที่ API รองรับ. Cloud Build และ Cloud Deploy service agents ที่ Google สร้าง/จัดการไม่ใช่ builder/deployer identities ของ Lab
+### GitHub OIDC claim contract
+
+Terraform map claims ให้ provider ดังนี้:
+
+~~~text
+google.subject=assertion.sub
+attribute.repository_id=assertion.repository_id
+attribute.ref=assertion.ref
+attribute.workflow_ref=assertion.workflow_ref
+attribute.environment=assertion.environment
+
+assertion.repository_id == '1428247317' &&
+assertion.ref == 'refs/heads/main' &&
+assertion.workflow_ref == 'somkid-s5/Portfolio-Lab/.github/workflows/release.yml@refs/heads/main' &&
+assertion.environment in ['gcp-attest', 'gcp-release']
+~~~
+
+ถ้ามีการย้าย/สร้าง repository ใหม่ immutable repository ID จะเปลี่ยน; ต้อง review และแก้ trust condition กับ offline tests ก่อน apply. GitHub WIF ไม่มีสิทธิ์ `cloudbuild.builds.create`; build ที่ sign ได้ต้องมาจาก Cloud Build trigger ที่ pin builder SA, main branch และ path ของ Lab เท่านั้น
+
+Terraform ให้บาง role ระดับ project เพราะ Cloud Deploy/Cloud Build metadata APIs เป็น project-scoped; Artifact Registry write/read, KMS signing, note attachment และ actAs ถูกจำกัดลงถึง resource เท่าที่ API รองรับ. Binary Authorization attestor delegation SA อ่าน `roles/containeranalysis.notes.occurrences.viewer` บน attestor note. Cloud Build และ Cloud Deploy service agents ที่ Google สร้าง/จัดการไม่ใช่ builder/deployer identities ของ Lab
 
 ## ก่อนเริ่ม: ค่าใช้จ่ายและ safety gate
 
@@ -268,9 +287,34 @@ GitHub Environment approval เป็น gate ก่อน release job ขอ cr
 | `LAB014_CLOUDBUILD_TRIGGER_ID` | ค่า Terraform output `cloudbuild_trigger` (trigger UUID ไม่ใช่ full resource path) |
 | `LAB014_BUILDER_SA` | ค่า Terraform output `builder_service_account` |
 
-ตรวจ workflow permissions, commit pin ของ Actions, path filters และ Environment names จากหน้า Code. Pull request CI ไม่มี `id-token: write`; release workflow ขอ OIDC เฉพาะ job ที่มี Environment. อย่าเพิ่ม secret ที่เป็น key เพื่อแก้ WIF error
+ทดสอบ deny path ของ WIF เพิ่มด้วย workflow ชั่วคราวใน branch แยก (อย่า merge เข้า main): สร้าง branch <code>lab014-wif-negative</code> จาก main แล้วเพิ่ม <code>.github/workflows/lab014-wif-negative.yml</code> ด้วยเนื้อหานี้ จากนั้น push branch เพื่อให้ workflow run:
 
-**Expected:** Environment จำกัด branch main, ตัวแปรทั้ง 7 ชื่อตรง workflow, ไม่มี GCP key ใน Secrets
+~~~yaml
+name: Lab 14 WIF negative control
+on:
+  push:
+    branches: [lab014-wif-negative]
+permissions: {}
+jobs:
+  untrusted_ref:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Exchange must be denied by the WIF condition
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          workload_identity_provider: ${{ vars.LAB014_WIF_PROVIDER }}
+          service_account: ${{ vars.LAB014_ATTESTOR_SA }}
+          project_id: ${{ vars.LAB014_PROJECT_ID }}
+~~~
+
+workflow นี้ไม่มี GitHub Environment และ workflow_ref/ref ไม่ตรง trust condition จึงคาดว่า auth action จะ fail ตอนแลก token. ตรวจ log ให้แน่ใจว่าเป็นการปฏิเสธจาก WIF condition ไม่ใช่ตัวแปรว่างหรือ action หาไฟล์ไม่พบ; อย่าถือ failure ชนิดอื่นเป็นหลักฐาน deny. หลังเก็บ run URL แล้วลบ branch ทดสอบทั้ง branch เพื่อไม่ให้ไฟล์ทดสอบค้างหรือถูกรวมเข้า main.
+
+ตรวจ workflow permissions, commit pin ของ Actions, path filters และ Environment names จากหน้า Code. Pull request CI ไม่มี <code>id-token: write</code>; release workflow ขอ OIDC เฉพาะ job ที่มี Environment. อย่าเพิ่ม secret ที่เป็น key เพื่อแก้ WIF error
+
+**Expected:** Environment จำกัด branch main, ตัวแปรทั้ง 7 ชื่อตรง workflow, ไม่มี GCP key ใน Secrets และ WIF deny workflow หยุดที่ credential exchange
 
 **Actual:** Environment protection และ variable names ที่ตั้งแล้ว: ______
 
@@ -284,17 +328,18 @@ GitHub Environment approval เป็น gate ก่อน release job ขอ cr
 
 1. ใน GitHub ไป **Actions → Lab 14 trusted release** แล้วตรวจ run จาก `refs/heads/main`. Pull request หรือ feature branch ต้องไม่สร้าง Cloud credential หรือ release
 2. เปิด Cloud Build → History เลือก build ของ commit เดียวกัน. ตรวจ status SUCCESS, trigger ID, builder SA, source SHA และ image digest
-3. รอ job `attest` ให้สำเร็จ; release workflow ต้องจับคู่ trigger, commit, builder, build status และ digest ก่อน sign. หาก timeout/mismatch/fail ให้หยุด ห้ามนำ digest เก่ามาแทน
+3. รอ job `attest` ให้สำเร็จ; `tools/release.py` จับคู่ trigger ID, commit SHA, builder identity, build status และ digest ก่อน sign. หาก timeout/mismatch/fail ให้หยุด ห้ามนำ digest เก่ามาแทน
 4. รอ job `release` ให้สำเร็จและสร้าง Cloud Deploy release ที่อ้าง image ด้วย `@sha256:...`. ไม่มี tag mutable เป็น deployment input
 
 ตรวจจาก Cloud Shell:
 
 ~~~bash
-gcloud builds list --project="$PROJECT_ID" --region="$REGION" --filter="trigger_id=TRIGGER_UUID" --sort-by="~create_time" --limit=10
+export TRIGGER_ID="$(terraform -chdir="$LAB_DIR/infra" output -raw cloudbuild_trigger)"
+gcloud builds list --project="$PROJECT_ID" --region="$REGION" --filter="trigger_id=$TRIGGER_ID" --sort-by="~create_time" --limit=10
 gcloud deploy releases list --delivery-pipeline=lab014-quote-delivery --region="$REGION" --project="$PROJECT_ID"
 ~~~
 
-แทน `TRIGGER_UUID` ด้วยค่า output จริง. เปิด release แล้วเทียบ source SHA, build ID และ image digest กับ GitHub/Cloud Build; staging rollout ต้องรัน verifier ผ่าน `/healthz` และ quote 455.00 ก่อน promotion
+คำสั่งดึง trigger UUID จาก Terraform output ก่อน query build. เปิด release แล้วเทียบ source SHA, build ID และ image digest กับ GitHub/Cloud Build; staging rollout ต้องรัน verifier ผ่าน `/healthz` และ quote 455.00 ก่อน promotion
 
 **Expected:** Cloud Build, attestation และ GitHub release jobs สำเร็จบน SHA เดียว; Cloud Deploy ใช้ digest ตรงกันและ staging verification ผ่าน
 
@@ -327,18 +372,28 @@ gcloud deploy rollouts approve "ROLLOUT_ID" --delivery-pipeline=lab014-quote-del
 
 ### Task 10 — ตรวจ private access, API contract และ logs
 
-ดึง canonical service URL จาก Cloud Run; ทำซ้ำกับ staging และ production ตามเวลาที่ service พร้อม:
+เปิด Cloud Shell อีก terminal หนึ่งแล้วเริ่ม Cloud Run proxy สำหรับ staging; คำสั่งนี้ค้างอยู่และใส่ auth ของ active user ให้ request ที่วิ่งผ่าน proxy:
 
 ~~~bash
-export SERVICE_URL="$(gcloud run services describe quote-api-staging --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)')"
-export TOKEN="$(gcloud auth print-identity-token --audiences="$SERVICE_URL")"
-curl --fail-with-body --silent --show-error -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/healthz"
-curl --fail-with-body --silent --show-error -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/version"
-curl --fail-with-body --silent --show-error -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/api/v1/quote?origin=BKK&destination=CNX&weight_kg=5"
-unset TOKEN
+gcloud run services proxy quote-api-staging --project="$PROJECT_ID" --region="$REGION" --port=8080
 ~~~
 
-คาดว่า health เป็น 200/ok, version แสดง commit SHA/revision จริง, quote เป็น 455.00 THB. สำหรับ negative access ให้เรียก `curl -i "$SERVICE_URL/healthz"` โดยไม่มี Authorization; คาดว่า request ถูกปฏิเสธ (โดยทั่วไป HTTP 401/403). ถ้าได้ 200 ให้หยุดและตรวจ Invoker IAM/public access ก่อนทำต่อ
+จาก terminal ที่สองเรียก API ผ่าน localhost:
+
+~~~bash
+curl --fail-with-body --silent --show-error -i http://127.0.0.1:8080/healthz
+curl --fail-with-body --silent --show-error -i http://127.0.0.1:8080/version
+curl --fail-with-body --silent --show-error -i "http://127.0.0.1:8080/api/v1/quote?origin=BKK&destination=CNX&weight_kg=5"
+~~~
+
+คาดว่า health เป็น 200/ok, version แสดง commit SHA ของ build และ revision จริง, quote เป็น 455.00 THB. ผู้ใช้ที่เรียกผ่าน proxy ต้องมี <code>run.routes.invoke</code>. สำหรับ negative unauth test ดึง canonical URL แล้วเรียกตรงโดยไม่มี Authorization:
+
+~~~bash
+export SERVICE_URL="$(gcloud run services describe quote-api-staging --project="$PROJECT_ID" --region="$REGION" --format="value(status.url)")"
+curl -i "$SERVICE_URL/healthz"
+~~~
+
+คาดว่า request ตรงถูกปฏิเสธ (โดยทั่วไป HTTP 401/403). ถ้าได้ 200 ให้หยุดและตรวจ Invoker IAM/public access ก่อนทำต่อ. เมื่อเสร็จให้กลับ terminal แรกและกด Ctrl-C เพื่อหยุด proxy.
 
 ตรวจ request ID จาก response header และ structured log:
 
@@ -347,7 +402,6 @@ gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.serv
 ~~~
 
 Log ต้องเชื่อม request ID, commit และ revision ได้; ไม่คาดหวัง image digest ใน app log เพราะ digest เก็บจาก Cloud Build/Cloud Deploy metadata. ห้ามนำ token หรือ full Authorization header เข้า evidence
-
 **Expected:** ไม่มี auth แล้วเข้าไม่ได้; authenticated request ผ่าน health/business path; log ระบุ request/commit/revision โดยไม่เปิดเผย token
 
 **Actual:** service URL (เก็บใน private evidence หากจำเป็น): ______ · status/quote: ______ · request ID: ______
@@ -356,7 +410,7 @@ Log ต้องเชื่อม request ID, commit และ revision ได�
 
 ### Task 11 — ปฏิเสธ image ที่ไม่มี attestation
 
-ทำเฉพาะ disposable project. สร้าง image ทดสอบด้วย manual Cloud Build ที่ใช้ builder identity แต่ **ไม่ใช่ GitHub trigger** จึงไม่ผ่าน release workflow และไม่มี Lab attestation. สร้าง temporary context จาก app files ใน Cloud Shell:
+ทำเฉพาะ disposable project. สร้าง image ทดสอบด้วย manual Cloud Build ที่ใช้ builder identity แต่ **ไม่ใช่ GitHub trigger** จึงไม่ผ่าน release workflow และไม่มี Lab attestation. ใช้ [config สำหรับ manual negative build](tools/cloudbuild-untrusted.yaml) ซึ่งไม่มี trigger/release step; สร้าง temporary context จาก app files ใน Cloud Shell:
 
 ~~~bash
 export TEST_DIR="$(mktemp -d)"
@@ -366,7 +420,7 @@ cp "$LAB_DIR/app/Dockerfile" "$TEST_DIR/Dockerfile"
 cp "$LAB_DIR/app/quote_api.py" "$TEST_DIR/app/quote_api.py"
 cp "$LAB_DIR/app/requirements.txt" "$TEST_DIR/app/requirements.txt"
 cp "$LAB_DIR/tools/verify_quote.py" "$TEST_DIR/tools/verify_quote.py"
-gcloud builds submit "$TEST_DIR" --project="$PROJECT_ID" --region="$REGION" --service-account="projects/$PROJECT_ID/serviceAccounts/lab014-builder@$PROJECT_ID.iam.gserviceaccount.com" --tag="$REGION-docker.pkg.dev/$PROJECT_ID/lab014-apps/untrusted-quote-api:$TEST_TAG"
+gcloud builds submit "$TEST_DIR" --config="$LAB_DIR/tools/cloudbuild-untrusted.yaml" --project="$PROJECT_ID" --region="$REGION" --service-account="projects/$PROJECT_ID/serviceAccounts/lab014-builder@$PROJECT_ID.iam.gserviceaccount.com" --substitutions="_REGION=$REGION,_REPOSITORY=lab014-apps,_TAG=$TEST_TAG"
 ~~~
 
 ถ้าผู้ใช้ไม่มี `cloudbuild.builds.create` หรือ `iam.serviceAccounts.actAs` บน builder SA ให้หยุดและขอสิทธิ์ตามนโยบาย; อย่าเพิ่ม project-wide Editor เพื่อข้ามปัญหา. ตรวจว่า manual build ไม่มี trigger ID และ digest นี้ไม่มี occurrence จาก attestor `lab014-release-attestor`.
@@ -381,12 +435,30 @@ gcloud builds submit "$TEST_DIR" --project="$PROJECT_ID" --region="$REGION" --se
 
 ### Task 12 — ทำ regression, หยุด canary และ rollback
 
-ขั้นนี้เปลี่ยน production config จริงใน disposable project. รอให้ baseline production มี revision สำเร็จก่อน; ใช้ PR/review ตาม branch protection อย่าแก้ production จริง. ใน branch สำหรับ change request แก้เฉพาะ `deploy/service-production.yaml` จาก `QUOTE_PRICE_FACTOR=1.00` เป็น `1.20`, ตรวจ diff และส่งผ่าน review. หลังการเปลี่ยนแปลงที่อนุมัติเข้า main:
+ขั้นนี้ทำเฉพาะ disposable project และแบ่งเป็น healthy canary กับ regression. หลัง Task 09 มี baseline production แล้ว ให้ทำ healthy canary ก่อนเพื่อพิสูจน์ทุก phase:
 
-1. Cloud Build สร้าง/ทดสอบ image ใหม่และ workflow รับรอง digest ของ commit ใหม่; ตรวจ staging ก่อน
-2. Promote release ไป production และให้ human approver ตรวจเหตุผล/manifest diff แล้ว approve
-3. ตรวจ rollout phase `canary-10` และ traffic split จริง. Verifier เรียก business endpoint; health ยังผ่านแต่ราคาเป็น 539.00 แทน 455.00 จึงควร fail ที่ verification
-4. **อย่ากด Advance rollout** เมื่อ verify fail. เก็บ rollout/job log และยืนยัน traffic ยังไม่เป็น stable 100%; หาก Cloud Deploy แสดง traffic แตกต่างจากที่คาด ให้หยุดและตรวจ revision/phase แทนการเดาต่อ
+1. ใช้ PR/review เพิ่ม env block นี้ใน manifest production หลัง `QUOTE_PRICE_FACTOR`; คง factor เป็น 1.00. API มี field version นี้อยู่แล้ว; business quote ต้องไม่เปลี่ยน:
+
+~~~yaml
+            - name: APP_VERSION
+              value: "lab14-canary-ok"
+~~~
+2. เมื่อ commit ที่อนุมัติเข้า main แล้ว ตรวจ Cloud Build, attestation, staging verification; promote release ไป production และให้ human approver approve
+3. ตรวจ `canary-10` ว่า verify ผ่านและ traffic แสดง candidate 10%; ค่อย advance ไป phase ถัดไป:
+
+~~~bash
+gcloud deploy rollouts advance "ROLLOUT_ID" --phase-id=canary-50 --delivery-pipeline=lab014-quote-delivery --release="RELEASE_ID" --region="$REGION" --project="$PROJECT_ID"
+~~~
+
+หลัง verify ที่ 50% ผ่าน ให้บันทึก traffic แล้ว advance ไป stable 100%:
+
+~~~bash
+gcloud deploy rollouts advance "ROLLOUT_ID" --phase-id=stable --delivery-pipeline=lab014-quote-delivery --release="RELEASE_ID" --region="$REGION" --project="$PROJECT_ID"
+~~~
+
+4. อย่า advance หาก deploy หรือ verify ของ phase ปัจจุบันไม่สำเร็จ. บันทึก traffic split ที่อ่านได้จริงทั้ง 10%, 50%, 100%; ห้ามกรอกค่าคาดหวังแทนค่าจาก Cloud Run/Cloud Deploy
+
+จากนั้นทดสอบ regression โดยเปิด PR เปลี่ยนเฉพาะ `QUOTE_PRICE_FACTOR=1.00` เป็น `1.20` ใน `deploy/service-production.yaml` (คง APP_VERSION ไว้). เมื่อ commit ที่อนุมัติเข้า main ให้รัน flow เดิม: build/attest, ตรวจ staging, promote และ approve. ที่ `canary-10` health ยังผ่านแต่ business quote จะเป็น 539.00 แทน 455.00; verifier จึงควร fail. **อย่ากด Advance rollout** เมื่อ verify fail. เก็บ job log และยืนยัน traffic ไม่เป็น stable 100%; ถ้ารูปแบบ traffic จริงไม่ตรงคาด ให้หยุดและตรวจ revision/phase แทนการเดาต่อ
 
 เมื่อบันทึก failure แล้ว rollback target production ไป baseline release ที่รู้ว่าดี:
 
@@ -395,7 +467,7 @@ gcloud deploy targets rollback production --delivery-pipeline=lab014-quote-deliv
 gcloud deploy rollouts list --delivery-pipeline=lab014-quote-delivery --region="$REGION" --project="$PROJECT_ID"
 ~~~
 
-ถ้ามี approval pending สำหรับ rollback ให้ผู้อนุมัติพิจารณาตามขั้นตอนปกติ; ห้าม bypass. หลัง rollback ตรวจ private health, version, quote 455.00 และ traffic/revision. จากนั้น revert production manifest กลับ factor 1.00 ด้วย PR/review เพื่อให้ source กลับตรงกับ baseline; การ revert บน main อาจสร้าง build/release ใหม่ตาม path filter ให้ดำเนิน promotion/approval ตาม pipeline ไม่สร้าง manual release จาก tag
+ถ้ามี approval pending สำหรับ rollback ให้ผู้อนุมัติพิจารณาตามขั้นตอนปกติ; ห้าม bypass. หลัง rollback ตรวจ private health, version, quote 455.00 และ traffic/revision. จากนั้น revert production manifest ให้กลับเหมือนก่อน Change Request (factor 1.00 และไม่มี APP_VERSION override) ด้วย PR/review เพื่อให้ source กลับตรงกับ release ที่ตั้งใจ; การ revert บน main อาจสร้าง build/release ใหม่ ให้ดำเนิน staging, promotion, approval และ canary ตาม pipeline ไม่สร้าง manual release จาก tag
 
 **Expected:** release regression fail ที่ quote verification ใน canary phase; traffic ไม่เลื่อนไป stable; rollback และตรวจซ้ำยืนยัน baseline
 
@@ -519,7 +591,7 @@ Cleanup เป็น destructive. เก็บ/export evidence ก่อน แ�
 ## แหล่งอ้างอิงทางการ
 
 - [Workload Identity Federation สำหรับ deployment pipelines](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines) — claim, attribute condition และ short-lived credential
-- [เชื่อม Cloud Build กับ repositories](https://docs.cloud.google.com/build/docs/repositories) และ [Cloud Build triggers](https://docs.cloud.google.com/build/docs/triggers) — GitHub connection และ trigger
+- [เชื่อม Cloud Build กับ repositories](https://docs.cloud.google.com/build/docs/repositories), [Cloud Build triggers](https://docs.cloud.google.com/build/docs/triggers) และ [gcloud builds submit](https://docs.cloud.google.com/sdk/gcloud/reference/builds/submit) — GitHub connection, trigger และ manual negative-image build
 - [Cloud Build user-managed service account](https://docs.cloud.google.com/build/docs/securing-builds/configure-user-specified-service-accounts) — service account และ logging
 - [Cloud Run authentication สำหรับ developer](https://docs.cloud.google.com/run/docs/authenticating/developers) — proxy, ID token, audience และ Invoker
 - [Binary Authorization บน Cloud Run](https://docs.cloud.google.com/binary-authorization/docs/run/overview) และ [สร้าง attestation](https://docs.cloud.google.com/binary-authorization/docs/making-attestations) — policy enforcement, attestor และ signing
