@@ -752,6 +752,8 @@ gcloud run jobs execute lab007-bootstrap \
 
 เปิด **Cloud Run → Jobs → lab007-bootstrap → Executions** ดู execution/logs. Expected disposition=installed หรือ already_installed, schema_version=1, seed_version=catalog-v1, runtime_logins_checked=3. Logs ต้องไม่มี password, Secret payload, credential fingerprint หรือ SCRAM verifier. ถ้า exit 2 อย่าลบ schema/สร้าง bundle ใหม่/use latest; ตรวจ reason, IAM/private path/connection/numeric mounts แล้ว retry image/versions/bundles เดิมเพื่อ resolve unknown
 
+**Expected:** Job สำเร็จด้วย installed/already_installed, schema/seed ตรง release และ runtime logins_checked=3 โดยไม่เผย secret
+
 **Actual / Evidence:** execution name, disposition, schema/seed version, login count, sanitized failure reason: __________________
 
 ### Task 06 — Browser journey และ baseline workload
@@ -786,6 +788,8 @@ gcloud pubsub subscriptions describe lab007-orders-worker --project="$PROJECT_ID
 ~~~
 
 ยืนยัน Portal public invoker ไม่เท่ากับ anonymous data; worker จำกัด push identity; dispatcher จำกัด Scheduler identity; subscription มี OIDC/audience และ DLQ policy. ใน **Monitoring → Metrics Explorer** เลือก Pub/Sub Subscription ดู num_unacked_messages_by_region, oldest_unacked_message_age_by_region, push_request_count, dead_letter_message_count. ใน **SQL → lab007-orders → System insights** ดู CPU/connections/activity; ใน **Logging → Logs Explorer** filter resource.type="cloud_run_revision" กับ service name. Metric samples อาจห่างหลายนาที จด time/filter และอย่าตีความไม่มี datapoint เป็น zero/PASS ([Pub/Sub monitoring](https://docs.cloud.google.com/pubsub/docs/monitoring), [Cloud SQL System Insights](https://docs.cloud.google.com/sql/docs/postgres/use-system-insights))
+
+**Expected:** IAM bindings, OIDC/audience/DLQ settings และ telemetry ที่เลือกตรวจอ่านได้; metric ที่ไม่มี sample ถูกบันทึกว่า unavailable ไม่ใช่ zero
 
 **Actual / Evidence:** IAM principal/role, subscription settings, metric names/windows, SQL CPU/connections, sanitized correlation IDs: __________________
 
@@ -883,6 +887,8 @@ python3 scripts/load-orders.py \
 | Ack unknown | receipt/action journal เดิม, terminal proof/audit | journal ใหม่/ack subscription ทั้งหมด |
 
 Logs Explorer filter resource.type="cloud_run_revision" และ service name; จำกัดเวลาแล้วจด request ID/order ID ที่ปลอดภัย. หลัง fault ยืนยัน fault=off, worker=1, backlog trend ฟื้น, unknown orders ถูก reconcile. Case study ต้องใช้ผลจริง: problem/invariant, topology/event-flow, Terraform/image digests/numeric secret versions, normal order/stock, retry/DLQ proof/audit, capacity metrics และ limitations. Screenshot ห้ามมี password/cookie/CSRF/ack token/Secret/raw payload. แยก Expected/Actual/Evidence/Interpretation; งานที่ไม่ได้รันให้เขียน Not run; CI screenshot ไม่ใช่ Cloud evidence
+
+**Expected:** troubleshooting result แยก root cause ที่พิสูจน์ได้จากสมมติฐาน และ Case Study ใช้เฉพาะ sanitized evidence/ผลจริง พร้อมระบุ limitations และ Not run ตามจริง
 
 **Actual / Evidence:** root cause/recovery, sanitized evidence links, run IDs, วันที่และค่าที่พิสูจน์ได้: __________________
 
