@@ -128,11 +128,11 @@ def solution_diagram(icons):
     body += '''
 <path class="flow-blue" d="M102 505H155V474H205"/>
 <text x="126" y="492" class="small">HTTPS</text>
-<path class="flow-purple" d="M389 440V380H630V270"/>
+<path class="flow-purple" d="M389 440V380H630V250"/>
 <text x="515" y="374" class="small">publish outbox event</text>
 <path class="flow-purple" d="M660 230H680V390H540V440"/>
 <text x="688" y="356" class="small">authenticated push</text>
-<path class="flow-purple" d="M389 770V510"/>
+<path class="flow-purple" d="M389 770V500"/>
 <text x="402" y="645" class="small">OIDC invocation</text>
 <path class="flow-teal" d="M665 555H690"/>
 <text x="667" y="540" class="small">private SQL path</text>
@@ -236,11 +236,11 @@ def main():
             "license": "MIT",
             "note": "Diagram Design conventions adapted; official Google Cloud glyphs keep original geometry and colors."
         },
-        "layout_decision": "Cloud Run workloads stack vertically by function where it shortens Scheduler and private egress paths; global services stay outside the regional boundary; Cloud SQL remains outside the customer VPC behind PSA.",
+        "layout_decision": "Role-specific Cloud Run services remain individually identifiable; Scheduler, queue, and private database links use direct, non-perimeter routes; global services stay outside the regional boundary; Cloud SQL remains outside the customer VPC behind PSA.",
         "verification": "Architecture and event-flow diagrams are design artifacts only; no GCP deployment or Cloud verification is implied."
     }
     provenance_path = ASSETS / "diagram-provenance.json"
-    provenance_path.write_text(json.dumps(provenance, indent=2) + "\\n", encoding="utf-8")
+    provenance_path.write_text(json.dumps(provenance, indent=2) + "\n", encoding="utf-8")
     print("LAB007_DIAGRAM_PROVENANCE=" + json.dumps(provenance, sort_keys=True))
 
 

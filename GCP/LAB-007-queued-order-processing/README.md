@@ -567,7 +567,8 @@ Expected: JSON มี `event=secret_publish_complete`, `instance=lab007-orders`,
 
 การตรวจใน CI ใช้ Google API mock เท่านั้น ไม่ได้สร้าง Secret, เปลี่ยนรหัสผ่านบน GCP หรือยืนยัน Cloud SQL login จริง ช่อง Cloud verification จึงคงเป็น **Not run** จนกว่าจะมีหลักฐานจาก sandbox จริง
 
-\nLab07 เพิ่ม private Secret publisher 12 unit tests เพื่อครอบคลุม private bundle, Secret replication region, numeric versions, first-run password guard, rerun และ unknown API outcomes. CI run 40064473767 ผ่านทุก Lab07 job โดยรวม 170 automated tests; Terraform format/init/validate ผ่านโดยไม่ใช้ Cloud credentials และไม่ provision ทรัพยากร. นี่เป็น local/CI evidence เท่านั้น ไม่ใช่ GCP Cloud verification.\n\n## Bootstrap ฐานข้อมูลใหม่โดยไม่ reset ระบบเดิม
+
+Lab07 เพิ่ม private Secret publisher 12 unit tests เพื่อครอบคลุม private bundle, Secret replication region, numeric versions, first-run password guard, rerun และ unknown API outcomes. CI run 40064473767 ผ่านทุก Lab07 job โดยรวม 170 automated tests; Terraform format/init/validate ผ่านโดยไม่ใช้ Cloud credentials และไม่ provision ทรัพยากร. นี่เป็น local/CI evidence เท่านั้น ไม่ใช่ GCP Cloud verification.\n\n## Bootstrap ฐานข้อมูลใหม่โดยไม่ reset ระบบเดิม
 
 ใช้ [bootstrap image แยก](bootstrap/Dockerfile) รัน [one-off Job](bootstrap/run.py) ก่อนเปิด Portal/dispatcher/worker ไม่ใช้ serving service ทำ DDL หรือโหลด admin Secret ระหว่างรับ request ตัว image รัน non-root และมีเฉพาะ installer/runtime, SQL สองไฟล์ และตัวตรวจ JSON ไม่คัดลอก private bundles หรือโค้ด serving ทั้งชุด
 
