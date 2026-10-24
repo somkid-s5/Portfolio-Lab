@@ -6,9 +6,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = (ROOT / "infra" / "main.tf").read_text(encoding="utf-8")
 VARS = (ROOT / "infra" / "variables.tf").read_text(encoding="utf-8")
+VERSIONS = (ROOT / "infra" / "versions.tf").read_text(encoding="utf-8")
 
 
 class InfrastructureContractTests(unittest.TestCase):
+    def test_terraform_version_supports_write_only_arguments(self):
+        self.assertIn('required_version = ">= 1.11.0, < 2.0.0"', VERSIONS)
+
     def test_private_vpcs_and_proxy_only_scope(self):
         for phrase in (
             'name                    = "lab015-hub-vpc"',

@@ -1385,7 +1385,7 @@ jobs:
           persist-credentials: false
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.9.8
+          terraform_version: 1.17.0
           terraform_wrapper: false
       - name: Format and validate Lab 15 Terraform without credentials or provisioning
         working-directory: GCP/LAB-015-branch-private-connectivity/infra

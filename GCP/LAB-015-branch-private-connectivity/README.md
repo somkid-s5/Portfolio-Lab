@@ -180,6 +180,7 @@ python3 scripts/cidr_check.py --additional 10.60.0.128/25
 ### Task 04 — Initialize Terraform และอ่าน Plan
 
 ~~~bash
+terraform version
 terraform -chdir=infra fmt -check -recursive
 terraform -chdir=infra init -backend=false -input=false
 terraform -chdir=infra validate -no-color
@@ -189,7 +190,7 @@ terraform -chdir=infra show baseline.tfplan
 
 อ่าน plan ก่อน apply ต้องมีเฉพาะ lab015 resources ไม่มี VM external IP, NAT, public Cloud Run invoker, BGP default route หรือการลบ resource ที่ไม่รู้จัก
 
-**Expected:** validate ผ่าน; Plan มี resource ที่ระบุ; Cloud Run ใช้ public hello image เป็น bootstrap ชั่วคราว; shared secrets ใช้ write-only field
+**Expected:** Terraform 1.11 ขึ้นไป (CI pin 1.17.0); validate ผ่าน; Plan มี resource ที่ระบุ; Cloud Run ใช้ public hello image เป็น bootstrap ชั่วคราว; shared secrets ใช้ write-only field ที่ไม่บันทึกลง plan/state
 
 **Actual:** [บันทึก Terraform/provider version และจำนวน add/change/destroy จริง]
 
@@ -579,6 +580,7 @@ git status --short
 - [Artifact Registry image digest](https://docs.cloud.google.com/sdk/gcloud/reference/artifacts/docker/images/describe)
 - [ลบ Artifact Registry repository](https://docs.cloud.google.com/artifact-registry/docs/repositories/delete-repos) — การลบ repository ลบ contents ภายในด้วย
 - [Google Cloud icons](https://cloud.google.com/icons)
+- [Terraform write-only arguments](https://developer.hashicorp.com/terraform/language/manage-sensitive-data/ephemeral) — ต้องใช้ Terraform 1.11 ขึ้นไป
 - [Terraform Google provider 7.29.0: VPN tunnel](https://registry.terraform.io/providers/hashicorp/google/7.29.0/docs/resources/compute_vpn_tunnel)
 
 ## Diagram attribution

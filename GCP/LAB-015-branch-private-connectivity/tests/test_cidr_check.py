@@ -19,7 +19,9 @@ class CidrPreflightTests(unittest.TestCase):
     def test_overlapping_prefix_is_rejected_before_apply(self):
         result = self.run_check("--additional", "10.60.0.128/25")
         self.assertEqual(result.returncode, 2)
-        self.assertIn("overlaps hub", result.stderr)
+        self.assertIn("CONFLICT:", result.stderr)
+        self.assertIn("overlaps", result.stderr)
+        self.assertIn("hub", result.stderr)
 
     def test_noncanonical_and_ipv6_prefixes_are_rejected(self):
         self.assertEqual(self.run_check("--additional", "10.70.1.1/24").returncode, 2)
