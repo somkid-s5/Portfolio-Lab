@@ -10,7 +10,7 @@ from zipfile import ZipFile
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets"
 URL = "https://services.google.com/fh/files/misc/google-cloud-legacy-icons.zip"
-EXPECTED_ARCHIVE_SHA256 = "a6d9d7921758042538b462f03cf64614c2cebd96743b3ed63580a769fc7de3e"
+EXPECTED_ARCHIVE_SHA256 = "a6d9d7921758042538b462f03cf64614c2cebd96743b3ed63580a769fc7de3e9"
 
 
 def load_icon(archive, name, sources):
