@@ -178,9 +178,15 @@ class PubSubPublisherTests(unittest.TestCase):
         sdk = FakePublisher()
         publisher = ReportReadyPublisher(sdk,
             topic="projects/demo-lab008/topics/lab008-report-ready")
-        invalid = dict(REPORT, object="reports/business_date=2026-10-22/summary.json")
-        with self.assertRaisesRegex(ValueError, "invalid_report_event"):
-            publisher.publish(invalid)
+        invalid_paths = (
+            "reports/business_date=2026-10-23/other.json",
+            "reports/business_date=2026-13-40/summary.json",
+        )
+        for object_name in invalid_paths:
+            with self.subTest(object_name=object_name):
+                invalid = dict(REPORT, object=object_name)
+                with self.assertRaisesRegex(ValueError, "invalid_report_event"):
+                    publisher.publish(invalid)
         self.assertEqual(sdk.calls, [])
 
 
