@@ -136,6 +136,13 @@ def install(connection,bundles,schema_text,roles_text,*,expected_database="order
             verify_roles(cursor)
             disposition="already_installed"
         else:
+            cursor.execute("""SELECT EXISTS(
+                SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                WHERE n.nspname='public' AND c.relkind IN ('r','p','v','m','S','f')
+                  AND NOT EXISTS(SELECT 1 FROM pg_depend d
+                    WHERE d.classid='pg_class'::regclass AND d.objid=c.oid AND d.deptype='e'))""")
+            if cursor.fetchone()[0]:
+                raise ValueError("existing_public_application_objects_refused")
             cursor.execute("SELECT rolname FROM pg_roles WHERE rolname IN (%s,%s,%s)",
                            tuple(user for user,_ in USERS.values()))
             if cursor.fetchall():

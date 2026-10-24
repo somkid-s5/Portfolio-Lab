@@ -189,6 +189,16 @@ class BootstrapTests(unittest.TestCase):
         self.assertNotIn("p"*48,first)
         self.assertNotEqual(scram_verifier("p"*48),scram_verifier("p"*48))
 
+    def test_preexisting_public_application_table_is_preserved_and_install_refused(self):
+        admin("CREATE TABLE public.bootstrap_ci_existing (id integer PRIMARY KEY)")
+        self.addCleanup(lambda:admin("DROP TABLE public.bootstrap_ci_existing"))
+        admin("INSERT INTO public.bootstrap_ci_existing VALUES (17)")
+        with self.assertRaisesRegex(ValueError,"existing_public_application_objects_refused"):
+            self.run_install()
+        self.assertEqual(admin("SELECT id FROM public.bootstrap_ci_existing"),[[17]])
+        self.assertFalse(admin("SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='lab007')")[0][0])
+        self.assertEqual(admin("SELECT count(*) FROM pg_roles WHERE rolname IN ('order_api','order_worker','outbox_dispatcher')")[0][0],0)
+
 
 if __name__=="__main__":
     unittest.main()
