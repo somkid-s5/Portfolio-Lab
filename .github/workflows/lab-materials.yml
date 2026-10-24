@@ -1469,3 +1469,42 @@ jobs:
             GCP/LAB-016-legacy-migration/assets/**
           if-no-files-found: error
           retention-days: 14
+
+  lab016-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: lab016_ci
+          POSTGRES_USER: lab016
+          POSTGRES_PASSWORD: disposable-lab016-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lab016 -d lab016_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PG_DSN: postgresql://lab016:disposable-lab016-ci@127.0.0.1:5432/lab016_ci
+      DB_HOST: 127.0.0.1
+      DB_NAME: lab016_ci
+      DB_USER: lab016
+      DB_PASSWORD: disposable-lab016-ci
+      BACKEND_NAME: ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Lab 16 application dependencies
+        run: |
+          python3 -m venv .ci-lab016
+          .ci-lab016/bin/pip install --disable-pip-version-check -r GCP/LAB-016-legacy-migration/app/requirements.txt
+      - name: Initialize deterministic CI database
+        run: .ci-lab016/bin/python GCP/LAB-016-legacy-migration/scripts/init_db.py --seed
+      - name: Exercise Orders API and reconciliation contracts
+        env:
+          PYTHONPATH: GCP/LAB-016-legacy-migration
+        run: .ci-lab016/bin/python -m unittest discover -s GCP/LAB-016-legacy-migration/tests -p 'test_app.py' -v && .ci-lab016/bin/python -m unittest discover -s GCP/LAB-016-legacy-migration/tests -p 'test_reconcile_contract.py' -v
+      - name: Build application image without cloud credentials
+        run: docker build -t lab016-orders:ci GCP/LAB-016-legacy-migration/app
