@@ -547,6 +547,33 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  lab008-diagrams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate official icon provenance and accessible SVGs
+        run: python3 GCP/LAB-008-daily-batch-reports/tests/test_diagrams.py
+      - name: Render at document width for visual review
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          mkdir -p lab008-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-008-daily-batch-reports/assets/solution.svg -o lab008-diagram-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-008-daily-batch-reports/assets/run-flow.svg -o lab008-diagram-previews/run-flow.png
+          python3 -c "import base64,pathlib; [print('LAB008_PREVIEW_'+p.stem.upper().replace('-','_')+'='+base64.b64encode(p.read_bytes()).decode()) for p in sorted(pathlib.Path('lab008-diagram-previews').glob('*.png'))]"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab008-diagrams
+          path: |
+            lab008-diagram-previews/*.png
+            GCP/LAB-008-daily-batch-reports/assets/*.svg
+            GCP/LAB-008-daily-batch-reports/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
+
   lab007-bootstrap:
     runs-on: ubuntu-latest
     timeout-minutes: 10
