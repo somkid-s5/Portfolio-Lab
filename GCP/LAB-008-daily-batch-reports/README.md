@@ -33,7 +33,7 @@ Solution นี้ชื่อ **Daily Sales Close** ใช้ข้อมูล
 | R5 | ตรวจพบ source ที่มาช้า, scheduled run ที่ไม่มีรายงาน และ job failure; watchdog ส่ง alert เมื่อสถานะยังไม่สำเร็จ และ Operator ทำ backfill วันที่เดิมได้ | watchdog log/alert, ledger/status, execution/log IDs, late-source recovery และการตรวจ output ก่อน/หลัง backfill |
 | R6 | ส่ง report-ready event หลัง report ถูกจัดเก็บ; event ที่ตอบรับไม่แน่นอนต้อง recover ได้โดยใช้ event identity เดิม | topic/message attributes, report ID, notification state และ duplicate-consumer scenario |
 | R7 | จำกัด IAM ตาม role: Scheduler เรียก coordinator; coordinator สั่งรันเฉพาะ Job; Job อ่าน input/เขียน output/ledger/notification เท่าที่ต้องใช้ | principal/role matrix, unauthorized/authorized calls, bucket/database scope |
-| R8 | จำกัด rows, bytes, execution time, retry และ backfill concurrency ก่อนทดสอบ | configured limits, expected upper bounds, billing/cost notes และ backout |
+| R8 | จำกัด rows, bytes, execution time, retry และจำนวน backfill ที่สั่งพร้อมกันตาม policy ก่อนทดสอบ | configured limits, expected upper bounds, billing/cost notes และ backout |
 | R9 | ส่งมอบ runbook, case-study evidence และ cleanup/rebuild ที่ไม่อ้างผล Cloud หากไม่ได้รัน | sanitized logs/evidence, known limitations, cleanup inventory และ Not run fields |
 
 ## ขอบเขตตั้งต้น
@@ -100,12 +100,12 @@ Cloud Run Jobs `runWithOverrides` ต้องได้รับ `run.jobs.runWi
 | Cloud Scheduler (report) | `retryCount=2` (retry เพิ่มจากครั้งแรกได้ไม่เกิน 2), `maxRetryDuration=600s`, backoff 10–60s, `maxDoublings=2`; watchdog ใช้ขอบเขตเดียวกัน | Scheduler history/log, coordinator request ID และ duplicate Job execution ที่ ledger deduplicate ได้ |
 | Cloud Run Job | 1 task, parallelism 1, timeout 10 นาที, `maxRetries=1`; attempt 0 fault injection หลังเขียน output | Execution/task attempt, output generation/hash เดิมถูกตรวจซ้ำ และ report ID เดิม |
 | Watchdog | ตรวจ business date ล่าสุดเวลา 02:00 และ 14:00; รายงาน not-ready ผ่าน structured log + log-based alert | Alert event, เปิด Firestore Console: database `lab008-reports` → collection `daily_runs` → document ID เป็น business date, Scheduler/Coordinator logs; `succeeded` ยืนยันด้วย ledger และ output generation/hash |
-| Manual backfill | Operator เรียก Job ด้วย `--mode operator-backfill` และระบุวัน; ไม่เกิน 7 วันย้อนหลังต่อการเรียกหนึ่ง business date; baseline ไม่มี multi-date dispatcher หรือ global concurrency cap. Cloud Run Job จำกัด task/parallelism เป็น 1 ต่อ execution และ ledger/fence กันผลซ้ำของวันเดียวกัน. เปลี่ยน source ได้เฉพาะ `blocked` จาก invalid input โดยส่งคู่ `--source-object` + `--source-generation` ที่อยู่ใต้ correction prefix เดิม; missing source ไม่สร้าง empty report | `reportctl status`, Job execution override, ledger/output/notification และ source generation ของ business date |
+| Manual backfill | Operator เรียก Job ด้วย `--mode operator-backfill` และระบุวัน; ไม่เกิน 7 วันย้อนหลังต่อการเรียกหนึ่ง business date; baseline ไม่มี multi-date dispatcher หรือ global concurrency cap. Cloud Run Job จำกัด task/parallelism เป็น 1 ต่อ execution และ ledger/fence กันผลซ้ำของวันเดียวกัน. เปลี่ยน source ได้เฉพาะ `blocked` จาก invalid input โดยส่งคู่ `--source-object` + `--source-generation` ที่อยู่ใต้ correction prefix เดิม; missing source ไม่สร้าง empty report | Firestore document ราย business date, Job execution override, ledger/output/notification และ source generation ของ business date |
 | Change Request | เพิ่ม dispatcher สำหรับหลายวันพร้อมเพดาน concurrency ที่บังคับใช้จริง, per-date partial success/retry, global cost guard และ failure recovery; baseline ยังไม่รองรับ | per-date run IDs, maximum concurrency, same object/ledger binding และ cost estimate |
 
 Cloud Logging เก็บ structured watchdog event; สร้าง log-based alert ที่ match `jsonPayload.event="daily_report_not_ready"` แล้วกำหนด email/notification channel ใน project. เปิด Firestore Console: database `lab008-reports` → collection `daily_runs` → document ID เป็น business date เป็นวิธีวินิจฉัยและยืนยัน recovery; ถ้าไม่พบ ledger ให้เทียบ Cloud Scheduler history กับ Cloud Run Job executions. Baseline ไม่อ้างว่ามี alert เมื่อ Scheduler API/job ถูกปิดหรือไม่ได้ถูกเรียกเลย—กรณีนั้นต้องตรวจ Scheduler job state/audit logs. ไม่มี Cloud SQL, VPC/NAT, BigQuery, external mail API หรือ always-on worker.
 
-เพดานต้นทุนที่คุมได้จาก config: CSV ≤5 MiB/5,000 แถว, Job หนึ่ง task/parallelism 1/10 นาที/หนึ่ง retry, Scheduler report retry เพิ่มไม่เกิน 2, และ backfill ≤7 วัน/concurrency 2. ขอบเขต pessimistic ของ report คือ 3 accepted Job executions × 2 task attempts × 10 นาที = 60 task-minutes/วัน หรือ 30 task-hours/เดือนสำหรับ 30 วัน ที่ 1 vCPU/1 GiB; watchdog, coordinator, Storage, Firestore, Pub/Sub, Logging, artifacts และ operator-run เพิ่มเติมคิดแยก. ใช้ Pricing Calculator กับ region/การใช้จริงก่อน apply; alert-only budget ไม่ได้หยุดค่าใช้จ่าย.
+เพดานต้นทุนที่คุมได้จาก config: CSV ≤5 MiB/5,000 แถว, Job หนึ่ง task/parallelism 1/10 นาที/หนึ่ง retry, Scheduler report retry เพิ่มไม่เกิน 2, และ backfill หนึ่งวันต่อ invocation ภายใน 7 วัน; ไม่มี global concurrency cap. ขอบเขต pessimistic ของ report คือ 3 accepted Job executions × 2 task attempts × 10 นาที = 60 task-minutes/วัน หรือ 30 task-hours/เดือนสำหรับ 30 วัน ที่ 1 vCPU/1 GiB; watchdog, coordinator, Storage, Firestore, Pub/Sub, Logging, artifacts และ operator-run เพิ่มเติมคิดแยก. ใช้ Pricing Calculator กับ region/การใช้จริงก่อน apply; alert-only budget ไม่ได้หยุดค่าใช้จ่าย.
 
 ### Diagrams
 
@@ -141,7 +141,7 @@ Cloud Logging เก็บ structured watchdog event; สร้าง log-based 
 3. Lease 15 นาที; retry ใน execution เดิมถือ owner เดิมและ attempt ใหม่, execution อื่น reclaim ได้เมื่อ lease หมดเท่านั้น. ทุก transition/side effect ตรวจ fence.
 4. Source และ report เป็น object generation ที่ pin ไว้; report ใช้ `ifGenerationMatch=0`, existing object reuse ได้เฉพาะเมื่อ source binding/hash ตรง. Schedule ใช้ object หลัก; operator เปลี่ยน source ได้เฉพาะด้วย `--mode operator-backfill` และ `--source-object`/`--source-generation` คู่ใหม่ใต้ correction prefix เมื่อ ledger เป็น `blocked/invalid_source` และยังไม่มี output; ห้าม restate รายงานที่ succeeded.
 5. Pub/Sub notification ใช้ `report_id` คงที่; Firestore `notification_pending` เป็น outbox ที่ retry publish ได้. Consumer อยู่นอก baselineและ deduplicate ตาม `report_id`.
-6. Watchdog 02:00/14:00 ตรวจ ledger + output แบบ read-only; structured log ที่ไม่สำเร็จไป Cloud Logging log-based alert. Operator ตรวจ `reportctl status` และ Scheduler/Run logs; การ monitor กรณี Scheduler ถูกปิดทั้งระบบไม่อยู่ใน baseline.
+6. Watchdog 02:00/14:00 ตรวจ ledger + output แบบ read-only; structured log ที่ไม่สำเร็จไป Cloud Logging log-based alert. Operator ตรวจ Firestore document ของวันนั้นและ Scheduler/Run logs; การ monitor กรณี Scheduler ถูกปิดทั้งระบบไม่อยู่ใน baseline.
 7. ขอบเขตคือ 5 MiB/5,000 rows, 1 task/parallelism 1, 10 นาที/1 task retry, Scheduler retry เพิ่ม 2/600s, backfill หนึ่งวันต่อ invocation ภายในช่วง 7 วันย้อนหลัง; ไม่มี global concurrency cap. ค่า compute-bound และรายการต้นทุนแยกอธิบายไว้; งบแจ้งเตือนไม่ใช่ hard cap.
 8. Cleanup ปิด Scheduler ก่อน, ตรวจไม่มี execution ค้าง, export evidence ที่ไม่ลับ, ลบ Pub/Sub/log alert, ลบ bucket objects แล้ว bucket, Firestore database, Cloud Run Job/service และ Artifact Registry; ห้ามใส่ retention lock ที่ขวาง cleanup.
 
@@ -316,6 +316,7 @@ gcloud storage objects describe "gs://$SOURCE_BUCKET/incoming/business_date=$BUS
 เก็บ source generation จากผล describe. จากนั้นกลับไป workload root ตั้ง pause_schedulers = false, review/apply plan แล้วเรียก report Scheduler ซ้ำสำหรับ logical business date เดิม; watchdog ตรวจซ้ำได้หลัง execution เสร็จ:
 
 ~~~bash
+cd infra/workloads
 gcloud scheduler jobs run lab008-report-schedule --location="$REGION" --project="$PROJECT_ID"
 gcloud run jobs executions list --job=lab008-daily-report --region="$REGION" --project="$PROJECT_ID"
 gcloud scheduler jobs run lab008-watchdog --location="$REGION" --project="$PROJECT_ID"
