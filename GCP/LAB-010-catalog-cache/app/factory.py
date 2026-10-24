@@ -192,6 +192,25 @@ def create_app(role="public", engine=None, cache=None):
             }
             return jsonify(body)
 
+        @app.get("/admin/cache/ttl/<category>")
+        def inspect_category_ttl(category):
+            if category not in catalog.CATEGORIES:
+                return jsonify({"error": "category must be one of the supported catalog categories"}), 400
+            key = f"catalog:v1:list:{category}"
+            result = current_app.extensions["catalog_cache"].inspect_list_ttl(key)
+            if not result["ok"]:
+                g.cache_status = "BYPASS"
+                g.cache_error = result["error"]
+                return jsonify({"status": "unavailable", "reason": result["error"]}), 503
+            g.cache_status = "INSPECTED"
+            ttl_seconds = result["ttl_seconds"]
+            ttl_state = "missing" if ttl_seconds == -2 else "persistent" if ttl_seconds == -1 else "expiring"
+            return jsonify({
+                "key": key,
+                "ttl_seconds": ttl_seconds,
+                "ttl_state": ttl_state,
+            })
+
         @app.post("/admin/cache/clear")
         def clear_cache():
             engine = current_app.extensions["db_engine"]

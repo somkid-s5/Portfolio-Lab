@@ -92,4 +92,4 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## สถานะดำเนินงาน
 
-Lab 01–09 Guide-ready; Lab 10 Design/App/DB-grant/Terraform baseline CI-checked; เพิ่ม reversible measurement toggles และเริ่ม Task Guide; Lab 11–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md; ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานทดสอบบน GCP จริง.
+Lab 01–09 Guide-ready; Lab 10 design/app/infra และ reversible workload toggles ผ่าน CI #307 (34/34 jobs); เพิ่ม TTL diagnostics และ Tasks 00–14 ใน authoring checkpoint นี้, guide CI pending; Lab 11–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md; ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานทดสอบบน GCP จริง.

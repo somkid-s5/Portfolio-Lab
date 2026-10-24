@@ -996,6 +996,16 @@ jobs:
           terraform init -backend=false -input=false
           terraform validate -no-color
 
+  lab010-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 10 Task order, evidence fields, Bash syntax and links
+        run: python3 -m unittest discover -s GCP/LAB-010-catalog-cache/tests -p test_guide.py -v
+
   lab010-design:
     runs-on: ubuntu-latest
     timeout-minutes: 10

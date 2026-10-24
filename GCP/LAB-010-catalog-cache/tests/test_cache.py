@@ -41,6 +41,11 @@ class CircuitBreakerTests(unittest.TestCase):
         self.assertEqual(cache.set("catalog:v1:product:1", {"id": 1}, 60)["ok"], True)
         self.assertEqual(client.last_ttl, 60)
 
+    def test_ttl_inspection_rejects_non_list_keys(self):
+        cache = CacheGateway(FakeRedis())
+        with self.assertRaises(ValueError):
+            cache.inspect_list_ttl("catalog:v1:product:1")
+
     def test_delete_is_restricted_to_catalog_namespace(self):
         cache = CacheGateway(FakeRedis())
         with self.assertRaises(ValueError):

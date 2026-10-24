@@ -21,15 +21,15 @@ EXPECTED_SERVICES = {
 
 class DesignTests(unittest.TestCase):
     def test_readme_is_build_not_a_claim_of_cloud_execution(self):
-        self.assertIn("phase: build", README)
-        self.assertIn("guide_status: design", README)
+        self.assertIn("phase: authoring", README)
+        self.assertIn("guide_status: authoring", README)
         self.assertIn("cloud_verification: not-run", README)
         self.assertIn("last_verified: null", README)
         self.assertEqual(PROVENANCE["verification"]["cloud_deployment"], "not-run")
         self.assertIn("960px", PROVENANCE["verification"]["diagram_render"])
         self.assertIn("รวมไม่เกิน 2,500 requests", README)
         self.assertRegex(README, r"(?m)^## Design")
-        self.assertNotRegex(README, r"(?m)^#{2,4}\s+Task\s+\d+")
+        self.assertRegex(README, r"(?m)^### Task 00")
         for requirement in range(1, 11):
             self.assertIn(f"R{requirement}", README)
 
@@ -77,6 +77,8 @@ class DesignTests(unittest.TestCase):
         self.assertIn("MAX_CATALOG_PRODUCTS = 2000", cache_source)
         self.assertIn("MAX_CATALOG_KEYS = 2104", cache_source)
         self.assertIn("def clear_catalog(self, product_ids, categories):", cache_source)
+        self.assertIn("def inspect_list_ttl(self, key):", cache_source)
+        self.assertIn("/admin/cache/ttl/<category>", (ROOT / "app" / "factory.py").read_text(encoding="utf-8"))
         self.assertNotIn("flushdb", cache_source.lower())
         self.assertNotIn("scan_iter", cache_source)
         self.assertNotRegex(cache_source, r"(?i)\.keys\s*\(")

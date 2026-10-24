@@ -98,6 +98,22 @@ class CatalogIntegrationTests(unittest.TestCase):
         self.assertEqual(again.headers["X-Cache"], "HIT")
         self.assertEqual(listing.json["count"], 50)
 
+    def test_operator_can_inspect_only_allowlisted_category_cache_ttl(self):
+        self.public.get("/api/catalog?category=books")
+        result = self.admin.get("/admin/cache/ttl/books")
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json["key"], "catalog:v1:list:books")
+        self.assertEqual(result.json["ttl_state"], "expiring")
+        self.assertGreaterEqual(result.json["ttl_seconds"], 1)
+        self.assertLessEqual(result.json["ttl_seconds"], 60)
+        self.assertEqual(self.public.get("/admin/cache/ttl/books").status_code, 404)
+        self.assertEqual(self.admin.get("/admin/cache/ttl/unknown").status_code, 400)
+        with patch.dict(os.environ, {"CATEGORY_LIST_TTL_SECONDS": "15"}):
+            self.public.get("/api/catalog?category=electronics")
+            shorter = self.admin.get("/admin/cache/ttl/electronics")
+        self.assertGreaterEqual(shorter.json["ttl_seconds"], 1)
+        self.assertLessEqual(shorter.json["ttl_seconds"], 15)
+
     def test_category_validation_health_and_scoped_clear(self):
         bad = self.public.get("/api/catalog?category=unknown")
         self.assertEqual(bad.status_code, 400)

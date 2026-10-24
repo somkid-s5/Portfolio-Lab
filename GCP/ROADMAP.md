@@ -483,7 +483,7 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 
 ## ลำดับถัดไป
 
-Lab 10 ปิด Design แล้วใน [README](LAB-010-catalog-cache/README.md); CI run [40084647364](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40084647364) ผ่าน 30/30 jobs และ render SVG สองภาพที่ 960px. เริ่ม Build materials ด้วย Flask catalog/API, PostgreSQL seed, Redis cache-aside, bounded load tool และ PostgreSQL/Redis CI integration. CI run [40085309726](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40085309726) ตรวจจับ regression assertion ที่ไม่ตรงกับ README; correction และ app checks กำลังรันใหม่. ขั้นถัดไปทำ Terraform foundation/workload โดยไม่ provision Cloud; เมื่อ app/infra ตรวจผ่าน จึงค่อยเขียน Task guide เดียวพร้อมขั้น build/deploy/operate/failure/change/evidence/cleanup.
+Lab 10 design, app, Terraform foundation/workload และ cache/fault toggles ผ่าน CI run [40087406697 (#307)](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40087406697) ครบ 34 jobs โดยไม่มี credentials หรือ Cloud provisioning. กำลังเติม read-only Operator endpoint สำหรับตรวจ Redis category TTL จริง และเขียน Tasks 00–14 ใน [README](LAB-010-catalog-cache/README.md); guide checks ของ checkpoint นี้ยัง pending. ไม่มี GCP apply และ Cloud verification ยังคง Not run.
 
 ตัวอย่างรูปแบบการอ่านที่ยืนยันแล้ว: [Lab Test 2](../test/lab-test-2/README.md) เป็นตัวอย่างรูปแบบ ไม่ถือเป็นผลการทำ Lab ใด
 

@@ -53,6 +53,19 @@ class CacheGateway:
         except (TypeError, ValueError):
             return {"status": "MISS", "value": None, "error": "InvalidCachePayload"}
 
+    def inspect_list_ttl(self, key):
+        if not isinstance(key, str) or not key.startswith(NAMESPACE + "list:"):
+            raise ValueError("Cache inspection is restricted to catalog list keys.")
+        available, reason = self._available()
+        if not available:
+            return {"ok": False, "ttl_seconds": None, "error": reason}
+        try:
+            ttl_seconds = self.client.ttl(key)
+        except RedisError as error:
+            return {"ok": False, "ttl_seconds": None, "error": self._failure(error)}
+        self._success()
+        return {"ok": True, "ttl_seconds": ttl_seconds, "error": None}
+
     def set(self, key, value, ttl_seconds):
         available, reason = self._available()
         if not available:

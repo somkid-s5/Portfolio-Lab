@@ -355,3 +355,6 @@ Lab10 / Infra CI format correction: CI run 40087072059 stopped at terraform fmt 
 
 
 Lab10 / App + infra CI verified: [CI run 40087195704](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40087195704), source 3bd11017a3127ce623f59ca3255c458f343bdc2a, full workflow completed success. Lab10 app integration (25 tests), design checks, Docker non-root/import and Terraform provider 6.50 fmt/init/validate all passed without credentials or provisioning. เพิ่ม cache-enabled/Redis-fault togglesหลัง checkpoint นี้เพื่อรองรับ matched workload; CI rerun pending. No GCP apply; Cloud verification Not run.
+
+
+Lab10 / Guide authoring checkpoint (2026-10-24 11:03 UTC): CI [run #307](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40087406697) จาก source 7f5cda868b31ec66512e611e53b15c31c0b996a3 ผ่าน 34/34 jobs; Lab10 app integration, design/diagram และ Terraform fmt/init/validate ผ่าน รวม cache-disabled baseline และ Redis-fault toggles. เพิ่ม allowlisted read-only Operator diagnostic `GET /admin/cache/ttl/<category>` เพื่อพิสูจน์ TTL จริง (รวม CR 60→15), integration/unit coverage และ draft Tasks 00–14 พร้อม bounded profiles, Expected/Actual/Evidence, fault recovery, change, cleanup/state handling และ case-study record. CI สำหรับ authoring checkpoint นี้ pending. ไม่มี GCP API/apply/provisioning; Cloud verification Not run.
