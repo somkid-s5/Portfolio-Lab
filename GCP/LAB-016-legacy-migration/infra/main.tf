@@ -1,6 +1,7 @@
 locals {
   enabled_apis = toset([
     "artifactregistry.googleapis.com",
+    "cloudbuild.googleapis.com",
     "compute.googleapis.com",
     "iam.googleapis.com",
     "logging.googleapis.com",
@@ -9,6 +10,7 @@ locals {
     "servicenetworking.googleapis.com",
     "serviceusage.googleapis.com",
     "sqladmin.googleapis.com",
+    "storage.googleapis.com",
   ])
   labels = {
     lab        = "lab016"
@@ -230,6 +232,9 @@ resource "google_compute_instance" "source" {
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
   metadata_startup_script = file("${path.module}/../scripts/source-startup.sh")
+  metadata = {
+    "enable-oslogin" = "TRUE"
+  }
   shielded_instance_config {
     enable_secure_boot          = true
     enable_vtpm                 = true

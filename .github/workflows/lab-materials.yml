@@ -1509,6 +1509,16 @@ jobs:
       - name: Build application image without cloud credentials
         run: docker build -t lab016-orders:ci GCP/LAB-016-legacy-migration/app
 
+  lab016-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate Lab 16 task sequence, evidence fields, links and Bash examples
+        run: python3 -m unittest discover -s GCP/LAB-016-legacy-migration/tests -p 'test_guide.py' -v
+
   lab016-infra:
     runs-on: ubuntu-latest
     timeout-minutes: 20

@@ -1,0 +1,16 @@
+# Terraform state and local plans
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+terraform.tfvars.json
+
+# Lab-only secrets, certificates, exports and logs
+*.pem
+*.key
+*.dump
+*.secret
+*.log
+.env
+.env.*
