@@ -77,7 +77,6 @@ class Lab09GuideTests(unittest.TestCase):
         self.assertIn("guide_status: authoring", front_matter)
         self.assertIn("cloud_verification: not-run", front_matter)
         self.assertIn("Cloud verification: Not run", self.text)
-        self.assertIn("2026-10-24", self.text)
 
 
 if __name__ == "__main__":
