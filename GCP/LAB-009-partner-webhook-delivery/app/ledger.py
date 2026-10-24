@@ -165,6 +165,117 @@ class FirestoreLedger:
 
         return commit(transaction)
 
+
+    def record_enqueue_error(
+        self,
+        delivery: str,
+        *,
+        generation: int,
+        error_code: str,
+        now: datetime | None = None,
+    ) -> bool:
+        """Record a bounded error code only while this generation is pending."""
+        if not isinstance(delivery, str) or not _HASH.fullmatch(delivery):
+            raise ValidationError("delivery_id must be lowercase SHA-256 hex")
+        if not isinstance(generation, int) or isinstance(generation, bool) or generation < 1:
+            raise ValidationError("generation must be a positive integer")
+        if not isinstance(error_code, str) or not re.fullmatch(
+            r"[A-Za-z][A-Za-z0-9_.-]{0,63}", error_code
+        ):
+            raise ValidationError("error_code must be a safe short identifier")
+        updated_at = now or self._clock()
+        if not isinstance(updated_at, datetime) or updated_at.tzinfo is None:
+            raise ValidationError("transition time must be timezone-aware")
+        if updated_at.utcoffset() != timezone.utc.utcoffset(updated_at):
+            raise ValidationError("transition time must be UTC")
+        updated_at = updated_at.astimezone(timezone.utc)
+        ref = self.deliveries.document(delivery)
+        transaction = self._client.transaction(max_attempts=5)
+
+        @firestore.transactional
+        def commit(txn: Any) -> bool:
+            snapshot = ref.get(transaction=txn, timeout=10)
+            if not snapshot.exists:
+                raise LedgerInvariantError("delivery record does not exist")
+            record = snapshot.to_dict() or {}
+            current_generation = record.get("generation")
+            if type(current_generation) is not int:
+                raise LedgerInvariantError("delivery generation is not an integer")
+            if current_generation != generation or record.get("status") != "enqueue_pending":
+                return False
+            attempts = record.get("enqueue_attempts", 0)
+            if type(attempts) is not int or attempts < 0:
+                raise LedgerInvariantError("enqueue_attempts is invalid")
+            txn.update(
+                ref,
+                {
+                    "enqueue_attempts": attempts + 1,
+                    "last_enqueue_error": error_code,
+                    "updated_at": updated_at,
+                },
+            )
+            return True
+
+        return commit(transaction)
+
+    def mark_retry_ended_unknown(
+        self,
+        delivery: str,
+        *,
+        generation: int,
+        reason: str,
+        now: datetime | None = None,
+    ) -> bool:
+        """Move only the matching nonterminal generation to manual review."""
+        if not isinstance(delivery, str) or not _HASH.fullmatch(delivery):
+            raise ValidationError("delivery_id must be lowercase SHA-256 hex")
+        if not isinstance(generation, int) or isinstance(generation, bool) or generation < 1:
+            raise ValidationError("generation must be a positive integer")
+        if not isinstance(reason, str) or not re.fullmatch(
+            r"[a-z][a-z0-9_-]{2,63}", reason
+        ):
+            raise ValidationError("reason must be a safe short identifier")
+        updated_at = now or self._clock()
+        if not isinstance(updated_at, datetime) or updated_at.tzinfo is None:
+            raise ValidationError("transition time must be timezone-aware")
+        if updated_at.utcoffset() != timezone.utc.utcoffset(updated_at):
+            raise ValidationError("transition time must be UTC")
+        updated_at = updated_at.astimezone(timezone.utc)
+        ref = self.deliveries.document(delivery)
+        transaction = self._client.transaction(max_attempts=5)
+
+        @firestore.transactional
+        def commit(txn: Any) -> bool:
+            snapshot = ref.get(transaction=txn, timeout=10)
+            if not snapshot.exists:
+                raise LedgerInvariantError("delivery record does not exist")
+            record = snapshot.to_dict() or {}
+            current_generation = record.get("generation")
+            if type(current_generation) is not int:
+                raise LedgerInvariantError("delivery generation is not an integer")
+            if current_generation != generation:
+                return False
+            status = record.get("status")
+            if status == "retry_ended_unknown":
+                if record.get("review_reason") != reason:
+                    raise LedgerInvariantError("unknown outcome already has a different reason")
+                return True
+            if status not in ("enqueue_pending", "queued"):
+                return False
+            txn.update(
+                ref,
+                {
+                    "status": "retry_ended_unknown",
+                    "review_required": True,
+                    "review_reason": reason,
+                    "task_missing_at": updated_at,
+                    "updated_at": updated_at,
+                },
+            )
+            return True
+
+        return commit(transaction)
+
     def get_event(self, event_id: str) -> dict[str, Any] | None:
         if not isinstance(event_id, str):
             raise ValidationError("event_id must be a string")
@@ -217,6 +328,8 @@ class FirestoreLedger:
             current_generation = record.get("generation")
             current_status = record.get("status")
             current_task = record.get("task_name")
+            if type(current_generation) is not int:
+                raise LedgerInvariantError("delivery generation is not an integer")
             if current_generation != generation:
                 return False
             if current_status == "queued":
@@ -225,6 +338,9 @@ class FirestoreLedger:
                 return True
             if current_status != "enqueue_pending":
                 return False
+            enqueue_attempts = record.get("enqueue_attempts", 0)
+            if type(enqueue_attempts) is not int or enqueue_attempts < 0:
+                raise LedgerInvariantError("enqueue_attempts is invalid")
             txn.update(
                 ref,
                 {
@@ -232,7 +348,7 @@ class FirestoreLedger:
                     "task_name": task_name,
                     "enqueued_at": transition_time,
                     "updated_at": transition_time,
-                    "enqueue_attempts": int(record.get("enqueue_attempts", 0)) + 1,
+                    "enqueue_attempts": enqueue_attempts + 1,
                     "last_enqueue_error": None,
                 },
             )
