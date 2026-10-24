@@ -113,9 +113,7 @@ class GCSObjects:
             blob.reload(timeout=5, retry=None)
         except NotFound as exc:
             raise SourceMissing() from exc
-        if blob.content_encoding or blob.content_type != "text/csv":
-            raise InvalidSource("INVALID_ENCODING")
-        if blob.size is None or int(blob.size) > MAX_INPUT_BYTES:
+        if blob.size is None:
             raise InvalidSource("INPUT_TOO_LARGE")
         return str(_generation(blob.generation))
 
