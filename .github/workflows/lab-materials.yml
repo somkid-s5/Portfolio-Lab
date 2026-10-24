@@ -953,6 +953,7 @@ jobs:
           --health-cmd "redis-cli ping"
           --health-interval 5s --health-timeout 3s --health-retries 10
     env:
+      PYTHONPATH: GCP/LAB-010-catalog-cache
       DATABASE_URL: postgresql+pg8000://lab010_ci:disposable-lab010-ci@127.0.0.1:5432/lab010_ci
       REDIS_URL: redis://127.0.0.1:6379/0
       CACHE_ENABLED: "true"
