@@ -164,6 +164,8 @@ def new_journal(origin, customer, count, sku, quantity, rate, observe_seconds):
         "quantity": quantity,
         "rate_per_second": float(rate),
         "observe_seconds": observe_seconds,
+        "stock_before": None,
+        "stock_after": None,
         "orders": [{
             "idempotency_key": uuid.uuid4().hex,
             "items": [{"sku": sku, "quantity": quantity}],
@@ -185,7 +187,8 @@ def journal_identifier(value):
 
 def validate_journal(value):
     fields = {"schema_version", "run_id", "created_at", "origin", "customer",
-              "count", "sku", "quantity", "rate_per_second", "observe_seconds", "orders"}
+              "count", "sku", "quantity", "rate_per_second", "observe_seconds",
+              "stock_before", "stock_after", "orders"}
     if (not isinstance(value, dict) or set(value) != fields
             or type(value["schema_version"]) is not int or value["schema_version"] != 1):
         raise SafeFailure("journal_schema_invalid")
@@ -194,6 +197,10 @@ def validate_journal(value):
         raise SafeFailure("journal_schema_invalid")
     validate_settings(value["count"], value["sku"], value["quantity"],
                       value["rate_per_second"], value["observe_seconds"])
+    for field in ("stock_before", "stock_after"):
+        stock = value[field]
+        if stock is not None and (type(stock) is not int or stock < 0):
+            raise SafeFailure("journal_schema_invalid")
     if (not isinstance(value["customer"], str)
             or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", value["customer"])):
         raise SafeFailure("journal_schema_invalid")
@@ -384,6 +391,9 @@ def execute(args, *, client_factory=Portal, clock=time.monotonic,
         client = client_factory(origin)
         client.login(journal["customer"], password)
         available = client.catalog_available(journal["sku"])
+        if journal["stock_before"] is None:
+            journal["stock_before"] = available
+            private_replace(journal_path, journal)
         unattempted = [entry for entry in journal["orders"] if entry["attempts"] == 0]
         demand = len(unattempted) * journal["quantity"]
         if available < demand:
@@ -488,6 +498,12 @@ def execute(args, *, client_factory=Portal, clock=time.monotonic,
                 if remaining > 0:
                     sleep_fn(min(5.0, remaining))
 
+        stock_error = None
+        try:
+            journal["stock_after"] = client.catalog_available(journal["sku"])
+            private_replace(journal_path, journal)
+        except PortalFailure as failure:
+            stock_error = failure.code
         states = {}
         for entry in journal["orders"]:
             key = entry["state"] or "unknown"
@@ -499,6 +515,12 @@ def execute(args, *, client_factory=Portal, clock=time.monotonic,
             "run_id": journal["run_id"],
             "requested_orders": journal["count"],
             "known_order_ids": len(order_ids),
+            "sku": journal["sku"],
+            "stock_before": journal["stock_before"],
+            "stock_after": journal["stock_after"],
+            "stock_decrease": (journal["stock_before"] - journal["stock_after"]
+                               if journal["stock_before"] is not None
+                               and journal["stock_after"] is not None else None),
             "http_202": sum(e["last_http_status"] == 202 for e in journal["orders"]),
             "http_200_replay": sum(e["last_http_status"] == 200 for e in journal["orders"]),
             "terminal_orders": terminal,
@@ -511,7 +533,7 @@ def execute(args, *, client_factory=Portal, clock=time.monotonic,
                        for e in journal["orders"]],
         }
         emit(json.dumps(summary, sort_keys=True))
-        if observe and observation_error:
+        if stock_error or (observe and observation_error):
             return 2
         if any(e["order_id"] is None for e in journal["orders"]):
             return 2

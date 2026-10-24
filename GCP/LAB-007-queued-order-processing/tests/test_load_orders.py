@@ -16,23 +16,29 @@ class FakePortal:
     def __init__(self, origin, *, available=100, fail_once=False):
         self.origin = origin
         self.available = available
+        self.available_values = None
         self.fail_once = fail_once
         self.keys = []
         self.order_id = "d" * 32
+        self.order_sequence = 0
 
     def login(self, customer, password):
         self.login_args = (customer, password)
 
     def catalog_available(self, sku):
         self.sku = sku
+        if self.available_values is not None:
+            return self.available_values.pop(0)
         return self.available
 
     def create_order(self, entry):
         self.keys.append(entry["idempotency_key"])
+        self.order_sequence += 1
         if self.fail_once:
             self.fail_once = False
             raise load_orders.OutcomeUnknown()
-        return 200, self.order_id, "confirmed", True
+        order_id = "d" * 30 + f"{self.order_sequence:02x}"
+        return 200, order_id, "confirmed", True
 
     def orders_page(self, cursor, timeout):
         return [{"order_id": self.order_id, "state": "confirmed"}], None
@@ -118,6 +124,19 @@ class LoadOrdersTests(unittest.TestCase):
         self.assertEqual(result, 2)
         self.assertEqual(client.keys, [])
         self.assertIn("insufficient_stock", outputs[-1])
+
+    def test_inventory_before_after_is_saved_for_capacity_evidence(self):
+        client = FakePortal("https://lab007-portal-abc123-as.a.run.app")
+        client.available_values = [100, 97]
+        outputs = []
+        result = load_orders.execute(self.args(count=3), client_factory=lambda _: client,
+                                     sleep_fn=lambda _: None, emit=outputs.append)
+        self.assertEqual(result, 0)
+        journal = load_orders.private_read(self.journal)
+        self.assertEqual((journal["stock_before"], journal["stock_after"]), (100, 97))
+        summary = json.loads(outputs[-1])
+        self.assertEqual(summary["stock_decrease"], 3)
+        self.assertEqual(len({e["order_id"] for e in summary["orders"]}), 3)
 
     def test_new_run_refuses_overwrite_and_journal_is_private(self):
         client = FakePortal("https://lab007-portal-abc123-as.a.run.app")
