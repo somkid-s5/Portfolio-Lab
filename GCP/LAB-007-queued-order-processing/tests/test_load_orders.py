@@ -129,7 +129,7 @@ class LoadOrdersTests(unittest.TestCase):
         outputs = []
         self.assertEqual(load_orders.execute(self.args(), client_factory=lambda _: client,
                                              sleep_fn=lambda _: None, emit=outputs.append), 2)
-        self.assertIn("private-demo-password", "".join(outputs) if outputs else "")
+        self.assertNotIn("private-demo-password", "".join(outputs))
         self.assertEqual(load_orders.private_read(self.journal)["run_id"], before)
 
 
