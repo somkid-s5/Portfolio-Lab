@@ -8,7 +8,7 @@ last_verified: null
 ---
 # Lab 09 — ระบบส่ง Webhook ให้ระบบคู่ค้า
 
-**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี pure domain contract, Firestore transaction ledger, Cloud Tasks OIDC adapter, Event API และ bounded outbox reconciler พร้อม unit/emulator tests; Scheduler entrypoint, Delivery Worker, partner simulator, Terraform และ Guide ยังไม่ครบ. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
+**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี pure domain contract, Firestore transaction ledger, Cloud Tasks OIDC adapter, Event API, bounded outbox reconciler และ Scheduler HTTP entrypoint พร้อม unit/emulator tests; ยังขาด Delivery Worker, partner simulator, Terraform และ Guide. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
 
 ## Build materials checkpoint
 
@@ -17,9 +17,10 @@ last_verified: null
 - `app/task_queue.py` สร้าง Cloud Task แบบ deterministic, ส่งเฉพาะ IDs พร้อม OIDC และแยก AlreadyExists→GetTask; unit tests ใช้ client double ไม่มี RPC.
 - `app/api.py` รับ event ผ่าน `/v1/events`, ตอบ 202 หลัง Firestore commit และถือ enqueue เป็น best-effort; error ระหว่างส่งไม่ทำให้ producer ส่ง business event ซ้ำโดยไม่จำเป็น. IAM enforcement อยู่ที่ Cloud Run configuration.
 - `app/reconciler.py` อ่าน pending/queued อย่างมี page cap รวมไม่เกิน 25 records ต่อรอบ, ซ่อม task ที่ยังสด, และย้าย pending เกิน 15 นาทีหรือ queued ที่หา task ไม่พบไป `retry_ended_unknown` เพื่อให้คนตรวจ. การบันทึก enqueue error ไม่เลื่อน `enqueue_pending_since` จึงไม่รีเซ็ต deadline.
+- `app/reconciler_api.py` เปิด `POST /internal/reconcile` สำหรับ Cloud Scheduler, ไม่รับ control fields จาก request, ส่ง HTTP 503 เมื่อมี record error เพื่อให้ Scheduler retry. ใช้ Cloud Run IAM เป็น auth boundary; test นี้ยืนยันเฉพาะ HTTP contract ไม่ได้ทดสอบ IAM จริง.
 - Emulator tests ครอบคลุม deadline จริงจากเวลาเริ่ม pending, page bound, queue lookup ที่หาย และไม่เขียนทับ terminal state.
 - `tests/test_domain.py` ทดสอบ contract แบบ pure; `tests/test_firestore_ledger.py` ใช้ loopback Firestore Emulator ทดสอบ atomic write, concurrent replay และ state guard. ผลจะถือเป็น CI/emulator evidence เมื่อ workflow ผ่านเท่านั้น.
-- ขั้นถัดไปคือ Scheduler-triggered Reconciler entrypoint, Delivery Worker และ partner simulator; ยังไม่มี Terraform หรือ Cloud SDK call ไปยัง project จริง.
+- ขั้นถัดไปคือ Delivery Worker และ partner simulator; จากนั้นจึงประกอบ runtime entrypoints, Terraform และ Tasks guide. ยังไม่มี Terraform หรือ Cloud SDK call ไปยัง project จริง.
 
 ## สถานการณ์
 
