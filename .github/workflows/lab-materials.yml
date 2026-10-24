@@ -591,6 +591,8 @@ jobs:
         run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_coordinator.py -v
       - name: Test daily worker idempotency and recovery workflow
         run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_worker.py -v
+      - name: Test service and Job runtime entrypoints
+        run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_entrypoints.py -v
       - name: Exercise Firestore transactions against loopback emulator
         shell: bash
         run: |
@@ -645,6 +647,21 @@ jobs:
             GCP/LAB-008-daily-batch-reports/assets/diagram-provenance.json
           if-no-files-found: error
           retention-days: 14
+
+  lab008-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile Lab 08 Python application
+        run: python3 -m py_compile GCP/LAB-008-daily-batch-reports/app/*.py
+      - name: Build the self-contained nonroot Lab 08 image without cloud credentials
+        run: docker build -t lab008-daily-batch:ci GCP/LAB-008-daily-batch-reports
+      - name: Verify runtime imports and image excludes tests fixtures and diagrams
+        run: |
+          docker run --rm --entrypoint python lab008-daily-batch:ci -c "import os,pathlib,app.coordinator,app.integrations,app.job,app.runtime,app.storage,app.worker; assert os.getuid()==10001; assert pathlib.Path('/srv/app/job.py').is_file(); assert not pathlib.Path('/srv/tests').exists(); assert not pathlib.Path('/srv/fixtures').exists(); assert not pathlib.Path('/srv/assets').exists()"
 
   lab007-bootstrap:
     runs-on: ubuntu-latest
