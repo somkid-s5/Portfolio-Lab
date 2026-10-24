@@ -11,7 +11,7 @@ variable "serving_image" {
   type        = string
   description = "Immutable Artifact Registry image reference ending in @sha256:<digest>."
   validation {
-    condition     = can(regex(
+    condition = can(regex(
       "^asia-southeast1-docker[.]pkg[.]dev/${var.project_id}/lab007-images/order-queue@sha256:[a-f0-9]{64}$",
       var.serving_image
     ))
@@ -23,7 +23,7 @@ variable "bootstrap_image" {
   type        = string
   description = "Immutable, separate bootstrap image reference ending in @sha256:<digest>."
   validation {
-    condition     = can(regex(
+    condition = can(regex(
       "^asia-southeast1-docker[.]pkg[.]dev/${var.project_id}/lab007-images/bootstrap@sha256:[a-f0-9]{64}$",
       var.bootstrap_image
     ))
