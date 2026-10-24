@@ -572,12 +572,12 @@ jobs:
       - name: Validate private SQL and single-region-replicated global Secret foundation without credentials or provisioning
         working-directory: GCP/LAB-007-queued-order-processing/infra/foundation
         run: |
-          terraform fmt -check -recursive
+          terraform fmt -check -diff -recursive
           terraform init -backend=false -input=false
           terraform validate -no-color
       - name: Validate pinned-image workload roots without credentials or provisioning
         working-directory: GCP/LAB-007-queued-order-processing/infra/workloads
         run: |
-          terraform fmt -check -recursive
+          terraform fmt -check -diff -recursive
           terraform init -backend=false -input=false
           terraform validate -no-color
