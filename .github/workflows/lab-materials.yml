@@ -1508,3 +1508,23 @@ jobs:
         run: .ci-lab016/bin/python -m unittest discover -s GCP/LAB-016-legacy-migration/tests -p 'test_app.py' -v && .ci-lab016/bin/python -m unittest discover -s GCP/LAB-016-legacy-migration/tests -p 'test_reconcile_contract.py' -v
       - name: Build application image without cloud credentials
         run: docker build -t lab016-orders:ci GCP/LAB-016-legacy-migration/app
+
+  lab016-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+      - name: Format and validate Lab 16 foundation without credentials or provisioning
+        working-directory: GCP/LAB-016-legacy-migration/infra
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+      - name: Check private network, IAM, source bootstrap and cleanup contracts
+        run: python3 -m unittest discover -s GCP/LAB-016-legacy-migration/tests -p 'test_infra_contract.py' -v
