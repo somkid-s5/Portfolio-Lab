@@ -145,7 +145,9 @@ resource "google_redis_instance" "catalog" {
   authorized_network          = google_compute_network.lab.id
   auth_enabled                = true
   transit_encryption_mode     = "SERVER_AUTHENTICATION"
-  deletion_protection_enabled = !var.allow_destroy
+  lifecycle {
+    prevent_destroy = true
+  }
 
   depends_on = [google_service_networking_connection.private_services]
 }
@@ -221,8 +223,8 @@ resource "google_sql_user" "iam" {
   project        = var.project_id
   instance       = google_sql_database_instance.catalog.name
   name           = local.sql_db_usernames[each.key]
-  type           = "CLOUD_IAM_SERVICE_ACCOUNT"
-  database_roles = each.key == "migrator" ? ["cloudsqlsuperuser"] : []
+  type            = "CLOUD_IAM_SERVICE_ACCOUNT"
+  deletion_policy = "ABANDON"
 }
 
 resource "google_secret_manager_secret_iam_member" "runtime" {
