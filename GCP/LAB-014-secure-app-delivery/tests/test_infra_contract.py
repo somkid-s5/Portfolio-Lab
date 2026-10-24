@@ -45,6 +45,10 @@ class InfrastructureContractTests(unittest.TestCase):
         ):
             self.assertIn(value, source)
         self.assertRegex(source, r'runtime\s*=\s*"Lab 14 Cloud Run runtime identity"')
+        self.assertIn("releaser_act_as_accounts = local.execution_accounts", source)
+        self.assertIn('resource "google_service_account_iam_member" "runtime_act_as"', source)
+        self.assertIn('role               = "roles/iam.serviceAccountUser"', source)
+        self.assertIn('google_service_account.lab014[each.value].email', source)
 
     def test_trigger_is_optional_and_pins_main_and_lab14_path(self):
         source = (INFRA / "main.tf").read_text(encoding="utf-8")

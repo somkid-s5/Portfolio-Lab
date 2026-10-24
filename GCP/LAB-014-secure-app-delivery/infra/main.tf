@@ -80,10 +80,11 @@ locals {
     production-deployer = google_service_account.lab014["production-deployer"].name
     verifier            = google_service_account.lab014["verifier"].name
   }
-  releaser_act_as_accounts = {
-    renderer         = google_service_account.lab014["renderer"].name
-    staging-deployer = google_service_account.lab014["staging-deployer"].name
-  }
+  releaser_act_as_accounts = local.execution_accounts
+  runtime_act_as_deployers = toset([
+    "staging-deployer",
+    "production-deployer",
+  ])
   artifact_readers = toset([
     format("serviceAccount:%s", google_service_account.lab014["renderer"].email),
     format("serviceAccount:%s", google_service_account.lab014["staging-deployer"].email),
@@ -313,6 +314,12 @@ resource "google_service_account_iam_member" "releaser_act_as" {
   service_account_id = each.value
   role               = "roles/iam.serviceAccountUser"
   member             = format("serviceAccount:%s", google_service_account.lab014["releaser"].email)
+}
+resource "google_service_account_iam_member" "runtime_act_as" {
+  for_each           = local.runtime_act_as_deployers
+  service_account_id = google_service_account.lab014["runtime"].name
+  role               = "roles/iam.serviceAccountUser"
+  member             = format("serviceAccount:%s", google_service_account.lab014[each.value].email)
 }
 resource "google_project_iam_member" "production_approver" {
   count   = var.approver_principal == "" ? 0 : 1
