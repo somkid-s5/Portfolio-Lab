@@ -16,8 +16,8 @@
 | 10 | [ระบบ Catalog ที่ใช้ Cache ลดภาระ Database](LAB-010-catalog-cache/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 11 | [ระบบคำนวณราคาเสนอค่าขนส่งบน GKE](LAB-011-gke-quote-engine/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 12 | [ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้](LAB-012-cross-service-tracing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) |
-| 13 | [ระบบประมวลผลข้อมูลนำเข้าแบบขนาน](LAB-013-parallel-data-processing/README.md) | Design revision pending CI | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #333](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099200779); [CI #334](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099464528) |
-| 14 | แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา | Planned | Not run | — |
+| 13 | [ระบบประมวลผลข้อมูลนำเข้าแบบขนาน](LAB-013-parallel-data-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) — 47/47 jobs ผ่าน |
+| 14 | [แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา](LAB-014-secure-app-delivery/README.md) | Brief | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 15 | ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud | Planned | Not run | — |
 | 16 | ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud | Planned | Not run | — |
 | 17 | ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้ | Planned | Not run | — |
@@ -31,13 +31,9 @@ Cloud verification: Not run → In progress → Verified / Failed / Blocked (ต
 
 ## Current checkpoint
 
-M1 / Lab 01: Guide-ready — คู่มือครบ Tasks 0–10/8B, normal/fault/recovery/load/access/change/backout/cleanup/rebuild, code และภาพก่อน/หลังเปลี่ยน อ่านกลับจาก GitHub แล้ว
+Lab 13 / Guide-ready — เพิ่ม solution guide, app/worker, generator/uploader/reconciler, Terraform foundation, diagram, tests และ cleanup; [CI #342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ผ่านครบ 47/47 jobs บน commit `70d1269d854b212d9bb9567e833f932d54ced204`. เป็น repository CI เท่านั้น ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
 
-[CI run 39809864366](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39809864366) ของ commit `3a5f312c21355f9254f1deee776ca26c4d4dbcf4`: shell syntax, Python compile, 10 tests และ render SVG สองแบบผ่าน ตรวจภาพ baseline/after-change ที่ 960px แล้ว PNG ถูกบันทึกใน assets พร้อม SVG editable และเครดิตไอคอน
-
-ขอบเขต: ไม่ได้สร้าง GCP resources, ไม่ได้ทดสอบ IAP/firewall/LB health จริง หรือ apt/systemd ใน GCE ผล cloud ทุก Lab ยัง Not run ไม่ใช้ CI เป็นหลักฐาน Cloud-verified
-
-M2 / Lab 02: Design และ Build materials — บันทึก access matrix, app contract, PostgreSQL schema/seed/invariants และ real-DB integration tests แล้ว กำลังตรวจ cloud CI ก่อนเขียน Tasks คู่มือเต็ม
+Lab 14 / Brief — กำหนด delivery platform จาก GitHub Actions ผ่าน WIF ไป Cloud Build/Artifact Registry, Binary Authorization, Cloud Deploy และ Cloud Run พร้อมเกณฑ์ untrusted identity, unapproved image, staging verification, production approval, canary, rollback และ expiring exception. ยังไม่มี Task Guide, app, infra หรือผล Cloud.
 
 Lab 02 materials checkpoint: [CI 39810811347 / job lab002](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39810811347) รัน App สอง process กับ PostgreSQL 15 จริงและผ่าน 7 integration tests: shared data, auth/validation, retry/conflict, concurrent overdraw, concurrent duplicate key, non-destructive seed และ health/search ใช้ฐานข้อมูล CI ชั่วคราว ไม่ใช่ผล Deploy GCP; secret-generator/installer tests เพิ่มเติมยังอยู่ระหว่างตรวจ
 
@@ -380,3 +376,8 @@ Lab 12 / Guide-ready checkpoint (2026-10-24): เพิ่ม README Tasks 00–
 
 
 Lab 13 / Design baseline: กำหนดโจทย์ synthetic product-data ingestion, R1–R10, Cloud Batch bounded parallelism/retry, private worker network, แยก input/attempt/published buckets, least-privilege identities, partial-failure gate, recovery/change/cost/evidence design. เพิ่ม official-icon SVG/standalone HTML และ pinned blob-hash provenance; CI #333 ผ่าน design tests/render และ CI #334 ผ่าน collection checks. เมื่อทบทวนเอกสาร Cloud Batch พบว่าควรเขียน semantics ของ single lifecycle policy ให้ชัด: retry code 75 เท่านั้น; code 65 ที่ไม่อยู่ใน allowlist fail โดยไม่ retry. แก้ brief/test แล้ว; self-review เพิ่ม Artifact Registry Reader เฉพาะ repository ให้ runtime สำหรับ pull image, ระบุ role IDs/scope ของ build/runtime/operator, เพิ่ม operator Object Creator บน input bucket (append-only), Object Viewer บน published-manifest bucket สำหรับพิสูจน์สถานะ, และ runtime negative-write probe ต่อ input/published; revision CI pending. ยังไม่มี Task guide, Terraform, GCP provisioning หรือ Cloud verification.
+
+
+Lab 13 / Guide-ready checkpoint (2026-10-24): [CI #342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327), commit `70d1269d854b212d9bb9567e833f932d54ced204`, ผ่านครบ 47/47 jobs รวม Lab13 guide/app/infra/design. Tests ตรวจ source, contracts, Terraform, diagram/render และคู่มือ; ไม่ใช่ GCP execution. ไม่มีการ provision และ Cloud verification Not run.
+
+Lab 14 / Brief checkpoint (2026-10-24): สร้าง [README](LAB-014-secure-app-delivery/README.md) สำหรับ secure app delivery platform โดยล็อก requirements R1–R11, trust boundaries, WIF/Cloud Build/Artifact Registry, custom Binary Authorization attestation, Cloud Deploy staging/production approval/canary verification/rollback และ cost/evidence boundaries. Brief อ้างอิงเอกสาร Google Cloud ทางการ; ยังต้องทำ architecture diagram, verify IAM/API details, build app/infra/tests และขยาย README เป็น task-by-task Guide ก่อน Guide-ready. No GCP resources created; Cloud verification Not run.

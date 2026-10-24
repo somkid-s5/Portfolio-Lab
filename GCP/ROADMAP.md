@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–12 Guide-ready; Lab 13 design baseline ผ่าน CI [#333](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099200779) และ [#334](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099464528); revision เรื่อง retry lifecycle policy, image-pull IAM และ input/publisher bucket roles กำลังตรวจ CI. Lab 12 ผ่าน repository CI [#330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ครบ 43/43 jobs; CI ไม่ใช่ผล Cloud run และไม่มี Cloud verification จริง.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs บน commit `70d1269d854b212d9bb9567e833f932d54ced204`; Lab 14 Brief; Lab 15–20 Planned. CI เป็น repository checks เท่านั้น ไม่มี Cloud verification จริง.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -283,6 +283,8 @@
 
 **วิธีหลักที่วางไว้:** CLI + Terraform
 
+**สถานะปัจจุบัน:** Guide-ready หลัง [CI #342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ผ่าน 47/47 jobs; Cloud verification Not run.
+
 **ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
 
 ---
@@ -299,7 +301,9 @@
 
 **Change request:** เพิ่ม approval/exception workflow โดยกำหนดผู้รับผิดชอบและอายุข้อยกเว้น
 
-**วิธีหลักที่วางไว้:** CI pipeline + Terraform
+**วิธีหลักที่วางไว้:** GitHub Actions + Workload Identity Federation, Cloud Build/Artifact Registry, Binary Authorization, Cloud Deploy + Terraform
+
+**สถานะปัจจุบัน:** Brief — [README](LAB-014-secure-app-delivery/README.md) ระบุ requirements และ trust boundaries; ยังไม่เริ่ม Task Guide และไม่มี GCP provisioning.
 
 **ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
 
