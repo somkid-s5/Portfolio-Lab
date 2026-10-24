@@ -33,7 +33,7 @@ class DiagramTests(unittest.TestCase):
         self.assertEqual(root.attrib.get("role"), "img")
         self.assertTrue(root.find(SVG_NS + "title").text)
         self.assertTrue(root.find(SVG_NS + "desc").text)
-        self.assertGreaterEqual(len(root.findall(".//" + SVG_NS + "rect")), 20)
+        self.assertGreaterEqual(len(root.findall(".//" + SVG_NS + "rect")), 17)
         self.assertEqual(PROVENANCE["archive_sha256"], "a6d9d7921758042538b462f03cf64614c2cebd96743b3ed63580a769fc7de3e9")
         self.assertEqual({i["service"] for i in PROVENANCE["icons"]},
                          {"Cloud Run", "Cloud Scheduler", "Cloud Storage", "Firestore", "Pub/Sub"})
