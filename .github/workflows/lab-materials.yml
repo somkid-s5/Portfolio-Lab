@@ -732,6 +732,16 @@ jobs:
           terraform validate -no-color
 
 
+  lab009-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Test Lab 09 schema, idempotency, task naming, HMAC and retry contracts
+        run: python3 -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_domain.py -v
+
   lab009-diagrams:
     runs-on: ubuntu-latest
     timeout-minutes: 10
