@@ -1,7 +1,7 @@
 ---
 lab: LAB-008
 platform: GCP
-guide_status: authoring
+guide_status: guide-ready
 cloud_verification: not-run
 last_verified: null
 ---
@@ -13,7 +13,7 @@ last_verified: null
 
 Solution นี้ชื่อ **Daily Sales Close** ใช้ข้อมูลสังเคราะห์ ไม่เชื่อมระบบบัญชีหรือรับชำระเงินจริง เป้าหมายคือรายงานที่ผูกกับ business date และ source version ที่พิสูจน์ย้อนกลับได้ ไม่อ้าง SLA หรือความตรงเวลาที่ไม่ได้วัด
 
-**สถานะ:** กำลังตรวจคู่มือและหลักฐาน CI สำหรับ Guide-ready. App, fixtures, tests, container และ Terraform materials ถูกจัดทำแล้ว; คู่มือนี้ยังไม่ใช่ผล Cloud deployment. ไม่มี GCP resources ถูกสร้างโดยผู้จัดทำ และ Cloud verification ยังคง Not run.
+**สถานะ:** Guide-ready — คู่มือ Tasks 00–12, app, fixtures, tests, container, Terraform และ diagrams ผ่าน CI [run 40073869658](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40073869658). นี่เป็นหลักฐาน CI ของ repository เท่านั้น; ไม่มี GCP resources ถูกสร้างโดยผู้จัดทำ และ Cloud verification ยังคง Not run.
 
 ## ผู้ใช้และผลลัพธ์ที่ต้องได้
 
@@ -145,7 +145,7 @@ Cloud Logging เก็บ structured watchdog event; สร้าง log-based 
 7. ขอบเขตคือ 5 MiB/5,000 rows, 1 task/parallelism 1, 10 นาที/1 task retry, Scheduler retry เพิ่ม 2/600s, backfill หนึ่งวันต่อ invocation ภายในช่วง 7 วันย้อนหลัง; ไม่มี global concurrency cap. ค่า compute-bound และรายการต้นทุนแยกอธิบายไว้; งบแจ้งเตือนไม่ใช่ hard cap.
 8. Cleanup ปิด Scheduler ก่อน, ตรวจไม่มี execution ค้าง, export evidence ที่ไม่ลับ, ลบ Pub/Sub/log alert, ลบ bucket objects แล้ว bucket, Firestore database, Cloud Run Job/service และ Artifact Registry; ห้ามใส่ retention lock ที่ขวาง cleanup.
 
-Materials และ Tasks ถูกจัดทำแล้ว; กำลังตรวจ Guide-ready ด้วย CI. ไม่มี GCP resources ถูกสร้างโดยผู้จัดทำ.
+Materials และ Tasks พร้อม Guide-ready ตาม CI run 40073869658; ไม่มี GCP resources ถูกสร้างโดยผู้จัดทำ.
 
 ## เอกสารอ้างอิงสำหรับ Design
 
