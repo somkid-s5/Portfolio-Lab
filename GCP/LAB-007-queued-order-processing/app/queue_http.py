@@ -82,7 +82,7 @@ def _base(component, database_health, body_limit):
 
 
 def create_worker(repository, expected_subscription, *, database_health, fault_mode="off"):
-    if fault_mode not in ("off", "retryable_503"):
+    if fault_mode not in ("off", "retryable_503", "terminal_nack"):
         raise ValueError("invalid_worker_fault_mode")
     if not isinstance(expected_subscription,str) or not re.fullmatch(
             r"projects/[a-z0-9-]{6,63}/subscriptions/[A-Za-z][A-Za-z0-9._~-]{2,254}",
@@ -114,6 +114,8 @@ def create_worker(repository, expected_subscription, *, database_health, fault_m
         state,disposition = result.get("state"),result.get("disposition")
         if state not in ("confirmed","rejected") or disposition not in ("processed","duplicate"):
             return error("outcome_unconfirmed",503)
+        if fault_mode == "terminal_nack":
+            return error("lab_fault_terminal_nack",400)
         g.outcome = state+"_"+disposition
         return "",204
 

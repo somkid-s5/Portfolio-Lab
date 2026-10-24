@@ -95,6 +95,19 @@ class HTTPTests(unittest.TestCase):
         record=json.loads(self.output.call_args.args[0])
         self.assertEqual(record["outcome"],"lab_fault_retryable")
 
+    def test_terminal_nack_fault_retries_only_after_committed_terminal_result(self):
+        app=create_worker(self.repo,SUB,database_health=self.health,
+                          fault_mode="terminal_nack")
+        client=app.test_client()
+        self.repo.process.return_value={"state":"confirmed","disposition":"processed"}
+        first=client.post("/events/orders",json=push())
+        self.assertEqual(first.status_code,400)
+        self.assertEqual(first.json["error"],"lab_fault_terminal_nack")
+        self.repo.process.return_value={"state":"confirmed","disposition":"duplicate"}
+        second=client.post("/events/orders",json=push("second-message"))
+        self.assertEqual(second.status_code,400)
+        self.assertEqual(self.repo.process.call_count,2)
+
     def test_unknown_worker_fault_mode_fails_closed(self):
         with self.assertRaisesRegex(ValueError,"invalid_worker_fault_mode"):
             create_worker(self.repo,SUB,database_health=self.health,fault_mode="drop_database")
