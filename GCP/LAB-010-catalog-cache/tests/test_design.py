@@ -87,7 +87,7 @@ class DesignTests(unittest.TestCase):
                        "Commit to PostgreSQL", "Invalidate Redis keys",
                        "no FLUSHDB", "remaining 60s TTL", "sanitized 503"):
             self.assertIn(phrase, content)
-        self.assertIn("no stale response", root.find(SVG_NS + "desc").text.lower())
+        self.assertIn("no stale value is claimed current", root.find(SVG_NS + "desc").text.lower())
 
 
 if __name__ == "__main__":
