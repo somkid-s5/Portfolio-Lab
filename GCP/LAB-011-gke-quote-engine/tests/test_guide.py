@@ -23,7 +23,7 @@ class Lab11GuideTests(unittest.TestCase):
             self.assertIn("หลักฐานที่เก็บ", section, match.group(0))
 
     def test_every_bash_block_parses_without_running_cloud_commands(self):
-        blocks = re.findall(r"(?ms)^\*\*คำสั่ง Bash:\*\*\n(?:\n)?((?:^    .*\n?)+)", README)
+        blocks = re.findall(r"(?m)^\*\*คำสั่ง Bash:\*\*\n(?:\n)?((?:^    [^\n]*\n?)+)", README)
         self.assertGreaterEqual(len(blocks), 15)
         for index, block in enumerate(blocks):
             script = textwrap.dedent(block)

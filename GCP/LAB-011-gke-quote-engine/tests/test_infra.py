@@ -26,6 +26,9 @@ class Lab11InfrastructureTests(unittest.TestCase):
         self.assertIn('deletion_protection = !var.allow_destroy', MAIN)
         self.assertNotRegex(MAIN, r"(?m)^\s*secret_data\s*=")
 
+    def test_project_number_data_source_uses_the_provider_schema(self):
+        self.assertIn('data "google_project" "current" {\n  project_id = var.project_id', MAIN)
+
     def test_secret_access_is_per_kubernetes_service_account(self):
         self.assertIn('subject/ns/quote-platform/sa/quote-api', MAIN)
         self.assertIn('subject/ns/quote-platform/sa/quote-worker', MAIN)
