@@ -1,0 +1,73 @@
+apiVersion: deploy.cloud.google.com/v1
+kind: DeliveryPipeline
+metadata:
+  name: lab014-quote-delivery
+description: Staging verification followed by an approved Cloud Run canary.
+serialPipeline:
+  stages:
+    - targetId: staging
+      profiles: []
+      strategy:
+        standard:
+          verify: true
+    - targetId: production
+      profiles:
+        - production
+      strategy:
+        canary:
+          runtimeConfig:
+            cloudRun:
+              automaticTrafficControl: true
+              canaryRevisionTags:
+                - lab014-candidate
+              stableRevisionTags:
+                - lab014-stable
+          canaryDeployment:
+            percentages:
+              - 10
+              - 50
+            verify: true
+---
+apiVersion: deploy.cloud.google.com/v1
+kind: Target
+metadata:
+  name: staging
+description: Lab 14 staging Cloud Run service.
+requireApproval: false
+run:
+  location: projects/$PROJECT_ID/locations/$REGION
+executionConfigs:
+  - usages:
+      - RENDER
+    defaultPool:
+      serviceAccount: lab014-renderer@$PROJECT_ID.iam.gserviceaccount.com
+  - usages:
+      - DEPLOY
+    defaultPool:
+      serviceAccount: lab014-staging-deployer@$PROJECT_ID.iam.gserviceaccount.com
+  - usages:
+      - VERIFY
+    defaultPool:
+      serviceAccount: lab014-verifier@$PROJECT_ID.iam.gserviceaccount.com
+---
+apiVersion: deploy.cloud.google.com/v1
+kind: Target
+metadata:
+  name: production
+description: Lab 14 production Cloud Run service with staged approval and canary rollout.
+requireApproval: true
+run:
+  location: projects/$PROJECT_ID/locations/$REGION
+executionConfigs:
+  - usages:
+      - RENDER
+    defaultPool:
+      serviceAccount: lab014-renderer@$PROJECT_ID.iam.gserviceaccount.com
+  - usages:
+      - DEPLOY
+    defaultPool:
+      serviceAccount: lab014-production-deployer@$PROJECT_ID.iam.gserviceaccount.com
+  - usages:
+      - VERIFY
+    defaultPool:
+      serviceAccount: lab014-verifier@$PROJECT_ID.iam.gserviceaccount.com

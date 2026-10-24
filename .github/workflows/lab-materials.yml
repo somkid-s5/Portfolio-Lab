@@ -1277,12 +1277,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install pinned Lab 14 API test dependencies
-        run: python -m pip install --requirement GCP/LAB-014-secure-app-delivery/app/requirements.txt
-      - name: Run Lab 14 API and bounded probe tests
+      - name: Install pinned Lab 14 app and configuration-test dependencies
+        run: python -m pip install --requirement GCP/LAB-014-secure-app-delivery/app/requirements.txt --requirement GCP/LAB-014-secure-app-delivery/tests/requirements.txt
+      - name: Run Lab 14 API, bounded probe and release configuration contracts
         run: |
           python -m unittest discover -s GCP/LAB-014-secure-app-delivery/app/tests -v
-          python -m unittest discover -s GCP/LAB-014-secure-app-delivery/tests -p test_probe.py -v
+          python -m unittest discover -s GCP/LAB-014-secure-app-delivery/tests -p "test_*.py" -v
       - name: Build the non-root application image
         run: docker build --pull --file GCP/LAB-014-secure-app-delivery/app/Dockerfile --tag lab014-quote-api:ci GCP/LAB-014-secure-app-delivery
       - name: Verify the image user and live health/business contract

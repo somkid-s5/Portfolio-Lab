@@ -46,27 +46,32 @@ class QuoteProbeTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "commit"):
                 module.verify_once("https://example.test", Decimal("455.00"), 3, "abc123")
 
-    def test_selects_exact_candidate_revision_and_tag(self):
+    def test_selects_exact_candidate_revision_tag_and_traffic_share(self):
         statuses = [
             {"revision": "quote-api-00003-old", "tag": "prior", "percent": 90, "uri": "https://prior.example"},
-            {"revision": "projects/p/locations/r/services/s/revisions/quote-api-00004-new", "tag": "lab014-candidate", "percent": 100, "uri": "https://candidate.example"},
+            {"revision": "projects/p/locations/r/services/s/revisions/quote-api-00004-new", "tag": "lab014-candidate", "percent": 10, "uri": "https://candidate.example"},
         ]
         self.assertEqual(
-            module.select_revision_url(statuses, "quote-api-00004-new", "lab014-candidate"),
+            module.select_revision_url(statuses, "quote-api-00004-new", "lab014-candidate", 10),
             "https://candidate.example",
         )
 
     def test_revision_selection_fails_closed_if_candidate_tag_missing(self):
         statuses = [
-            {"revision": "quote-api-00004-new", "tag": "prior", "percent": 100, "uri": "https://wrong.example"},
+            {"revision": "quote-api-00004-new", "tag": "prior", "percent": 10, "uri": "https://wrong.example"},
         ]
         with self.assertRaisesRegex(RuntimeError, "exactly one matching"):
-            module.select_revision_url(statuses, "quote-api-00004-new", "lab014-candidate")
+            module.select_revision_url(statuses, "quote-api-00004-new", "lab014-candidate", 10)
 
-    def test_revision_selection_requires_100_percent_tag_route(self):
+    def test_revision_selection_requires_expected_traffic_share(self):
         statuses = [{"revision": "quote-api-00004-new", "tag": None, "percent": 10, "uri": "https://service.example"}]
-        with self.assertRaisesRegex(RuntimeError, "exactly 100 percent"):
-            module.select_revision_url(statuses, "quote-api-00004-new", None)
+        with self.assertRaisesRegex(RuntimeError, "expected 100 percent"):
+            module.select_revision_url(statuses, "quote-api-00004-new", None, 100)
+
+    def test_revision_selection_rejects_non_https_uri(self):
+        statuses = [{"revision": "quote-api-00004-new", "tag": "lab014-candidate", "percent": 10, "uri": "http://candidate.example"}]
+        with self.assertRaisesRegex(RuntimeError, "valid HTTPS"):
+            module.select_revision_url(statuses, "quote-api-00004-new", "lab014-candidate", 10)
 
     def test_external_http_is_rejected_even_with_allow_flag(self):
         with patch.dict("os.environ", {}, clear=True):

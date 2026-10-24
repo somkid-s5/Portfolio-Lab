@@ -41,7 +41,10 @@ def _revision_id(value: str) -> str:
 
 
 def select_revision_url(
-    traffic_statuses: list[dict[str, Any]], expected_revision: str, expected_tag: str | None
+    traffic_statuses: list[dict[str, Any]],
+    expected_revision: str,
+    expected_tag: str | None,
+    expected_percent: int,
 ) -> str:
     expected_id = _revision_id(expected_revision)
     matches = [
@@ -52,8 +55,8 @@ def select_revision_url(
     if len(matches) != 1:
         raise RuntimeError("service traffic status does not contain exactly one matching revision and tag")
     selected = matches[0]
-    if selected.get("percent") != 100:
-        raise RuntimeError("selected revision/tag does not receive exactly 100 percent on its verification URL")
+    if selected.get("percent") != expected_percent:
+        raise RuntimeError(f"revision traffic mismatch: expected {expected_percent} percent")
     url = selected.get("uri")
     parsed = urllib.parse.urlparse(url or "")
     if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
@@ -74,12 +77,14 @@ def _cloud_run_target_url(timeout: int) -> str:
     if target == "staging":
         if phase != "stable":
             raise RuntimeError("staging verification expected the stable phase")
-        tag = None
+        tag, expected_percent = None, 100
     elif target == "production":
         if phase == "stable":
-            tag = "lab014-stable"
-        elif phase in {"canary-10", "canary-50"}:
-            tag = "lab014-candidate"
+            tag, expected_percent = "lab014-stable", 100
+        elif phase == "canary-10":
+            tag, expected_percent = "lab014-candidate", 10
+        elif phase == "canary-50":
+            tag, expected_percent = "lab014-candidate", 50
         else:
             raise RuntimeError(f"unsupported production phase: {phase}")
     else:
@@ -102,7 +107,7 @@ def _cloud_run_target_url(timeout: int) -> str:
     statuses = resource.get("trafficStatuses")
     if not isinstance(statuses, list):
         raise RuntimeError("Cloud Run service response omitted trafficStatuses")
-    return select_revision_url(statuses, revision, tag)
+    return select_revision_url(statuses, revision, tag, expected_percent)
 
 
 def verify_once(
