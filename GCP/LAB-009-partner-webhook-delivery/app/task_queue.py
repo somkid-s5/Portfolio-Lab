@@ -110,6 +110,11 @@ def _validate_config(config: PartnerQueue) -> str:
     return queue_parent
 
 
+def validate_partner_queue(config: PartnerQueue) -> str:
+    """Validate non-secret queue configuration before service startup."""
+    return _validate_config(config)
+
+
 class CloudTasksEnqueuer:
     """Create deterministic HTTP tasks and resolve duplicate-name outcomes."""
 
@@ -144,7 +149,7 @@ class CloudTasksEnqueuer:
         generation: int,
         config: PartnerQueue,
     ) -> EnqueueResult:
-        queue_parent = _validate_config(config)
+        queue_parent = validate_partner_queue(config)
         payload = task_payload(event, delivery, generation)
         if payload["partner_id"] != config.partner_id:
             raise ValidationError("event partner_id does not match the configured queue")

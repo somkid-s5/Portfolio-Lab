@@ -776,6 +776,10 @@ jobs:
         run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_simulator.py -v
       - name: Test public simulator HTTP route contract
         run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_simulator_api.py -v
+      - name: Test strict Cloud Run runtime configuration without cloud calls
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_runtime_config.py -v
+      - name: Test pinned Secret Manager access contract without RPC
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_secret_manager.py -v
       - name: Compile Lab 09 Python application modules
         run: .ci-lab009/bin/python -m py_compile GCP/LAB-009-partner-webhook-delivery/app/*.py
       - name: Exercise event and outbox transactions against the loopback emulator

@@ -196,6 +196,20 @@ class DeliveryWorkerTests(unittest.TestCase):
         self.assertEqual(record["last_error_code"], "TimeoutError")
         self.assertEqual(self.http.calls, [])
 
+    def test_forbidden_secret_version_is_terminal_until_configuration_change(self):
+        from app.secret_manager import SecretConfigurationError
+        self.worker = self.make_worker(
+            secret_provider=lambda _version: (_ for _ in ()).throw(
+                SecretConfigurationError("secret detail hidden")
+            )
+        )
+        result = self.worker.process(self.payload())
+        self.assertEqual(result.status_code, 200)
+        record = self.ledger.get_delivery(self.delivery)
+        self.assertEqual(record["status"], "permanent_failed")
+        self.assertEqual(record["last_error_code"], "SecretConfigurationError")
+        self.assertEqual(self.http.calls, [])
+
     def test_missing_partner_configuration_is_recorded_as_permanent(self):
         other = PartnerEndpoint(
             partner_id="partner-b",

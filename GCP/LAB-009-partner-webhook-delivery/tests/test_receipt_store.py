@@ -71,7 +71,7 @@ class ReceiptStoreTests(unittest.TestCase):
     def test_create_uses_generation_zero_and_persists_only_receipt_metadata(self):
         result = self.write()
         self.assertEqual(result.outcome, "created")
-        self.assertEqual(self.client.upload_arguments[0]["if_generation_match"], 0)
+        self.assertEqual(self.client.fake_bucket.upload_arguments[0]["if_generation_match"], 0)
         receipt = json.loads(self.client.fake_bucket.objects[result.object_name])
         self.assertEqual(receipt["payload_sha256"], "a" * 64)
         self.assertNotIn("order_ref", receipt)

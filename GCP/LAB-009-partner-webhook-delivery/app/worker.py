@@ -20,6 +20,7 @@ from app.domain import (
     payload_sha256,
 )
 from app.ledger import FirestoreLedger
+from app.secret_manager import SecretConfigurationError
 
 
 _PARTNER_ID = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,28}[a-z0-9])?$")
@@ -212,6 +213,11 @@ class DeliveryWorker:
             )
         try:
             secret = self._secret_provider(endpoint.secret_version)
+        except SecretConfigurationError:
+            return self._finish(
+                task, attempt, lease_token, outcome="permanent_failed",
+                http_status=None, error_code="SecretConfigurationError",
+            )
         except Exception as exc:
             return self._retry(
                 task, attempt, lease_token, error_code=self._safe_error_type(exc)
