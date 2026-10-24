@@ -8,7 +8,14 @@ last_verified: null
 ---
 # Lab 09 — ระบบส่ง Webhook ให้ระบบคู่ค้า
 
-**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว และเริ่มทำ pure domain contract/tests ก่อนเชื่อม GCP adapters. App, Terraform, Tasks และ Guide ยังไม่ครบ; ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
+**สถานะ:** Build materials in progress — Design ถูกปิดแล้ว. มี pure domain contract และ Firestore transaction ledger สำหรับ event/outbox/idempotency พร้อมชุดทดสอบที่เตรียมรันกับ Firestore Emulator; Cloud Tasks adapters, services, Terraform และ Guide ยังไม่ครบ. ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
+
+## Build materials checkpoint
+
+- `app/domain.py` กำหนด schema, canonical bytes, idempotency hash, task identity, HMAC และการจำแนกผลตอบกลับโดยไม่พึ่ง Cloud SDK.
+- `app/ledger.py` เขียน event, delivery outbox และ idempotency record ใน Firestore transaction เดียว; replay ของ key เดิมคืน event เดิม, body hash ต่างกันเกิด conflict และการ mark queued จะไม่ถอยสถานะที่ Worker ขยับไปแล้ว.
+- `tests/test_domain.py` ทดสอบ contract แบบ pure; `tests/test_firestore_ledger.py` ใช้ loopback Firestore Emulator ทดสอบ atomic write, concurrent replay และ state guard. ผลจะถือเป็น CI/emulator evidence เมื่อ workflow ผ่านเท่านั้น.
+- ขั้นถัดไปคือ Cloud Tasks create/get adapter และ reconciler; ยังไม่มี Cloud SDK call ไปยัง project จริง.
 
 ## สถานการณ์
 
