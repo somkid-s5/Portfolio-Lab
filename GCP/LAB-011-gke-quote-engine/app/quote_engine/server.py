@@ -69,8 +69,6 @@ def consume_cpu_budget(budget_ms: int) -> None:
     value = 17
     while time.thread_time_ns() < deadline:
         value = (value * 1_664_525 + 1_013_904_223) & 0xFFFFFFFF
-    if value < 0:  # Keep the calculation observable without returning workload details.
-        raise AssertionError("unreachable")
 
 
 def _log(event: str, **fields: Any) -> None:

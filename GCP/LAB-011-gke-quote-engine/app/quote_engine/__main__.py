@@ -1,4 +1,4 @@
-"""CLI entrypoint for the API, worker, and IAM probe."""
+"""CLI entrypoint for the API, worker, secret probe, and bounded policy probe."""
 from __future__ import annotations
 
 import argparse
@@ -6,13 +6,14 @@ import logging
 import os
 import sys
 
+from .network_probe import probe_worker
 from .secrets import check_secret_access
 from .server import serve
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", choices=("api", "worker", "check-secret"))
+    parser.add_argument("mode", choices=("api", "worker", "check-secret", "probe-worker"))
     parser.add_argument("--secret-id", default="")
     parser.add_argument("--version", default="latest")
     args = parser.parse_args()
@@ -27,6 +28,8 @@ def main() -> int:
             return 3
         print("ACCESS_ALLOWED payload=not-printed")
         return 0
+    if args.mode == "probe-worker":
+        return probe_worker()
     port = int(os.environ.get("PORT", "8080" if args.mode == "api" else "8081"))
     if not 1 <= port <= 65535:
         parser.error("PORT must be between 1 and 65535")

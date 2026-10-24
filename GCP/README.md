@@ -8,4 +8,4 @@
 
 ตัวอย่างรูปแบบคู่มือ: [Lab Test 2](../test/lab-test-2/README.md)
 
-สถานะปัจจุบัน: [Lab 01](LAB-001-multi-zone-web/README.md) ถึง [Lab 10 — Catalog Cache](LAB-010-catalog-cache/README.md) อยู่ระดับ Guide-ready. [Lab 11 — GKE Quote Engine](LAB-011-gke-quote-engine/README.md) อยู่ขั้น Authoring หลัง Brief/Design ผ่าน CI #312; Lab 12–20 ยัง Planned ตาม [Progress](PROGRESS.md). CI #310/#311 ของ Lab 10 ผ่านครบ 35/35 jobs; Lab 11 Brief/Design ผ่าน CI #312 แล้ว; App CI กำลังตรวจ. ไม่มีการ provision GCP; Cloud verification ยังคง Not run.
+สถานะปัจจุบัน: [Lab 01](LAB-001-multi-zone-web/README.md) ถึง [Lab 10 — Catalog Cache](LAB-010-catalog-cache/README.md) อยู่ระดับ Guide-ready. [Lab 11 — GKE Quote Engine](LAB-011-gke-quote-engine/README.md) อยู่ขั้น Authoring: Brief/Design ผ่าน CI #312, App ผ่าน CI #313, และเขียน Infrastructure/Tasks 00–19 ครบเพื่อรอ Guide CI; Lab 12–20 ยัง Planned ตาม [Progress](PROGRESS.md). CI #310/#311 ของ Lab 10 ผ่านครบ 35/35 jobs; Lab 11 CI #313 ผ่านครบ 37/37 jobs. ไม่มีการ provision GCP; Cloud verification ยังคง Not run.

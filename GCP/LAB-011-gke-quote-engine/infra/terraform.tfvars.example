@@ -1,0 +1,6 @@
+project_id      = "replace-with-a-dedicated-lab-project"
+region          = "asia-southeast1"
+operator_member = "user:replace-with-your-google-account@example.com"
+
+# Keep false during the lab. Change to true only in the documented cleanup task.
+allow_destroy = false

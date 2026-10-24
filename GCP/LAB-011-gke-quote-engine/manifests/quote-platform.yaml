@@ -1,0 +1,396 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: quote-platform
+  labels:
+    app.kubernetes.io/part-of: lab011-quote-engine
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quote-api
+  namespace: quote-platform
+  labels:
+    app.kubernetes.io/name: quote-api
+automountServiceAccountToken: true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quote-worker
+  namespace: quote-platform
+  labels:
+    app.kubernetes.io/name: quote-worker
+automountServiceAccountToken: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quote-api
+  namespace: quote-platform
+  labels:
+    app: quote-api
+    app.kubernetes.io/part-of: lab011-quote-engine
+spec:
+  replicas: 2
+  revisionHistoryLimit: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: quote-api
+  template:
+    metadata:
+      labels:
+        app: quote-api
+        app.kubernetes.io/part-of: lab011-quote-engine
+    spec:
+      serviceAccountName: quote-api
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: quote-api
+      containers:
+        - name: api
+          image: __QUOTE_ENGINE_IMAGE__
+          imagePullPolicy: IfNotPresent
+          args: ["api"]
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: GCP_PROJECT_ID
+              value: __PROJECT_ID__
+            - name: API_TOKEN_SECRET_ID
+              value: api-bearer-token
+            - name: QUOTE_WORKER_URL
+              value: http://quote-worker.quote-platform.svc.cluster.local:8081
+            - name: PORT
+              value: "8080"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 12
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quote-api
+  namespace: quote-platform
+  labels:
+    app: quote-api
+    app.kubernetes.io/part-of: lab011-quote-engine
+spec:
+  type: ClusterIP
+  selector:
+    app: quote-api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quote-worker
+  namespace: quote-platform
+  labels:
+    app: quote-worker
+    app.kubernetes.io/part-of: lab011-quote-engine
+spec:
+  replicas: 1
+  revisionHistoryLimit: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: quote-worker
+  template:
+    metadata:
+      labels:
+        app: quote-worker
+        app.kubernetes.io/part-of: lab011-quote-engine
+    spec:
+      serviceAccountName: quote-worker
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: quote-worker
+      containers:
+        - name: worker
+          image: __QUOTE_ENGINE_IMAGE__
+          imagePullPolicy: IfNotPresent
+          args: ["worker"]
+          ports:
+            - name: worker
+              containerPort: 8081
+              protocol: TCP
+          env:
+            - name: GCP_PROJECT_ID
+              value: __PROJECT_ID__
+            - name: QUOTE_RULES_SECRET_ID
+              value: quote-rules
+            - name: QUOTE_CPU_WORK_MS
+              value: "20"
+            - name: PORT
+              value: "8081"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: worker
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 12
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: worker
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: worker
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quote-worker
+  namespace: quote-platform
+  labels:
+    app: quote-worker
+    app.kubernetes.io/part-of: lab011-quote-engine
+spec:
+  type: ClusterIP
+  selector:
+    app: quote-worker
+  ports:
+    - name: worker
+      port: 8081
+      targetPort: worker
+      protocol: TCP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: quote-worker
+  namespace: quote-platform
+  labels:
+    app.kubernetes.io/part-of: lab011-quote-engine
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: quote-worker
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: quote-api
+  namespace: quote-platform
+  labels:
+    app.kubernetes.io/part-of: lab011-quote-engine
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: quote-api
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: quote-api-ingress
+  namespace: quote-platform
+  labels:
+    app.kubernetes.io/part-of: lab011-quote-engine
+spec:
+  podSelector:
+    matchLabels:
+      app: quote-api
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 10.23.0.0/23
+        - ipBlock:
+            cidr: 35.191.0.0/16
+        - ipBlock:
+            cidr: 130.211.0.0/22
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: quote-worker-ingress
+  namespace: quote-platform
+  labels:
+    app.kubernetes.io/part-of/lab011-quote-engine
+spec:
+  podSelector:
+    matchLabels:
+      app: quote-worker
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: quote-api
+      ports:
+        - protocol: TCP
+          port: 8081
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: quote-worker
+  namespace: quote-platform
+  labels:
+    app.kubernetes.io/part-of/lab011-quote-engine
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: quote-worker
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: quote-gateway
+  namespace: quote-platform
+  labels:
+    app.kubernetes.io/part-of/lab011-quote-engine
+spec:
+  gatewayClassName: gke-l7-regional-external-managed
+  addresses:
+    - type: NamedAddress
+      value: lab011-gateway-ip
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            group: ""
+            name: quote-gateway-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: quote-route
+  namespace: quote-platform
+  labels:
+    app.kubernetes.io/part-of: lab011-quote-engine
+spec:
+  parentRefs:
+    - name: quote-gateway
+      namespace: quote-platform
+  hostnames:
+    - quote.lab.test
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: quote-api
+          port: 8080

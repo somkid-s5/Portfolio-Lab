@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–10 Guide-ready; Lab 11 อยู่ขั้น Authoring; Lab 12–20 ยัง Planned. Lab 10 ผ่าน CI #310/#311 ครบ 35/35 jobs; Lab 11 ยังไม่มี GCP provisioning และ Cloud verification ยัง Not run.
+**สถานะ:** Lab 01–10 Guide-ready; Lab 11 อยู่ขั้น Authoring และมี Tasks 00–19 ครบ รอ CI ตรวจคู่มือ/Infrastructure; Lab 12–20 ยัง Planned. Lab 10 ผ่าน CI #310/#311 ครบ 35/35 jobs; Lab 11 CI #313 ผ่าน 37/37 jobs สำหรับ App/Design; ไม่มี GCP provisioning และ Cloud verification ยัง Not run.
 
 ## ผลลัพธ์ปลายทาง
 

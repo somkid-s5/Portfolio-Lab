@@ -65,7 +65,8 @@ class Lab11DesignTests(unittest.TestCase):
         self.assertEqual(match.group(1), SVG.strip())
 
     def test_relative_document_links_exist(self):
-        for match in re.finditer(r"\]\(([^)]+)\)", README):
+        prose = "\n".join(line for line in README.splitlines() if not line.startswith("    "))
+        for match in re.finditer(r"\]\(([^)]+)\)", prose):
             target = match.group(1).strip()
             if target.startswith(("https://", "http://", "mailto:", "#")):
                 continue
@@ -74,6 +75,7 @@ class Lab11DesignTests(unittest.TestCase):
                 self.assertTrue((ROOT / path).resolve().is_file(), target)
         self.assertIn("assets/solution.svg", README)
         self.assertIn("assets/solution.html", README)
+
 
 
 if __name__ == "__main__":

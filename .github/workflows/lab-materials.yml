@@ -1074,3 +1074,32 @@ jobs:
         run: python3 -m unittest discover -s GCP/LAB-011-gke-quote-engine/tests -p test_app.py -v
       - name: Build the application image without publishing it
         run: docker build --pull --tag lab011-quote-engine:ci --file GCP/LAB-011-gke-quote-engine/app/Dockerfile GCP/LAB-011-gke-quote-engine/app
+
+ 
+  lab011-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+      - name: Check Terraform formatting and validate infrastructure offline
+        run: |
+          terraform -chdir=GCP/LAB-011-gke-quote-engine/infra fmt -check -recursive
+          terraform -chdir=GCP/LAB-011-gke-quote-engine/infra init -backend=false -input=false
+          terraform -chdir=GCP/LAB-011-gke-quote-engine/infra validate
+      - name: Install pinned YAML parser
+        run: python3 -m pip install --disable-pip-version-check PyYAML==6.0.2
+      - name: Validate manifests and isolation contracts without cluster credentials
+        run: python3 -m unittest discover -s GCP/LAB-011-gke-quote-engine/tests -p test_infra.py -v
+
+  lab011-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 11 task order, recording fields, links and shell syntax
+        run: python3 -m unittest discover -s GCP/LAB-011-gke-quote-engine/tests -p test_guide.py -v

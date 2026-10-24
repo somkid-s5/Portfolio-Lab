@@ -2,17 +2,22 @@
 from __future__ import annotations
 
 import json
+import socket
+from contextlib import redirect_stdout
+from io import StringIO
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 import sys
 import threading
 import unittest
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
+from unittest.mock import patch
 from urllib.request import Request, urlopen
 
 LAB_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(LAB_ROOT / "app"))
 
+from quote_engine.network_probe import probe_worker
 from quote_engine.pricing import calculate_quote, validate_rules, validate_quote_request
 from quote_engine.server import RuntimeConfig, consume_cpu_budget, load_config, make_handler
 
@@ -174,6 +179,39 @@ class QuoteEngineTests(unittest.TestCase):
                 return response.status, json.loads(response.read())
         except HTTPError as error:
             return error.code, json.loads(error.read())
+
+
+
+class NetworkProbeTests(unittest.TestCase):
+    def test_policy_probe_reports_only_a_confirmed_timeout_as_expected_denial(self):
+        output = StringIO()
+        with (
+            patch("quote_engine.network_probe.socket.getaddrinfo", return_value=[]),
+            patch(
+                "quote_engine.network_probe.urlopen",
+                side_effect=URLError(socket.timeout("bounded probe timeout")),
+            ),
+            redirect_stdout(output),
+        ):
+            result = probe_worker(timeout_seconds=0.2)
+        self.assertEqual(result, 0)
+        self.assertIn("NETWORK_DENIED", output.getvalue())
+
+    def test_policy_probe_fails_if_worker_is_reachable(self):
+        output = StringIO()
+        response = type("Response", (), {
+            "__enter__": lambda self: self,
+            "__exit__": lambda self, *_args: None,
+            "read": lambda self, _limit: b"{}",
+        })()
+        with (
+            patch("quote_engine.network_probe.socket.getaddrinfo", return_value=[]),
+            patch("quote_engine.network_probe.urlopen", return_value=response),
+            redirect_stdout(output),
+        ):
+            result = probe_worker(timeout_seconds=0.2)
+        self.assertEqual(result, 4)
+        self.assertIn("NETWORK_ALLOWED", output.getvalue())
 
 
 if __name__ == "__main__":
