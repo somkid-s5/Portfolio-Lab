@@ -1,12 +1,19 @@
 steps:
   - id: build-checkout-image
     name: gcr.io/cloud-builders/docker
-    args: [build, --pull, --tag, ${_REGION}-docker.pkg.dev/$PROJECT_ID/lab012-images/checkout:${_IMAGE_TAG}, .]
+    args:
+      - build
+      - --pull
+      - --tag
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/lab012-images/checkout:${_IMAGE_TAG}"
+      - .
   - id: push-checkout-image
     name: gcr.io/cloud-builders/docker
-    args: [push, ${_REGION}-docker.pkg.dev/$PROJECT_ID/lab012-images/checkout:${_IMAGE_TAG}]
+    args:
+      - push
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/lab012-images/checkout:${_IMAGE_TAG}"
 images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/lab012-images/checkout:${_IMAGE_TAG}
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/lab012-images/checkout:${_IMAGE_TAG}"
 options:
   logging: CLOUD_LOGGING_ONLY
   machineType: E2_SMALL
