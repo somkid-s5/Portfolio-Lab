@@ -86,6 +86,18 @@ class BootstrapRuntimeTests(unittest.TestCase):
         self.assertNotIn("SCRAM",output.getvalue())
         self.assertEqual(value["next"],"inspect_and_retry_same_bundles_no_reset")
 
+    def test_cli_reports_only_allowlisted_diagnostic_codes(self):
+        for failure,expected in (
+            (ValueError("existing_installation_mismatch_no_changes"),"existing_installation_mismatch_no_changes"),
+            (ValueError("private-password"),"dependency_or_installation_unconfirmed"),
+            (FileNotFoundError("/private/secret.json"),"required_file_unavailable")):
+            output=io.StringIO()
+            with patch.object(runtime,"execute",side_effect=failure),patch("sys.stdout",output):
+                self.assertEqual(runtime.main(),2)
+            self.assertEqual(json.loads(output.getvalue())["reason"],expected)
+            self.assertNotIn("private-password",output.getvalue())
+            self.assertNotIn("/private/",output.getvalue())
+
 
 if __name__=="__main__":
     unittest.main()

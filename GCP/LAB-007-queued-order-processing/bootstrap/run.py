@@ -88,12 +88,26 @@ def execute(environ=None):
         connector.close()
 
 
+SAFE_REASONS={
+    "one_off_attached_job_required","invalid_project","invalid_instance_binding",
+    "numeric_secret_versions_required","invalid_bootstrap_bundle","invalid_role_bundles",
+    "invalid_role_bundle","wrong_database_or_postgres_version","existing_installation_mismatch_no_changes",
+    "schema_version_mismatch_no_changes","existing_runtime_roles_refused",
+    "existing_public_application_objects_refused","runtime_role_drift","unexpected_runtime_membership",
+    "runtime_ddl_grant_drift","runtime_table_grant_drift","runtime_column_grant_drift",
+    "unexpected_schema_objects","runtime_login_binding_mismatch","runtime_schema_mismatch",
+}
+
+
 def main():
     try:
         print(json.dumps({"component":"lab007-bootstrap",**execute()},sort_keys=True))
         return 0
-    except Exception:
-        print(json.dumps({"component":"lab007-bootstrap","event":"bootstrap_not_confirmed",
+    except Exception as exc:
+        reason=str(exc) if isinstance(exc,ValueError) and str(exc) in SAFE_REASONS else "dependency_or_installation_unconfirmed"
+        if isinstance(exc,FileNotFoundError):
+            reason="required_file_unavailable"
+        print(json.dumps({"component":"lab007-bootstrap","event":"bootstrap_not_confirmed","reason":reason,
                           "next":"inspect_and_retry_same_bundles_no_reset"}))
         return 2
 
