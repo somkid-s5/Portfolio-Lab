@@ -978,6 +978,24 @@ jobs:
           test "$(docker image inspect lab010-catalog:ci --format '{{.Config.User}}')" = "10010:10010"
           docker run --rm --entrypoint python lab010-catalog:ci -c "from app.factory import create_app; print('Lab 10 runtime imports successfully')"
 
+  lab010-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate Lab 10 gated foundation and workload configuration without credentials or provisioning
+        working-directory: GCP/LAB-010-catalog-cache/infra
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+
   lab010-design:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -49,6 +49,23 @@ class DesignTests(unittest.TestCase):
             README,
         )
 
+    def test_infra_has_two_phase_gate_and_never_manages_secret_payloads(self):
+        infra = ROOT / "infra"
+        variables = (infra / "variables.tf").read_text(encoding="utf-8")
+        main = (infra / "main.tf").read_text(encoding="utf-8")
+        build = (ROOT / "cloudbuild.yaml").read_text(encoding="utf-8")
+        dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
+        self.assertIn('default     = false', variables)
+        self.assertNotIn('google_secret_manager_secret_version', main)
+        self.assertNotIn('auth_string', main)
+        self.assertIn('database_roles = each.key == "migrator" ? ["cloudsqlsuperuser"] : []', main)
+        self.assertIn('GRANT', (ROOT / "app" / "migrate.py").read_text(encoding="utf-8"))
+        self.assertIn('serviceAccount:', build)
+        self.assertIn('infra/', dockerignore)
+        self.assertIn('*.tfstate*', dockerignore)
+        self.assertIn('google_cloud_run_v2_service_iam_member" "public"', main)
+        self.assertIn('google_cloud_run_v2_service_iam_member" "operator_invoker"', main)
+
     def test_implementation_keeps_cache_clear_scoped_and_bounded(self):
         cache_source = (ROOT / "app" / "cache.py").read_text(encoding="utf-8")
         self.assertIn("MAX_CATALOG_PRODUCTS = 2000", cache_source)

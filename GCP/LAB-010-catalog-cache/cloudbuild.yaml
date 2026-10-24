@@ -1,0 +1,9 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "--pull", "--tag", "${_IMAGE_URI}", "."]
+images:
+  - "${_IMAGE_URI}"
+serviceAccount: "projects/${PROJECT_ID}/serviceAccounts/lab010-catalog-builder@${PROJECT_ID}.iam.gserviceaccount.com"
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: MUST_MATCH

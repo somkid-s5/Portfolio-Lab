@@ -343,3 +343,6 @@ Lab10 / Build materials started: เพิ่ม Flask public catalog/admin API,
 
 
 Lab10 / App + DB grants: [CI run 40086054019](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40086054019) completed success (ก่อนเพิ่ม grants; Lab10 app/design ผ่าน, full workflow 33/33 jobs). เพิ่ม migration grants และ PostgreSQL integration tests ใน source ล่าสุดที่กำลังทำ: reader SELECT-only, operator SELECT และ UPDATE เฉพาะ metadata/version/timestamp columns, ไม่มี INSERT/DELETE หรือ UPDATE id; identifier ใช้ strict allowlist และมี injection/role separation cases. ผล tests ชุดใหม่นี้ยังรอ CI. Migrator ถูกออกแบบเป็น Cloud SQL `cloudsqlsuperuser` เฉพาะ one-shot schema/seed/grant Job (สิทธิ์สูง ไม่รับ traffic). ไม่มี GCP provisioning; Cloud verification Not run.
+
+
+Lab10 / Infrastructure draft: เพิ่ม Terraform root แบบ gate เดียว (foundation-only default, workloads เปิดหลัง image digest และ Secret Manager numeric versions พร้อม), VPC /26 + PSA, private Cloud SQL PostgreSQL 16, Memorystore Redis 7.0 1 GiB AUTH/TLS, scoped service accounts/DB roles, Cloud Run public/operator + one-shot migration Job, deletion protection และ Cloud Build custom identity. เพิ่ม Cloud Build config และ Docker context exclusion สำหรับ state/infra/tests; Terraform validate job เพิ่มใน CI แต่ผลยัง pending. ไม่มี apply/provision; Cloud verification Not run.
