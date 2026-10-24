@@ -91,6 +91,15 @@ class UploadTests(unittest.TestCase):
                 upload_dataset(run_dir, "lab13-input-abc123", client)
             self.assertEqual(client.events, [])
 
+    def test_conflicting_existing_manifest_fails_before_any_shard_upload(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir, manifest = self.make_dataset(Path(tmp), "lab13-upload-004", shards=1)
+            manifest_object = f"runs/{manifest['run_id']}/manifest.json"
+            client = FakeClient({("lab13-input-abc123", manifest_object): b'{"different":"manifest"}'})
+            with self.assertRaises(ContractError):
+                upload_dataset(run_dir, "lab13-input-abc123", client)
+            self.assertEqual(client.events, [])
+
     def test_invalid_dataset_is_not_uploaded_unless_explicit_negative_test_is_selected(self):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir, manifest = self.make_dataset(Path(tmp), "lab13-bad-input-001", shards=1, malformed=0)

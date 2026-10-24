@@ -16,7 +16,7 @@ class DesignCheckpointTests(unittest.TestCase):
     def test_checkpoint_is_design_only_and_not_cloud_verified(self):
         self.assertIn("guide_status: guide-ready", README)
         self.assertRegex(README, r"(?m)^cloud_verification: not-run$")
-        self.assertIn("Cloud verification: Not run", README)
+        self.assertIn("**Cloud verification:** Not run", README)
         self.assertRegex(README, r"(?m)^### Task 19 — Cleanup")
         self.assertIn("RETRY_TASK เฉพาะ exit code 75", README)
         self.assertIn("exit code 65 ที่ไม่อยู่ใน allowlist", README)

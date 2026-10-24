@@ -51,7 +51,7 @@ class Lab13GuideTests(unittest.TestCase):
             self.assertIn("python3 tools/reconcile.py", section)
             self.assertIn(run_id, section)
             self.assertIn(job_id, section)
-        self.assertIn("Type DELETE", cleanup)
+        self.assertIn("DELETE $run_id", cleanup)
         self.assertIn("gcloud storage rm --recursive", cleanup)
 
     def test_repository_relative_links_resolve_and_status_is_user_editable(self):

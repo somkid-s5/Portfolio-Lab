@@ -138,8 +138,8 @@ resource "google_storage_bucket" "input" {
   soft_delete_policy {
     retention_duration_seconds = 0
   }
-  labels                      = { lab = "lab013", purpose = "input" }
-  depends_on                  = [google_project_service.api]
+  labels     = { lab = "lab013", purpose = "input" }
+  depends_on = [google_project_service.api]
 }
 resource "google_storage_bucket" "attempt" {
   project                     = var.project_id
@@ -152,8 +152,8 @@ resource "google_storage_bucket" "attempt" {
   soft_delete_policy {
     retention_duration_seconds = 0
   }
-  labels                      = { lab = "lab013", purpose = "attempt" }
-  depends_on                  = [google_project_service.api]
+  labels     = { lab = "lab013", purpose = "attempt" }
+  depends_on = [google_project_service.api]
 }
 resource "google_storage_bucket" "published" {
   project                     = var.project_id
@@ -166,8 +166,8 @@ resource "google_storage_bucket" "published" {
   soft_delete_policy {
     retention_duration_seconds = 0
   }
-  labels                      = { lab = "lab013", purpose = "published" }
-  depends_on                  = [google_project_service.api]
+  labels     = { lab = "lab013", purpose = "published" }
+  depends_on = [google_project_service.api]
 }
 resource "google_storage_bucket_iam_member" "operator_input_viewer" {
   bucket = google_storage_bucket.input.name

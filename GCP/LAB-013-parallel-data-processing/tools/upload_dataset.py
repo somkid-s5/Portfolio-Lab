@@ -63,14 +63,17 @@ def upload_dataset(run_dir: Path, input_bucket: str, client: Any | None = None,
         prepared.append((shard, local_path, raw))
     client = client or storage.Client()
     bucket = client.bucket(input_bucket)
+    manifest_uri = f"gs://{input_bucket}/runs/{manifest['run_id']}/manifest.json"
+    _, manifest_object = split_gs_uri(manifest_uri)
+    manifest_blob = bucket.blob(manifest_object)
+    if manifest_blob.exists() and manifest_blob.download_as_bytes() != manifest_raw:
+        raise ContractError("existing run manifest differs; immutable run_id cannot be reused")
     uploaded: list[str] = []
     for shard, local_path, raw in prepared:
         _, object_name = split_gs_uri(shard["uri"])
         status = _append_or_verify(bucket.blob(object_name), raw, local_path, "application/x-ndjson")
         uploaded.append(f"{shard['uri']} ({status})")
-    manifest_uri = f"gs://{input_bucket}/runs/{manifest['run_id']}/manifest.json"
-    _, manifest_object = split_gs_uri(manifest_uri)
-    manifest_status = _append_or_verify(bucket.blob(manifest_object), manifest_raw, manifest_path, "application/json")
+    manifest_status = _append_or_verify(manifest_blob, manifest_raw, manifest_path, "application/json")
     return {"run_id": manifest["run_id"], "uploaded_shards": uploaded,
             "manifest_uri": manifest_uri, "manifest_status": manifest_status,
             "records": manifest["total_records"]}
