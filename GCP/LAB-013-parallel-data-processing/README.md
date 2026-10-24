@@ -9,7 +9,7 @@ last_verified: null
 
 # Lab 13 — ระบบนำเข้าข้อมูลแบบขนาน
 
-> **สถานะ: Design checkpoint** — CI [#333](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099200779) ผ่านครบ 30/30 repository jobs รวม design tests และ SVG render; เอกสารนี้ล็อกโจทย์ ข้อกำหนด และแบบสถาปัตยกรรม ยังไม่มีคู่มือ Task, application/worker, Terraform หรือผลทดสอบ Cloud.
+> **สถานะ: Design checkpoint** — เอกสารนี้ล็อกโจทย์ ข้อกำหนด และแบบสถาปัตยกรรม; มีการปรับคำอธิบาย retry lifecycle policy ให้ตรงกับเอกสาร Cloud Batch และรอตรวจ revision ใน repository CI. ยังไม่มีคู่มือ Task, application/worker, Terraform หรือผลทดสอบ Cloud.
 
 ## สถานการณ์
 
@@ -91,8 +91,8 @@ Batch retries มี semantics แบบ at-least-once; design นี้ **ไ�
 
 ### Operational scenarios
 
-- **Transient worker fault:** worker คืน exit code 75 สำหรับ transient fault; lifecycle policy ใช้ RETRY_TASK เฉพาะ code 75 และ maxRetryCount = 1 (retry ได้หนึ่งครั้งหลัง initial attempt); exit code อื่น เช่น code 65 สำหรับ malformed data ไม่ retry ตามเงื่อนไข FAIL_TASK/default; attempt ใหม่เขียนคนละ object path
-- **Permanent data fault:** malformed shard คืน exit code ที่กำหนดเป็น non-retryable; lifecycle policy ระบุให้ fail โดยไม่ retry; partial report แสดง shard ที่ขาด
+- **Transient worker fault:** worker คืน exit code 75 สำหรับ transient fault; lifecycle policy ใช้ RETRY_TASK เฉพาะ code 75 และ maxRetryCount = 1 (retry ได้หนึ่งครั้งหลัง initial attempt); exit code อื่น เช่น code 65 สำหรับ malformed data ไม่อยู่ใน retry allowlist จึง fail โดยไม่ retry; attempt ใหม่เขียนคนละ object path
+- **Permanent data fault:** malformed shard คืน code 65; เพราะ lifecycle policy retry เฉพาะ code 75, code 65 ที่ไม่อยู่ใน allowlist จึง fail โดยไม่ retry; partial report แสดง shard ที่ขาด
 - **Partial output:** job ไม่สำเร็จหรือ object/hash/count ไม่ครบ; publisher ปฏิเสธการสร้าง completion manifest
 - **Recovery:** แก้ synthetic source/config แล้วสร้าง run ID ใหม่; ตรวจทุก shard ใหม่จาก manifest; เปรียบเทียบ failed run กับ recovered run และเก็บหลักฐานทั้งคู่
 - **Resource cleanup:** ตรวจ Batch jobs/VMs, buckets, image repository และ logs; เก็บเฉพาะหลักฐานที่จำเป็นก่อนลบ resource ที่สร้างใน Lab

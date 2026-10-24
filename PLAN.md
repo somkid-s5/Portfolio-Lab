@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–12 Guide-ready; Lab 13 Design checkpoint ผ่าน repository CI [#333](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099200779); Lab 14–20 ยัง Planned. Lab 12 ผ่าน repository CI [#330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ครบ 43/43 jobs. ไม่มี GCP provisioning และ Cloud verification ทุก Lab ยังคง Not run.
+**สถานะ:** Lab 01–12 Guide-ready; Lab 13 Design checkpoint ผ่าน CI [#333](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099200779) และ repository CI [#334](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40099464528); มีการแก้ wording ของ retry lifecycle policy ตามเอกสารทางการและกำลังตรวจ revision ใหม่; Lab 14–20 ยัง Planned. Lab 12 ผ่าน repository CI [#330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ครบ 43/43 jobs. ไม่มี GCP provisioning และ Cloud verification ทุก Lab ยังคง Not run.
 
 ## ผลลัพธ์ปลายทาง
 
@@ -92,4 +92,4 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## สถานะดำเนินงาน
 
-Lab 01–12 Guide-ready; Lab 12 ผ่าน repository CI [#330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ครบ 43/43 jobs. CI ตรวจไฟล์/โค้ดใน repo เท่านั้น; ไม่มี GCP provisioning และ Cloud verification ยังคง Not run. Lab 13: Design checkpoint passed; Lab 14–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.
+Lab 01–12 Guide-ready; Lab 12 ผ่าน repository CI [#330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) ครบ 43/43 jobs. CI ตรวจไฟล์/โค้ดใน repo เท่านั้น; ไม่มี GCP provisioning และ Cloud verification ยังคง Not run. Lab 13: Design checkpoint revision pending CI; Lab 14–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.
