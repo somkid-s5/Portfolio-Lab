@@ -64,7 +64,10 @@ class Lab12DesignTests(unittest.TestCase):
         for path in paths.values():
             self.assertTrue(set(re.findall(r"[A-Za-z]", path)) <= {"M", "H", "V"}, path)
         self.assertIn("M732 377H744V355H760", paths["flow-order-catalog"])
-        self.assertIn("M732 407H744V443H760", paths["flow-order-payment"])\n        self.assertEqual(paths["flow-collector-trace"], "M822 540H900V320H1004")\n        self.assertEqual(paths["flow-services-logging"], "M845 488V580H945V520H1004")\n        self.assertNotIn("JSON stdout → GKE logs", SVG)
+        self.assertIn("M732 407H744V443H760", paths["flow-order-payment"])
+        self.assertEqual(paths["flow-collector-trace"], "M822 540H900V320H1004")
+        self.assertEqual(paths["flow-services-logging"], "M845 488V580H945V520H1004")
+        self.assertNotIn("JSON stdout → GKE logs", SVG)
         self.assertIn("Catalog", SVG)
         self.assertIn("Payment mock", SVG)
 
