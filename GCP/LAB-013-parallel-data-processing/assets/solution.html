@@ -5,7 +5,7 @@
 <title>Lab 13 — ระบบนำเข้าข้อมูลแบบขนาน</title>
 <style>body{margin:0;padding:24px;background:#f5f7fa;color:#243247;font:16px/1.55 Arial,"Noto Sans Thai",sans-serif}main{max-width:1200px;margin:auto;background:#fff;padding:20px;border-radius:16px;box-shadow:0 3px 16px #182b4018}h1{font-size:1.4rem;margin:0 0 8px}p{margin:0 0 16px;color:#526173}figure{margin:0}svg{display:block;width:100%;height:auto}figcaption{font-size:.9rem;color:#526173;margin-top:8px}@media print{body{padding:0;background:#fff}main{box-shadow:none;padding:0}}</style>
 </head>
-<body><main><h1>Lab 13 — ระบบนำเข้าข้อมูลแบบขนาน</h1><p>Architecture design checkpoint — ยังไม่มีคู่มือ Task หรือผล Cloud run</p><figure><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1500" height="940" viewBox="0 0 1500 940" role="img" aria-labelledby="title desc">
+<body><main><h1>Lab 13 — ระบบนำเข้าข้อมูลแบบขนาน</h1><p>Lab 13 solution diagram — ยังไม่มีคู่มือ Task หรือผล Cloud run</p><figure><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1500" height="940" viewBox="0 0 1500 940" role="img" aria-labelledby="title desc">
 <title id="title">Lab 13 — ระบบนำเข้าข้อมูลแบบขนานบน Google Cloud</title>
 <desc id="desc">Cloud Build สร้าง worker image และส่งเข้า Artifact Registry; Cloud Batch จัดงานให้ VM workers ใน private subnet อ่านไฟล์นำเข้าจาก Cloud Storage ประมวลผลแบบจำกัด concurrency และเขียนผลราย attempt ไปยัง output bucket ก่อน operator ตรวจสอบและ publish completion manifest; worker ส่ง logs ไป Cloud Logging.</desc>
 <defs>

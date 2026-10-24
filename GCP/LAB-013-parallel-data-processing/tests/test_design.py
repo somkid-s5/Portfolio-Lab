@@ -14,23 +14,24 @@ PROVENANCE = json.loads((LAB / "assets/diagram-provenance.json").read_text(encod
 
 class DesignCheckpointTests(unittest.TestCase):
     def test_checkpoint_is_design_only_and_not_cloud_verified(self):
-        self.assertIn("guide_status: design", README)
-        self.assertIn("cloud_verification: not-run", README)
-        self.assertIn("ยังไม่มีคู่มือ Task", README)
-        self.assertNotRegex(README, r"(?m)^### Task [0-9]+")
-        self.assertIn("Cloud verification: **Not run**", README)
-        self.assertIn("RETRY_TASK เฉพาะ code 75", README)
-        self.assertIn("code 65 ที่ไม่อยู่ใน allowlist", README)
+        self.assertIn("guide_status: guide-ready", README)
+        self.assertRegex(README, r"(?m)^cloud_verification: not-run$")
+        self.assertIn("Cloud verification: Not run", README)
+        self.assertRegex(README, r"(?m)^### Task 19 — Cleanup")
+        self.assertIn("RETRY_TASK เฉพาะ exit code 75", README)
+        self.assertIn("exit code 65 ที่ไม่อยู่ใน allowlist", README)
         self.assertIn("Artifact Registry Reader", README)
         self.assertIn("roles/artifactregistry.reader", README)
-        self.assertIn("Operator user (เป็น publisher ด้วย)", README)
-        self.assertIn("input/attempt-output/published-manifest buckets เพื่ออ่านและยืนยันสถานะ", README)
-        self.assertIn("roles/storage.objectCreator) เฉพาะ input bucket เพื่อเพิ่ม source objects และ published-manifest bucket เพื่อ publish", README)
-        self.assertIn("worker ต้องได้ผล 403 เมื่อ probe การสร้าง object แบบสุ่มใน input และ published-manifest buckets", README)
+        self.assertIn("Operator", README)
+        self.assertIn("Object Viewer เฉพาะ input, attempt-output และ published buckets", README)
+        self.assertIn("Object Creator เฉพาะ input (append source objects) และ published", README)
+        self.assertIn("roles/serviceusage.serviceUsageConsumer", README)
+        self.assertIn("soft delete เป็น 0", README)
+        self.assertIn("probe ที่ได้ 403 ทั้งสอง bucket", README)
         for role_id in (
             "roles/cloudbuild.builds.editor", "roles/batch.jobsEditor",
             "roles/compute.networkViewer", "roles/logging.viewer",
-            "roles/iam.serviceAccountUser", "roles/artifactregistry.writer",
+            "roles/iam.serviceAccountUser", "roles/serviceusage.serviceUsageConsumer", "roles/artifactregistry.writer",
             "roles/batch.agentReporter", "roles/logging.logWriter",
             "roles/storage.objectViewer", "roles/storage.objectCreator",
             "roles/batch.serviceAgent",
@@ -41,7 +42,7 @@ class DesignCheckpointTests(unittest.TestCase):
     def test_requirements_cover_build_run_fail_recover_change_and_cleanup(self):
         for requirement in range(1, 11):
             self.assertIn("| R" + str(requirement) + " |", README)
-        for phrase in ("Failure, Recovery", "Change Request", "หลักฐานที่จะบันทึก", "cleanup"):
+        for phrase in ("malformed", "Recovery", "Change Request", "หลักฐานที่เก็บ", "cleanup"):
             self.assertIn(phrase.lower(), README.lower())
 
     def test_architecture_and_scope_are_present(self):
@@ -77,7 +78,7 @@ class DesignCheckpointTests(unittest.TestCase):
     def test_standalone_html_contains_exact_saved_svg(self):
         self.assertIn(SVG, HTML)
         self.assertIn('lang="th"', HTML)
-        self.assertIn("Architecture design checkpoint", HTML)
+        self.assertIn("Lab 13 solution diagram", HTML)
 
     def test_official_icon_payloads_match_pinned_git_blob_hashes(self):
         self.assertEqual(PROVENANCE["source_commit"], "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192")

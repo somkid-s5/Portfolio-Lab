@@ -1210,3 +1210,59 @@ jobs:
             GCP/LAB-013-parallel-data-processing/assets/**
           if-no-files-found: error
           retention-days: 14
+  lab013-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned Cloud Storage client
+        run: |
+          python3 -m venv .ci-lab013
+          .ci-lab013/bin/pip install --disable-pip-version-check -r GCP/LAB-013-parallel-data-processing/app/requirements.txt
+      - name: Compile app, tools and tests; run no-cloud contracts
+        run: |
+          .ci-lab013/bin/python -m compileall -q GCP/LAB-013-parallel-data-processing/app GCP/LAB-013-parallel-data-processing/tools GCP/LAB-013-parallel-data-processing/tests
+          .ci-lab013/bin/python -m unittest discover -s GCP/LAB-013-parallel-data-processing/tests -p "test_*.py" -v
+      - name: Build non-root worker image without publishing or cloud credentials
+        run: docker build --pull --tag lab013-worker:ci --file GCP/LAB-013-parallel-data-processing/app/Dockerfile GCP/LAB-013-parallel-data-processing
+      - name: Verify non-root image and import runtime modules
+        run: |
+          test "$(docker image inspect lab013-worker:ci --format '{{.Config.User}}')" = "10001:10001"
+          docker run --rm --entrypoint python lab013-worker:ci -c "import lab13.worker, lab13.iam_probe; print('Lab 13 runtime imports successfully')"
+
+  lab013-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Format and validate Foundation without credentials or provisioning
+        run: |
+          terraform -chdir=GCP/LAB-013-parallel-data-processing/infra fmt -check -diff -recursive
+          terraform -chdir=GCP/LAB-013-parallel-data-processing/infra init -backend=false -input=false
+          terraform -chdir=GCP/LAB-013-parallel-data-processing/infra validate -no-color
+      - name: Validate custom Cloud Build service account and logging config
+        run: |
+          python3 -m venv .ci-lab013-infra
+          .ci-lab013-infra/bin/pip install --disable-pip-version-check PyYAML==6.0.2
+          .ci-lab013-infra/bin/python -c 'import yaml; c=yaml.safe_load(open("GCP/LAB-013-parallel-data-processing/cloudbuild.yaml", encoding="utf-8")); assert c["serviceAccount"] == "projects/$PROJECT_ID/serviceAccounts/lab013-build@$PROJECT_ID.iam.gserviceaccount.com"; assert c["options"]["logging"] == "CLOUD_LOGGING_ONLY"; assert len(c["images"]) == 1; print("Cloud Build config contract passed")'
+
+  lab013-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check 20 ordered Tasks, evidence fields, Bash syntax and local links
+        run: python3 -m unittest discover -s GCP/LAB-013-parallel-data-processing/tests -p test_guide.py -v
