@@ -43,6 +43,7 @@ class Lab016GuideContracts(unittest.TestCase):
             "orders.lab.test",
             "No-go",
             "source.dump",
+            'gcloud builds submit --project="$PROJECT_ID" --tag="$IMAGE_URI" "$LAB_ROOT/app"',
         ):
             self.assertIn(marker, TEXT)
 

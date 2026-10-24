@@ -199,7 +199,7 @@ printf 'APP_SECRET_VERSION=%s\n' "$APP_SECRET_VERSION"
 
 ~~~bash
 IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/lab016-orders/orders-api:$RUN_ID"
-gcloud builds submit --project="$PROJECT_ID" --tag="$IMAGE_URI" "$LAB_ROOT"
+gcloud builds submit --project="$PROJECT_ID" --tag="$IMAGE_URI" "$LAB_ROOT/app"
 ~~~
 
 ~~~bash
@@ -475,7 +475,7 @@ printf 'GOOD_REVISION=%s\nBAD_REVISION=%s\n' "$GOOD_REVISION" "$BAD_REVISION"
 gcloud run services update-traffic lab016-orders --project="$PROJECT_ID" --region="$REGION" --to-revisions="$BAD_REVISION=100"
 ~~~
 
-ผ่าน front door: /healthz ควรเป็น 200 เพราะ process ทำงาน; /readyz ควรเป็น 503 database_unavailable. ดู Cloud Run > service > Logs แล้วค้นหา database_request_failed. คืน traffic ไป revision ดี:
+ผ่าน front door: /healthz ควรเป็น 200 เพราะ process ทำงาน; /readyz ควรเป็น 503 database_unavailable. ดู Cloud Run > service > Logs แล้วค้นหา database_request_failed. คืน traffic ไป revision ดี จากนั้นแก้ service template ให้กลับไปใช้ Cloud SQL socket ที่ถูกต้อง สร้าง revision ที่แก้แล้ว และให้ revision นั้นรับ traffic เพื่อไม่ทิ้ง bad config ไว้เป็น latest:
 
 ~~~bash
 gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="lab016-orders" AND jsonPayload.event="database_request_failed"' \
@@ -483,9 +483,14 @@ gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.serv
   --format='table(timestamp,jsonPayload.error_type,resource.labels.revision_name)'
 gcloud run services update-traffic lab016-orders --project="$PROJECT_ID" --region="$REGION" \
   --to-revisions="$GOOD_REVISION=100"
+gcloud run deploy lab016-orders --project="$PROJECT_ID" --region="$REGION" \
+  --image="$IMAGE_URI" --update-env-vars="DB_HOST=/cloudsql/$CONNECTION_NAME" --no-traffic
+FIXED_REVISION="$(gcloud run services describe lab016-orders --project="$PROJECT_ID" --region="$REGION" --format='value(status.latestCreatedRevisionName)')"
+gcloud run services update-traffic lab016-orders --project="$PROJECT_ID" --region="$REGION" \
+  --to-revisions="$FIXED_REVISION=100"
 ~~~
 
-ตรวจ /readyz ได้ 200, marker เป็น cloud-run-target และ target order ยังอยู่. บันทึก fault/recovery timeline.
+ตรวจ /readyz ได้ 200, marker เป็น cloud-run-target และ target order ยังอยู่. บันทึก fault/recovery timeline. bad revision ควรไม่มี traffic หลังจบการทดสอบ.
 
 ### Bounded read probe
 
