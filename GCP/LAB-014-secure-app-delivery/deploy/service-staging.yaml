@@ -4,6 +4,7 @@ metadata:
   name: quote-api-staging
   annotations:
     run.googleapis.com/ingress: all
+    run.googleapis.com/binary-authorization: default
 spec:
   template:
     metadata:

@@ -57,6 +57,7 @@ class ReleaseContractTests(unittest.TestCase):
                 "2",
             )
             self.assertEqual(container["env"][0]["value"], "1.00")
+            self.assertEqual(service["metadata"]["annotations"]["run.googleapis.com/binary-authorization"], "default")
 
     def test_cloud_build_is_pinned_to_custom_builder_identity(self):
         config = yaml.safe_load((ROOT / "cloudbuild.yaml").read_text(encoding="utf-8"))
