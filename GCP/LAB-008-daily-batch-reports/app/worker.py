@@ -1,5 +1,6 @@
 """Daily report orchestration over source-pinned storage and transactional ledger."""
 from datetime import date, datetime, timedelta, timezone
+import re
 
 from app.domain import InputError, build_report
 from app.ledger_state import StateConflict
@@ -7,6 +8,11 @@ from app.schedule import BUSINESS_TZ
 from app.storage import (ArtifactConflict, InvalidSource, SourceChanged,
                          SourceMissing)
 from app.integrations import PublishUncertain
+
+
+CORRECTION_RE = re.compile(
+    r"^incoming/business_date=(\\d{4}-\\d{2}-\\d{2})/corrections/[A-Za-z0-9_-]{1,64}\\.csv$"
+)
 
 
 class WorkerFailure(RuntimeError):
@@ -41,16 +47,24 @@ class DailyReportWorker:
             _check_backfill_window(target, self.clock())
         explicit_source = source_object is not None
         source_object = source_object or self.objects.default_source(business_date)
+        if explicit_source:
+            match = CORRECTION_RE.fullmatch(source_object)
+            if not match or match.group(1) != business_date:
+                raise ValueError("invalid_correction_source")
+
+        try:
+            current_generation = self.objects.source_generation(
+                source_object, business_date=business_date)
+        except SourceMissing as exc:
+            if explicit_source:
+                raise WorkerFailure("correction_source_missing") from exc
+            _, disposition = self.ledger.mark_missing_input(business_date)
+            return {"status": disposition, "business_date": business_date}
 
         if source_generation is None:
-            try:
-                source_generation = self.objects.source_generation(
-                    source_object, business_date=business_date)
-            except SourceMissing:
-                if explicit_source:
-                    raise WorkerFailure("correction_source_missing")
-                _, disposition = self.ledger.mark_missing_input(business_date)
-                return {"status": disposition, "business_date": business_date}
+            source_generation = current_generation
+        elif source_generation != current_generation:
+            raise WorkerFailure("correction_source_generation_mismatch")
 
         try:
             record, disposition, token = self.ledger.claim(
