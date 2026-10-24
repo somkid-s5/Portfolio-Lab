@@ -1130,3 +1130,55 @@ jobs:
             GCP/LAB-012-cross-service-tracing/assets/**
           if-no-files-found: error
           retention-days: 14
+
+  lab012-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned app dependencies
+        run: |
+          python3 -m venv .ci-lab012
+          .ci-lab012/bin/pip install --disable-pip-version-check -r GCP/LAB-012-cross-service-tracing/app/requirements.txt
+      - name: Compile application, scripts and tests
+        run: .ci-lab012/bin/python -m compileall -q GCP/LAB-012-cross-service-tracing/app GCP/LAB-012-cross-service-tracing/scripts GCP/LAB-012-cross-service-tracing/tests
+      - name: Exercise service contracts, retry bounds and probe limits offline
+        run: |
+          .ci-lab012/bin/python -m unittest discover -s GCP/LAB-012-cross-service-tracing/tests -p test_app.py -v
+          .ci-lab012/bin/python -m unittest discover -s GCP/LAB-012-cross-service-tracing/tests -p test_probe.py -v
+      - name: Build application image without publishing it
+        run: docker build --pull --tag lab012-checkout:ci --file GCP/LAB-012-cross-service-tracing/app/Dockerfile GCP/LAB-012-cross-service-tracing/app
+
+  lab012-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Check formatting and validate infrastructure without credentials or provisioning
+        run: |
+          terraform -chdir=GCP/LAB-012-cross-service-tracing/infra fmt -check -recursive
+          terraform -chdir=GCP/LAB-012-cross-service-tracing/infra init -backend=false -input=false
+          terraform -chdir=GCP/LAB-012-cross-service-tracing/infra validate -no-color
+      - name: Install pinned YAML parser and verify manifests/IAM boundaries
+        run: |
+          python3 -m venv .ci-lab012-infra
+          .ci-lab012-infra/bin/pip install --disable-pip-version-check PyYAML==6.0.2
+          .ci-lab012-infra/bin/python -m unittest discover -s GCP/LAB-012-cross-service-tracing/tests -p test_infra.py -v
+
+  lab012-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 12 task order, recording fields, relative links and shell syntax
+        run: python3 -m unittest discover -s GCP/LAB-012-cross-service-tracing/tests -p test_guide.py -v

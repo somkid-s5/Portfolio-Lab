@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนขอบเขตฉบับปรับใหม่ — ยังไม่ใช่คู่มือติดตั้ง และยังไม่มีผล Cloud run จริง. Lab 12 brief/design ผ่าน repository CI #324 (40/40 jobs); ยังไม่ใช่ Guide-ready หรือ Cloud-verified.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 12 มีคู่มือและ assets ฉบับร่างครบ Tasks 00–19 กำลังรอ repository CI ตรวจ; ยังไม่ระบุ Guide-ready และไม่มีผล Cloud run จริง.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -487,7 +487,7 @@ Lab 10 — [Catalog Cache](LAB-010-catalog-cache/README.md) — Guide-ready ห�
 
 Lab 11 — [GKE Quote Engine](LAB-011-gke-quote-engine/README.md) — Guide-ready หลัง [CI #315](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40092884085) ผ่านครบ 39/39 jobs. ครอบคลุม App/API-worker, Terraform foundation, regional GKE Autopilot, HTTPS Gateway, private worker, per-workload Secret Manager access, bounded HPA/load observation, logs, readiness rollback, pod recovery, pricing change request, token rotation และ cleanup. CI ตรวจ source/config เท่านั้น; ไม่ได้ provision GCP และ Cloud verification ยัง Not run.
 
-Lab 12 — [Microservices tracing](LAB-012-cross-service-tracing/README.md) — Brief + Design checkpoint ผ่าน [CI #324](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40095281229) ครบ 40/40 jobs. ยืนยัน requirements R1–R9, request/identity/telemetry flows, official icon provenance และ render diagram ที่ 960px; README ยังไม่มี Tasks 00–19 และไม่มีผลทดสอบ Cloud. ขั้นถัดไปคือสร้าง app/infra/test materials และ Guide ใน Lab นี้ก่อนเริ่ม Lab 13.
+Lab 12 — [Microservices tracing](LAB-012-cross-service-tracing/README.md) — มี Tasks 00–19, app, Terraform, Kubernetes manifests, bounded probe และ tests ฉบับร่าง; repository CI กำลังตรวจ. Diagram/architecture checkpoint ผ่าน [CI #324](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40095281229) ครบ 40/40 jobs. ยังไม่มี GCP provisioning และ Cloud verification Not run; จะถือ Guide-ready เมื่อ CI ของคู่มือ/แอป/infra ผ่านครบเท่านั้น.
 
 ตัวอย่างรูปแบบการอ่านที่ยืนยันแล้ว: [Lab Test 2](../test/lab-test-2/README.md) เป็นตัวอย่างรูปแบบ ไม่ถือเป็นผลการทำ Lab ใด
 
