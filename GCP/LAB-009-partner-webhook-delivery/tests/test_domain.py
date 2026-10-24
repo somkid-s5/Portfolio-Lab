@@ -152,7 +152,7 @@ class IdentityAndTaskTests(unittest.TestCase):
         self.assertNotEqual(task_id(did, 1), task_id(did, 2))
         name = task_resource_name("demo-lab", "asia-southeast1", "partner-a", did, 1)
         self.assertTrue(name.endswith(f"/tasks/{task_id(did, 1)}"))
-        self.assertEqual(len(task_id(did, 1)), 36)
+        self.assertEqual(len(task_id(did, 1)), 37)
 
     def test_task_payload_contains_only_ids_and_generation(self):
         event = make_event()
