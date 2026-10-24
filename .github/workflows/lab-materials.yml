@@ -839,8 +839,18 @@ jobs:
       - name: Verify image user, source compilation and build-context exclusions
         run: |
           test "$(docker image inspect --format '{{.Config.User}}' lab009:ci)" = "10001:10001"
-          docker run --rm --entrypoint python lab009:ci -m compileall -q /app/app
+          docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/lab09-pycache --entrypoint python lab009:ci -m compileall -q /app/app
           docker run --rm --entrypoint python lab009:ci -c "import os; import app.api, app.domain, app.entrypoint, app.ledger, app.operator_cli, app.receipt_store, app.reconciler, app.reconciler_api, app.runtime_config, app.secret_manager, app.simulator, app.simulator_api, app.task_queue, app.worker, app.worker_api; assert not os.path.exists('/app/tests'); assert not os.path.exists('/app/infra')"
+
+  lab009-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 09 Task order, evidence fields, guide assets and Bash syntax
+        run: python3 -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_guide.py -v
 
   lab009-infra:
     runs-on: ubuntu-latest

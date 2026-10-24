@@ -42,7 +42,7 @@ locals {
       partner_id           = partner_id
       worker_url           = "${google_cloud_run_v2_service.worker[0].uri}/internal/deliver"
       task_service_account = google_service_account.runtime["task_oidc"].email
-      oidc_audience         = google_cloud_run_v2_service.worker[0].uri
+      oidc_audience        = google_cloud_run_v2_service.worker[0].uri
     }
   ] : []
 
