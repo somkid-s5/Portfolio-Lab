@@ -371,7 +371,8 @@ gcloud storage objects describe "gs://$REPORT_BUCKET/$REPORT_OBJECT" --format='v
 
 สร้างวันที่ทดสอบอีกวันภายในช่วง 7 วันย้อนหลัง (ตัวอย่างใช้สองวันก่อนวันนี้) และยืนยันว่าไม่มี object/ledger ของวันนั้นก่อนเริ่ม. สร้าง input ที่ถูกต้องไว้หนึ่งชุด แล้วสร้าง invalid copy โดยเปลี่ยน currency ของแถวแรกเป็น USD:
 
-~~~bash
+~~~~bash
+cd ../..
 export RECOVERY_DATE="$(TZ=Asia/Bangkok date -d '2 days ago' +%F)"
 python3 scripts/generate_input.py --business-date "$RECOVERY_DATE" --output "/tmp/lab008-valid-$RECOVERY_DATE.csv"
 sed '2s/,THB$/,USD/' "/tmp/lab008-valid-$RECOVERY_DATE.csv" > "/tmp/lab008-invalid-$RECOVERY_DATE.csv"
@@ -430,20 +431,20 @@ gcloud run jobs execute lab008-daily-report --region="$REGION" --project="$PROJE
 ก่อน Foundation destroy ตรวจ bucket names จาก state/output และยืนยันว่าเป็น lab008-s-*/lab008-r-* ของ project นี้เท่านั้น. Bucket เปิด Object Versioning และ force_destroy=false; ลบ object versions ของสอง bucket แบบเจาะจง แล้วลบ image ใน repository ที่กำหนดไว้ก่อน:
 
 ~~~bash
-gcloud storage rm --recursive "gs://$SOURCE_BUCKET"
-gcloud storage rm --recursive "gs://$REPORT_BUCKET"
+gcloud storage rm --recursive "gs://$SOURCE_BUCKET/**"
+gcloud storage rm --recursive "gs://$REPORT_BUCKET/**"
 gcloud artifacts docker images delete "$IMAGE_REPO/daily-sales-close" --project="$PROJECT_ID" --delete-tags --quiet
 ~~~
 
 ตรวจชื่อก่อนยืนยันทุกครั้ง; คำสั่งเหล่านี้ลบข้อมูลใน bucket/repository ที่ระบุ. กลับไป infra/foundation, ตรวจ project/state/plan แล้วค่อย terraform destroy เพื่อเอา bucket, Firestore, Pub/Sub, Artifact Registry และ IAM ของ Lab08 ออก. อย่าลบ project ทั้งก้อน. ถ้า destroy แจ้งว่ามี version/object ค้าง ให้ตรวจ bucket ที่แสดงและลบเฉพาะ Lab08; ห้ามเปิด force_destroy ให้ลบ resource ที่ไม่รู้จัก.
 
-**Expected:** Scheduler หยุดก่อน, Workload/Foundation destroy สำเร็จใน dedicated project, ไม่มี resource Lab08 เหลือ; project อื่นไม่ถูกแตะ.
+**Expected:** Scheduler หยุดก่อน, Workload/Foundation destroy สำเร็จใน dedicated project, ไม่มี resource ที่ Terraform จัดการเหลือ; Google APIs ที่เปิดไว้และ service agents อาจยังคงอยู่; project อื่นไม่ถูกแตะ.
 
 **Actual / Evidence:** บันทึกเวลาหยุด schedule, plan/apply/destroy IDs และ inventory หลัง cleanup; ระบุสิ่งที่ยังเหลือพร้อมเหตุผล: ________________________________.
 
 ## References สำหรับการปฏิบัติ
 
 - [Cloud Shell](https://docs.cloud.google.com/shell/docs/launching-cloud-shell) และ [Artifact Registry Docker authentication](https://docs.cloud.google.com/artifact-registry/docs/docker/authentication)
-- [gcloud storage cp](https://docs.cloud.google.com/sdk/gcloud/reference/storage/cp), [objects describe](https://docs.cloud.google.com/sdk/gcloud/reference/storage/objects/describe), [ลบ object versions](https://docs.cloud.google.com/sdk/gcloud/reference/storage/rm)
+- [gcloud storage cp](https://docs.cloud.google.com/sdk/gcloud/reference/storage/cp), [objects describe](https://docs.cloud.google.com/sdk/gcloud/reference/storage/objects/describe), [ลบ object versions](https://docs.cloud.google.com/sdk/gcloud/reference/storage/rm) และ [Object Versioning](https://docs.cloud.google.com/storage/docs/using-versioned-objects)
 - [Cloud Run Jobs execute](https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/execute), [list executions](https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/executions/list), [Cloud Scheduler jobs run](https://docs.cloud.google.com/sdk/gcloud/reference/scheduler/jobs/run), [Logging read](https://docs.cloud.google.com/sdk/gcloud/reference/logging/read)
 - [Cloud Billing budgets](https://docs.cloud.google.com/billing/docs/how-to/budgets) — alert-only, ไม่ใช่ hard spending cap.
