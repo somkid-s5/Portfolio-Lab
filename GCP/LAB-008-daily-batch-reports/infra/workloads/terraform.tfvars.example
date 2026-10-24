@@ -1,0 +1,20 @@
+# Replace every REPLACE_* value with outputs from the foundation root.
+# Keep the Scheduler triggers paused for the first infrastructure review.
+project_id   = "REPLACE_WITH_DEDICATED_PROJECT_ID"
+region       = "asia-southeast1"
+image_uri    = "asia-southeast1-docker.pkg.dev/REPLACE_WITH_DEDICATED_PROJECT_ID/lab008-images/daily-sales-close@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+source_bucket        = "REPLACE_WITH_FOUNDATION_SOURCE_BUCKET"
+report_bucket        = "REPLACE_WITH_FOUNDATION_REPORT_BUCKET"
+firestore_database   = "lab008-reports"
+firestore_collection = "daily_runs"
+report_ready_topic   = "projects/REPLACE_WITH_DEDICATED_PROJECT_ID/topics/lab008-report-ready"
+
+coordinator_service_account = "lab008-coordinator@REPLACE_WITH_DEDICATED_PROJECT_ID.iam.gserviceaccount.com"
+worker_service_account      = "lab008-worker@REPLACE_WITH_DEDICATED_PROJECT_ID.iam.gserviceaccount.com"
+scheduler_service_account   = "lab008-scheduler@REPLACE_WITH_DEDICATED_PROJECT_ID.iam.gserviceaccount.com"
+operator_member             = "user:REPLACE_WITH_OPERATOR_EMAIL"
+
+notification_channels = []
+pause_schedulers      = true
+allow_destroy         = false

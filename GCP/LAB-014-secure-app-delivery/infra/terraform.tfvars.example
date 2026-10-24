@@ -1,0 +1,13 @@
+project_id = "replace-with-a-dedicated-project-id"
+region     = "asia-southeast1"
+
+# Create the GitHub App connection manually in Cloud Build Repositories first,
+# then paste its full projects/.../locations/.../connections/... resource name.
+cloudbuild_connection_id = ""
+
+# Optional: grant approval to a separate human identity, not the GitHub release SA.
+approver_principal = ""
+
+# Project-wide policy. Leave false until you have confirmed no existing
+# Binary Authorization policy is in use and this is a disposable lab project.
+manage_project_binary_authorization_policy = false

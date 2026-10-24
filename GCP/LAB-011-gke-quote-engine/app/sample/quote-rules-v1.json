@@ -1,0 +1,16 @@
+{
+  "rules_version": "v1",
+  "rates": {
+    "base_thb": 35,
+    "per_kg_thb": 8,
+    "per_km_thb": 0.45
+  },
+  "service_multipliers": {
+    "standard": 1,
+    "express": 1.8
+  },
+  "estimated_days": {
+    "standard": 3,
+    "express": 1
+  }
+}

@@ -1,0 +1,17 @@
+.gcloudignore
+.git
+.git/**
+.gitignore
+README.md
+assets/
+infra/
+tools/
+tests/
+work/
+.venv/
+**/terraform.tfvars
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfplan
+**/.terraform/
+**/__pycache__/

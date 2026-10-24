@@ -1,0 +1,14 @@
+**
+!Dockerfile
+!requirements.txt
+!app/
+!app/**
+!scripts/
+!scripts/run-container.py
+**/__pycache__/
+**/*.pyc
+**/auth.json
+**/demo-logins.json
+**/.env
+**/*.pem
+**/*.key

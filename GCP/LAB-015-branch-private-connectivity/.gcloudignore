@@ -1,0 +1,12 @@
+.git
+.gitignore
+.gcloudignore
+**/__pycache__/**
+**/.terraform/**
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfplan
+**/terraform.tfvars
+**/*.auto.tfvars
+**/.env
+**/.env.*

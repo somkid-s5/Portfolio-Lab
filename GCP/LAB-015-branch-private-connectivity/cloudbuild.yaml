@@ -1,0 +1,22 @@
+serviceAccount: projects/$PROJECT_ID/serviceAccounts/lab015-builder@$PROJECT_ID.iam.gserviceaccount.com
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --pull
+      - -f
+      - app/Dockerfile
+      - -t
+      - $_REGION-docker.pkg.dev/$PROJECT_ID/lab015-images/inventory-api:$_TAG
+      - app
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - $_REGION-docker.pkg.dev/$PROJECT_ID/lab015-images/inventory-api:$_TAG
+images:
+  - $_REGION-docker.pkg.dev/$PROJECT_ID/lab015-images/inventory-api:$_TAG
+options:
+  logging: CLOUD_LOGGING_ONLY
+substitutions:
+  _REGION: asia-southeast1
+  _TAG: manual

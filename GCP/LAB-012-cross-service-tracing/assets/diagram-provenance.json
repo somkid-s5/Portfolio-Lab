@@ -1,0 +1,77 @@
+{
+  "diagram_sources": [
+    "assets/solution.svg",
+    "assets/solution.html"
+  ],
+  "icon_source": {
+    "official_entry_point": "https://cloud.google.com/icons",
+    "mirror": "https://github.com/AwesomeLogos/google-cloud-icons",
+    "pinned_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+    "files": [
+      {
+        "service": "Google Kubernetes Engine",
+        "repository_path": "docs/images/google_kubernetes_engine.svg",
+        "local_path": "assets/icons/google_kubernetes_engine.svg",
+        "svg_id": "icon-GKE",
+        "git_blob_sha": "472b37316e65ab9fac440c037f1a39f38e7ab264",
+        "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/google_kubernetes_engine.svg"
+      },
+      {
+        "service": "Cloud Load Balancing",
+        "repository_path": "docs/images/cloud_load_balancing.svg",
+        "local_path": "assets/icons/cloud_load_balancing.svg",
+        "svg_id": "icon-Gateway",
+        "git_blob_sha": "8ee1ca75ee3074ccdb693c54b1a6391c4832c9e9",
+        "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_load_balancing.svg"
+      },
+      {
+        "service": "Cloud Trace",
+        "repository_path": "docs/images/trace.svg",
+        "local_path": "assets/icons/trace.svg",
+        "svg_id": "icon-Trace",
+        "git_blob_sha": "b018b3c54cbe6ed82f555fdb4d00002dd87841fc",
+        "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/trace.svg"
+      },
+      {
+        "service": "Cloud Logging",
+        "repository_path": "docs/images/cloud_logging.svg",
+        "local_path": "assets/icons/cloud_logging.svg",
+        "svg_id": "icon-Logging",
+        "git_blob_sha": "7691a3ed0450b744311427e8818c5d5bf4894c30",
+        "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_logging.svg"
+      },
+      {
+        "service": "Cloud Build",
+        "repository_path": "docs/images/cloud_build.svg",
+        "local_path": "assets/icons/cloud_build.svg",
+        "svg_id": "icon-Build",
+        "git_blob_sha": "21de5420f0480abe399d15c29c8353da9783bc39",
+        "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_build.svg"
+      },
+      {
+        "service": "Artifact Registry",
+        "repository_path": "docs/images/artifact_registry.svg",
+        "local_path": "assets/icons/artifact_registry.svg",
+        "svg_id": "icon-Artifacts",
+        "git_blob_sha": "81c46f8af7e0823a56c8c460e35758cbac8bfaf7",
+        "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/artifact_registry.svg"
+      }
+    ]
+  },
+  "style_attribution": {
+    "name": "Diagram Design",
+    "upstream": "https://github.com/cathrynlavery/diagram-design",
+    "license": "MIT",
+    "note": "Visual conventions adapted; diagram independently authored and does not copy upstream examples."
+  },
+  "layout_decision": "Connectivity-first: the external Gateway sits outside the VPC; the regional proxy-only subnet provides the Gateway-to-backend path. Storefront and Order are horizontal; Catalog and Payment mock are stacked vertically for short two-way fan-out from Order. The telemetry collector is below the app namespace; Cloud Trace/Logging are project-level services outside the VPC. Build/image delivery is a separate bottom lane.",
+  "verification": {
+    "diagram_render": "GitHub Actions lab012-design renders the current diagram at 960px and uploads a review artifact; this verifies repository rendering only.",
+    "cloud_deployment": "not-run"
+  },
+  "rendering": {
+    "tool": "librsvg2-bin",
+    "width_px": 960,
+    "font_package": "fonts-noto-core (Noto Sans Thai)"
+  }
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "sku": "BOOK-01",
+    "initial_stock": 200,
+    "unit_price_satang": 12500
+  },
+  {
+    "sku": "LAST-01",
+    "initial_stock": 1,
+    "unit_price_satang": 100
+  },
+  {
+    "sku": "USB-01",
+    "initial_stock": 200,
+    "unit_price_satang": 9900
+  }
+]

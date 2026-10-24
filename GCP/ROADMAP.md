@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนขอบเขตฉบับปรับใหม่ — ยังไม่ใช่คู่มือติดตั้ง และยังไม่มีผลรันทดสอบจริง
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–15 Guide-ready; Lab 16–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -119,6 +119,8 @@
 
 **วิธีหลักที่วางไว้:** CLI + Terraform
 
+**สถานะปัจจุบัน:** [Design checkpoint](LAB-013-parallel-data-processing/README.md) — CI #333 ผ่าน design baseline; revision ของ retry-policy wording, image-pull IAM และ bucket writer/read boundaries pending CI; Cloud verification Not run.
+
 **ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
 
 ---
@@ -135,7 +137,7 @@
 
 **Change request:** ปรับ app replicas/connection pool โดยวัดผลก่อน–หลัง
 
-**วิธีหลักที่วางไว้:** Console → Terraform
+**วิธีหลักที่วางไว้:** Terraform + Console/CLI สำหรับตรวจ rollout/failover (ยืนยันใน Lab brief; ไม่สร้าง manual ซ้ำทับ state)
 
 **ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
 
@@ -281,6 +283,8 @@
 
 **วิธีหลักที่วางไว้:** CLI + Terraform
 
+**สถานะปัจจุบัน:** Guide-ready หลัง [CI #342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ผ่าน 47/47 jobs; Cloud verification Not run.
+
 **ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
 
 ---
@@ -297,7 +301,9 @@
 
 **Change request:** เพิ่ม approval/exception workflow โดยกำหนดผู้รับผิดชอบและอายุข้อยกเว้น
 
-**วิธีหลักที่วางไว้:** CI pipeline + Terraform
+**วิธีหลักที่วางไว้:** GitHub Actions + Workload Identity Federation, Cloud Build/Artifact Registry, Binary Authorization, Cloud Deploy + Terraform
+
+**สถานะปัจจุบัน:** Guide-ready หลัง [#367](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40111516650) ผ่าน 50/50 jobs: มี Thai guide Tasks 00–15, sample app, Terraform foundation, release/attestation policy checks, healthy canary, regression gate/rollback, operations, cleanup และ evidence fields. CI เป็นการตรวจใน repository; ไม่มี GCP provisioning และ Cloud verification Not run.
 
 **ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
 
@@ -309,25 +315,29 @@
 
 **โจทย์:** สาขาต้องใช้บริการภายใน Cloud ได้ และยังทำงานเมื่อ VPN tunnel หนึ่งหยุด
 
-**สร้างอะไร:** จำลอง branch ด้วย peer VPC, HA VPN/BGP, private Inventory API, DNS และ firewall matrix
+**สร้างอะไร:** จำลอ<a id="lab-15"></a>
 
-**ดูแลและพิสูจน์อะไร:** ตรวจ routes/BGP, tunnel failover, CIDR conflict scenario, DNS failure และ restore connectivity
+### 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud
 
-**Change request:** เพิ่ม subnet ของสาขาใหม่พร้อมควบคุม prefix/สิทธิ์เข้าถึง
+**สถานะ:** Brief และ Design ปิดแล้ว; Guide กำลัง author/review โดยยังไม่สร้าง GCP resources
 
-**วิธีหลักที่วางไว้:** Console + CLI + Terraform
+**โจทย์:** สาขาต้องใช้ Inventory API ภายใน Cloud และตรวจได้ว่าเส้นทางกลับมาทำงานเมื่อ VPN tunnel หนึ่งถูกถอน
 
-**ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
+**สร้างอะไร:** Branch Simulator VPC และ Hub VPC ใน asia-southeast1, HA VPN tunnel pairs 0↔0/1↔1, Cloud Router/BGP ASN 64515/64514, private Cloud DNS, regional internal Application Load Balancer/serverless NEG, internal-only Cloud Run, IAP-only probe VM, restricted egress firewall และ Cloud Build/Artifact Registry
+
+**ดูแลและพิสูจน์อะไร:** DNS/VIP/route/IAM boundaries, learned BGP prefixes, negative unauthenticated request, bounded tunnel withdrawal/restore, DNS authorization failure, CIDR overlap preflight และ Cloud Run logs
+
+**Change request:** เพิ่ม branch subnet 10.70.1.0/24 และ probe VM โดย advertise เฉพาะ prefix ที่อนุมัติ
+
+**ข้อจำกัด:** Branch เป็น peer VPC จำลอง ไม่ใช่ on-prem device; การถอน tunnel ไม่ใช่ physical/ISP fault และไม่รับรอง zero packet loss. Cloud Run API ใช้ synthetic in-memory inventory เพื่อทดสอบ network/identity ไม่ใช่ transactional database. ไม่มี load/SLA test
+
+**วิธีหลัก:** Terraform + Cloud Shell CLI; อ่าน Plan ก่อนทุก apply และเก็บ Expected/Actual/Evidence แยกกัน
+
+**ขอบเขตเมื่อจบ:** flow private ใช้งานได้ใน Lab, มีผลจริงจาก BGP/DNS/API/fault/recovery/change request, มี cleanup/rebuild record และไม่กล่าวอ้างผล Cloud ก่อนทดสอบจริง
 
 ---
 
-<a id="lab-16"></a>
-
-### 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud
-
-**โจทย์:** ทีมต้องย้ายระบบเดิมโดยควบคุมช่วงหยุดและมีแผนถอยที่ไม่ทำข้อมูลหาย
-
-**สร้างอะไร:** Simulated legacy App/PostgreSQL, target Cloud Run/VM + Cloud SQL, migration tooling, cutover routing
+pp/PostgreSQL, target Cloud Run/VM + Cloud SQL, migration tooling, cutover routing
 
 **ดูแลและพิสูจน์อะไร:** ซ้อมย้าย, schema compatibility, write freeze, data reconciliation, cutover และ backout boundary
 
@@ -483,9 +493,12 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 
 ## ลำดับถัดไป
 
-เริ่มจาก **Lab 01** โดยทำ Lab brief ให้ชัดก่อน: สถานการณ์, requirements/acceptance, architecture, App behavior, fault/change scenarios และทรัพยากรที่ต้องใช้ จากนั้นค่อยเขียนคู่มือและตรวจทีละ Task จนจบ Solution ก่อนเริ่ม Lab 02
+Lab 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud — Guide-ready หลัง [CI #40116050598](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40116050598) ผ่านครบ 54/54 jobs; jobs ของ Lab 15 ผ่าน 4/4 (guide, design/render, infra/Terraform, app). คู่มือ Tasks 00–15, sample API, Terraform, probes, diagram และ tests ผ่าน repository checks. ไม่มี GCP provisioning; Cloud verification ยัง Not run.
 
-ตัวอย่างรูปแบบการอ่านที่ยืนยันแล้ว: [Lab Test 2](../test/lab-test-2/README.md) เป็นตัวอย่างรูปแบบ ไม่ถือเป็นผลการทำ Lab 01
+ขั้นถัดไปเริ่ม Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud — จาก Brief ก่อนเขียน Tasks ตามลำดับ
+
+ตัวอย่างรูปแบบการอ่าน: [Lab Test 2](../test/lab-test-2/README.md) ใช้เป็น reference ด้านการอ่าน ไม่ใช่ผลการทำ GCP Lab
+
 
 ## แหล่งอ้างอิงในการจัดขอบเขต
 

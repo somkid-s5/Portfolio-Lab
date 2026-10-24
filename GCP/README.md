@@ -8,4 +8,4 @@
 
 ตัวอย่างรูปแบบคู่มือ: [Lab Test 2](../test/lab-test-2/README.md)
 
-สถานะปัจจุบัน: วางโจทย์แล้ว ยังไม่ได้เขียนคู่มือหรือทดสอบระบบของ Lab 01–20
+สถานะปัจจุบัน: Lab 01–15 อยู่ระดับ Guide-ready; Lab 16–20 Planned ตาม [Progress](PROGRESS.md). ไม่มีการ provision GCP; Cloud verification ยังคง Not run.

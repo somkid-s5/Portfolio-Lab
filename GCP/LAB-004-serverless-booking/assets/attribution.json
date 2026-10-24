@@ -1,0 +1,23 @@
+{
+  "library": "Google Cloud official legacy console icons",
+  "source": "https://cloud.google.com/icons",
+  "archive": "https://services.google.com/fh/files/misc/google-cloud-legacy-icons.zip",
+  "archive_sha256": "a6d9d7921758042538b462f03cf64614c2cebd96743b3ed63580a769fc7de3e9",
+  "icons": [
+    {
+      "path": "cloud_run/cloud_run.svg",
+      "sha256": "97e1db08021eecae2a8c5124f382a9b451dc63deecaa87825dc5b396fab59c37"
+    },
+    {
+      "path": "cloud_sql/cloud_sql.svg",
+      "sha256": "ffdf8329a098d53313f4a8b10449b33e1cf9f139aaeb4a53e6564c1fad6b8b1b"
+    }
+  ],
+  "geometry": "Original official icon geometry and colors; SVGs embedded as data URIs. Generic browser/interface boxes are labeled, not vendor icons.",
+  "render_evidence": {
+    "run": 39824263202,
+    "source_commit": "df20e6a8c9eed1d7527ce572603f6048b07c4f39",
+    "width_px": 960
+  },
+  "style_reference": "docs/diagram-style.md"
+}

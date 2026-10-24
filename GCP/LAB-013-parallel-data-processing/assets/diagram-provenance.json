@@ -1,0 +1,55 @@
+{
+  "diagram": "assets/solution.svg",
+  "standalone_html": "assets/solution.html",
+  "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+  "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+  "official_icon_catalog": "https://cloud.google.com/icons",
+  "attribution": "Google Cloud service icons sourced from AwesomeLogos/google-cloud-icons at the pinned commit; retain Google Cloud attribution.",
+  "render_target_width": 960,
+  "layout_decision": "Data flow reads left-to-right; the Batch worker fan-out is vertical so representative task rows remain close to scheduler and storage lanes without perimeter routing. Boundaries follow project, regional resources, VPC/subnet, and project-level logging scopes.",
+  "cloud_verification": "not-run",
+  "icons": {
+    "batch.svg": {
+      "path": "assets/icons/batch.svg",
+      "source_path": "docs/images/batch.svg",
+      "git_blob_sha": "426c7c577c4d3fd86325437382230671b671e693",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/batch.svg"
+    },
+    "cloud_storage.svg": {
+      "path": "assets/icons/cloud_storage.svg",
+      "source_path": "docs/images/cloud_storage.svg",
+      "git_blob_sha": "59db35d960aca1b2beb942f1d8a693722b350db0",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_storage.svg"
+    },
+    "compute_engine.svg": {
+      "path": "assets/icons/compute_engine.svg",
+      "source_path": "docs/images/compute_engine.svg",
+      "git_blob_sha": "811860c5c78d342cce10722963c470759a3534d1",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/compute_engine.svg"
+    },
+    "identity_and_access_management.svg": {
+      "path": "assets/icons/identity_and_access_management.svg",
+      "source_path": "docs/images/identity_and_access_management.svg",
+      "git_blob_sha": "4ba9ea6b0db107723fd70fc6f5207fe4a2760a11",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/identity_and_access_management.svg"
+    },
+    "cloud_build.svg": {
+      "path": "assets/icons/cloud_build.svg",
+      "source_path": "docs/images/cloud_build.svg",
+      "git_blob_sha": "21de5420f0480abe399d15c29c8353da9783bc39",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_build.svg"
+    },
+    "artifact_registry.svg": {
+      "path": "assets/icons/artifact_registry.svg",
+      "source_path": "docs/images/artifact_registry.svg",
+      "git_blob_sha": "81c46f8af7e0823a56c8c460e35758cbac8bfaf7",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/artifact_registry.svg"
+    },
+    "cloud_logging.svg": {
+      "path": "assets/icons/cloud_logging.svg",
+      "source_path": "docs/images/cloud_logging.svg",
+      "git_blob_sha": "7691a3ed0450b744311427e8818c5d5bf4894c30",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_logging.svg"
+    }
+  }
+}

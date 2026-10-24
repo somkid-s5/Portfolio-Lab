@@ -1,0 +1,1433 @@
+name: Lab materials verification
+on:
+  pull_request:
+    paths:
+      - 'GCP/**'
+      - '.github/workflows/lab-materials.yml'
+  workflow_dispatch:
+concurrency:
+  group: lab-materials-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  lab001:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check startup script syntax
+        run: bash -n GCP/LAB-001-multi-zone-web/scripts/startup.sh
+      - name: Compile Python materials
+        run: python3 -m py_compile GCP/LAB-001-multi-zone-web/scripts/probe.py GCP/LAB-001-multi-zone-web/tests/test_materials.py
+      - name: Exercise embedded app and bounded probe
+        run: python3 -m unittest discover -s GCP/LAB-001-multi-zone-web/tests -v
+      - name: Render baseline diagram at reading width
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          mkdir -p diagram-previews
+          rsvg-convert --width 960 GCP/LAB-001-multi-zone-web/assets/solution.svg -o diagram-previews/lab001-solution.png
+          rsvg-convert --width 960 GCP/LAB-001-multi-zone-web/assets/solution-after-change.svg -o diagram-previews/lab001-after-change.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab001-diagram-preview
+          path: diagram-previews/*.png
+          retention-days: 14
+
+  lab002:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: lab002_ci
+          POSTGRES_USER: inventory_ci
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U inventory_ci -d lab002_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGDATABASE: lab002_ci
+      PGUSER: inventory_ci
+      PGPASSWORD: disposable-ci-only
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install distro PostgreSQL driver
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y python3-psycopg2 librsvg2-bin
+      - name: Check App installer shell syntax
+        run: bash -n GCP/LAB-002-private-inventory/scripts/install-app.sh
+      - name: Exercise Inventory against PostgreSQL 15
+        run: /usr/bin/python3 -m unittest discover -s GCP/LAB-002-private-inventory/tests -v
+      - name: Render Inventory solution and operations views
+        run: |
+          mkdir -p lab002-previews
+          rsvg-convert --width 960 GCP/LAB-002-private-inventory/assets/solution.svg -o lab002-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-002-private-inventory/assets/operations.svg -o lab002-previews/operations.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab002-diagram-preview
+          path: lab002-previews/*.png
+          retention-days: 14
+
+  lab003:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify deterministic releases and safe publish planning
+        run: python3 -m unittest discover -s GCP/LAB-003-public-docs-cdn/tests -v
+      - name: Render docs delivery and release views
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          mkdir -p lab003-previews
+          rsvg-convert --width 960 GCP/LAB-003-public-docs-cdn/assets/solution.svg -o lab003-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-003-public-docs-cdn/assets/release-flow.svg -o lab003-previews/release-flow.png
+          python3 -c "import base64,pathlib; [print('LAB003_PREVIEW_'+p.stem.upper().replace('-','_')+'='+base64.b64encode(p.read_bytes()).decode()) for p in sorted(pathlib.Path('lab003-previews').glob('*.png'))]"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab003-diagram-preview
+          path: lab003-previews/*.png
+          retention-days: 14
+
+  lab004:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: booking_ci
+          POSTGRES_USER: booking_admin
+          POSTGRES_PASSWORD: disposable-booking-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U booking_admin -d booking_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGDATABASE: booking_ci
+      PGUSER: booking_admin
+      PGPASSWORD: disposable-booking-ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Booking dependencies
+        run: |
+          python3 -m venv .ci-lab004
+          .ci-lab004/bin/pip install -r GCP/LAB-004-serverless-booking/requirements.txt
+      - name: Check browser script syntax
+        run: node --check GCP/LAB-004-serverless-booking/app/static/app.js
+      - name: Verify Booking against PostgreSQL 16
+        run: .ci-lab004/bin/python -m unittest discover -s GCP/LAB-004-serverless-booking/tests -v
+      - name: Build self-contained application image
+        run: docker build -t lab004-booking:ci GCP/LAB-004-serverless-booking
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate foundation without credentials or cloud provisioning
+        working-directory: GCP/LAB-004-serverless-booking/infra
+        run: |
+          terraform fmt -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+      - name: Generate official-icon architecture and rotation SVG
+        run: .ci-lab004/bin/python GCP/LAB-004-serverless-booking/scripts/render-diagrams.py
+      - name: Render Booking diagrams at reading width
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          mkdir -p lab004-previews
+          rsvg-convert --width 960 GCP/LAB-004-serverless-booking/assets/solution.svg -o lab004-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-004-serverless-booking/assets/credential-rotation.svg -o lab004-previews/credential-rotation.png
+          python3 -c "import base64,pathlib; [print('LAB004_PREVIEW_'+p.stem.upper().replace('-','_')+'='+base64.b64encode(p.read_bytes()).decode()) for p in sorted(pathlib.Path('lab004-previews').glob('*.png'))]"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab004-diagram-preview
+          path: lab004-previews/*.png
+          retention-days: 14
+
+  lab005:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: orders_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-orders-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d orders_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGDATABASE: orders_ci
+      PGUSER: postgres
+      PGPASSWORD: disposable-orders-ci
+      LAB005_UI_PREVIEW: lab005-previews/ui-ci.png
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Nginx config validator
+        run: |
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y nginx
+      - name: Install pinned Thai preview font
+        run: bash scripts/install-ci-thai-font.sh
+      - name: Install pinned Orders dependencies
+        run: |
+          python3 -m venv .ci-lab005
+          .ci-lab005/bin/pip install -r GCP/LAB-005-three-tier-orders/requirements.txt -r GCP/LAB-005-three-tier-orders/tests/requirements.txt
+      - name: Check Orders browser script syntax
+        run: node --check GCP/LAB-005-three-tier-orders/web/app.js
+      - name: Verify isolated real bootstrap and refusal to reset existing login
+        run: .ci-lab005/bin/python GCP/LAB-005-three-tier-orders/tests/bootstrap_check.py
+      - name: Verify Orders transactions, API boundaries and Web config
+        run: .ci-lab005/bin/python -m unittest discover -s GCP/LAB-005-three-tier-orders/tests -v
+      - name: Emit real browser CI preview
+        run: python3 -c "import base64,pathlib; print('LAB005_UI_PREVIEW='+base64.b64encode(pathlib.Path('lab005-previews/ui-ci.png').read_bytes()).decode())"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab005-web-ui-ci-preview
+          path: lab005-previews/ui-ci.png
+          if-no-files-found: error
+          retention-days: 14
+
+  lab005-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate all Orders Terraform roots without credentials or provisioning
+        run: |
+          for root in foundation bootstrap workloads; do
+            terraform -chdir="GCP/LAB-005-three-tier-orders/infra/$root" fmt -recursive
+            terraform -chdir="GCP/LAB-005-three-tier-orders/infra/$root" init -backend=false -input=false
+            terraform -chdir="GCP/LAB-005-three-tier-orders/infra/$root" validate -no-color
+          done
+
+  lab005-diagrams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Generate official-icon topology and operations SVGs
+        run: python3 GCP/LAB-005-three-tier-orders/scripts/render-diagrams.py
+      - name: Render diagrams at document width
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          mkdir -p lab005-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-005-three-tier-orders/assets/solution.svg -o lab005-diagram-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-005-three-tier-orders/assets/operations.svg -o lab005-diagram-previews/operations.png
+          python3 -c "import base64,pathlib; [print('LAB005_DIAGRAM_'+p.stem.upper()+'='+base64.b64encode(p.read_bytes()).decode()) for p in sorted(pathlib.Path('lab005-diagram-previews').glob('*.png'))]"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab005-diagrams
+          path: |
+            lab005-diagram-previews/*.png
+            GCP/LAB-005-three-tier-orders/assets/*.svg
+            GCP/LAB-005-three-tier-orders/assets/diagram-provenance.json
+          retention-days: 14
+
+  lab005-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Parse guide examples and check committed links without executing commands
+        run: python3 -m unittest discover -s GCP/LAB-005-three-tier-orders/tests -p test_guide.py -v
+
+  lab006-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Upload portal browser script syntax
+        run: node --check GCP/LAB-006-private-file-processing/app/static/app.js
+      - name: Verify bounded CSV processing and deterministic business summaries
+        run: |
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_csv_domain.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_job_state.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_storage_events.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_container.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_guide.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_verify_report.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_portal_client.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_upload_boundary.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_change_fixtures.py -v
+          python3 -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_event_replay.py -v
+
+  lab006-firestore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FIRESTORE_EMULATOR_HOST: 127.0.0.1:8086
+      GOOGLE_CLOUD_PROJECT: demo-lab006
+      CLOUDSDK_CORE_PROJECT: demo-lab006
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: cloud-firestore-emulator
+      - name: Install Firestore client for emulator integration
+        run: |
+          python3 -m venv .ci-lab006
+          .ci-lab006/bin/pip install -r GCP/LAB-006-private-file-processing/requirements.txt -r GCP/LAB-006-private-file-processing/tests/requirements.txt
+      - name: Install pinned Thai browser preview font
+        run: bash scripts/install-ci-thai-font.sh
+      - name: Verify GCS adapter SDK contracts without cloud calls
+        run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_gcs_objects.py -v
+      - name: Verify real SDK signed policy conditions and generation binding without signing calls
+        run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_signed_access.py -v
+      - name: Verify worker HTTP event acknowledgement and safe errors
+        run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_worker_http.py -v
+      - name: Verify portal session CSRF and owner boundaries
+        run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_portal_http.py -v
+      - name: Verify private demo credentials and attached-identity runtime contracts
+        run: .ci-lab006/bin/python -m unittest discover -s GCP/LAB-006-private-file-processing/tests -p test_portal_runtime.py -v
+      - name: Exercise real emulator transactions without cloud credentials
+        shell: bash
+        run: |
+          gcloud emulators firestore start --host-port=127.0.0.1:8086 --database-mode=firestore-native --quiet > "$RUNNER_TEMP/lab006-firestore.log" 2>&1 &
+          EMULATOR_PID=$!
+          trap 'kill "$EMULATOR_PID" 2>/dev/null || true' EXIT
+          .ci-lab006/bin/python - <<'PY'
+          import socket, time, subprocess
+          for attempt in range(120):
+              try:
+                  with socket.create_connection(("127.0.0.1", 8086), timeout=0.5):
+                      break
+              except OSError:
+                  time.sleep(0.5)
+          else:
+              raise SystemExit("Firestore emulator did not become ready")
+          subprocess.run([".ci-lab006/bin/python", "-m", "unittest", "discover",
+                          "-s", "GCP/LAB-006-private-file-processing/tests",
+                          "-p", "test_firestore_jobs.py", "-v"],
+                         check=True, timeout=180)
+          subprocess.run([".ci-lab006/bin/python", "-m", "unittest", "discover",
+                          "-s", "GCP/LAB-006-private-file-processing/tests",
+                          "-p", "test_browser_journey.py", "-v"],
+                         check=True, timeout=180)
+          PY
+      - name: Emit real browser CI preview
+        run: python3 -c "import base64,pathlib; print('LAB006_UI_PREVIEW='+base64.b64encode(pathlib.Path('lab006-previews/ui-ci.png').read_bytes()).decode())"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab006-ui-ci-preview
+          path: lab006-previews/ui-ci.png
+          if-no-files-found: error
+          retention-days: 14
+      - name: Show emulator diagnostics on failure
+        if: failure()
+        run: |
+          if [[ -f "$RUNNER_TEMP/lab006-firestore.log" ]]; then
+            tail -n 100 "$RUNNER_TEMP/lab006-firestore.log"
+          else
+            printf '%s\n' 'Emulator did not start; inspect the earlier failed step.'
+          fi
+
+  lab006-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the self-contained Portal and worker image without cloud credentials
+        run: docker build -t lab006-files:ci GCP/LAB-006-private-file-processing
+      - name: Verify image imports and excludes private bundles and test fixtures
+        run: |
+          docker run --rm --entrypoint python lab006-files:ci -c "import os,pathlib,portal_runtime,worker_http; assert os.getuid()==10001; assert pathlib.Path('/srv/app/static/index.html').is_file(); assert not pathlib.Path('/srv/app/secrets').exists(); assert not pathlib.Path('/srv/fixtures').exists()"
+
+  lab006-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate both file-processing roots without credentials or provisioning
+        run: |
+          for root in foundation workloads; do
+            terraform -chdir="GCP/LAB-006-private-file-processing/infra/$root" fmt -recursive
+            terraform -chdir="GCP/LAB-006-private-file-processing/infra/$root" init -backend=false -input=false
+            terraform -chdir="GCP/LAB-006-private-file-processing/infra/$root" validate -no-color
+          done
+
+  lab006-diagrams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Generate offline topology and recovery diagrams
+        run: python3 GCP/LAB-006-private-file-processing/scripts/render-diagrams.py
+      - name: Render at document width for visual review
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          mkdir -p lab006-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-006-private-file-processing/assets/solution.svg -o lab006-diagram-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-006-private-file-processing/assets/recovery.svg -o lab006-diagram-previews/recovery.png
+          python3 -c "import base64,pathlib; [print('LAB006_DIAGRAM_'+p.stem.upper()+'='+base64.b64encode(p.read_bytes()).decode()) for p in sorted(pathlib.Path('lab006-diagram-previews').glob('*.png'))]"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab006-diagrams
+          path: |
+            lab006-diagram-previews/*.png
+            GCP/LAB-006-private-file-processing/assets/*.svg
+            GCP/LAB-006-private-file-processing/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
+
+  lab007-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Order Queue Desk browser syntax
+        run: node --check GCP/LAB-007-queued-order-processing/app/static/app.js
+      - name: Verify bounded Portal workload journal without network
+        run: python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_load_orders.py -v
+      - name: Validate Lab 07 guide tasks and shell snippets
+        run: python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_guide.py -v
+      - name: Verify order and wrapped PubSub contracts without cloud calls
+        run: |
+          python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_domain.py -v
+          python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_dispatch.py -v
+          python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_pagination.py -v
+          python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_container.py -v
+          python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_replay_request.py -v
+          python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_operator_client.py -v
+
+  lab007-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: lab007_ci
+          POSTGRES_USER: lab007_ci_admin
+          POSTGRES_PASSWORD: disposable-lab007-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lab007_ci_admin -d lab007_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGDATABASE: lab007_ci
+      PGUSER: lab007_ci_admin
+      PGPASSWORD: disposable-lab007-ci
+      LAB007_DISPOSABLE_TEST: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned PostgreSQL driver without cloud credentials
+        run: |
+          python3 -m venv .ci-lab007
+          .ci-lab007/bin/pip install -r GCP/LAB-007-queued-order-processing/requirements.txt -r GCP/LAB-007-queued-order-processing/tests/requirements.txt
+      - name: Verify real synchronous PubSub SDK request contracts without RPC
+        run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_pubsub_publish.py -v
+      - name: Verify bounded dead-letter inspect and terminal-audit gated acknowledgement without RPC
+        run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_dead_letter.py -v
+      - name: Verify worker dispatcher HTTP acknowledgement and safe logs
+        run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_queue_http.py -v
+      - name: Verify private Cloud SQL runtime and bounded pool contracts without cloud calls
+        run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_database.py -v
+      - name: Verify Portal auth CSRF owner and role API boundaries
+        run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_portal_http.py -v
+      - name: Verify private bundles and Portal runtime wiring
+        run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_auth_config.py -v
+      - name: Verify real transactions races rollback and DB role boundaries
+        run: .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_sql.py -v
+      - name: Install pinned Thai browser preview font
+        run: bash scripts/install-ci-thai-font.sh
+      - name: Verify real Chrome lost-reply retry with real PostgreSQL and explicit Queue double
+        run: timeout 180s .ci-lab007/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_browser_journey.py -v
+      - name: Emit real browser CI preview
+        run: python3 -c "import base64,pathlib; print('LAB007_UI_PREVIEW='+base64.b64encode(pathlib.Path('lab007-previews/ui-ci.png').read_bytes()).decode())"
+      - name: Emit operator browser CI preview
+        run: python3 -c "import base64,pathlib; print('LAB007_OPERATOR_PREVIEW='+base64.b64encode(pathlib.Path('lab007-previews/operator-ci.png').read_bytes()).decode())"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab007-ui-ci-preview
+          path: lab007-previews/*.png
+          if-no-files-found: error
+          retention-days: 14
+
+  lab007-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build serving image without Cloud credentials
+        run: docker build -t lab007-orders:ci GCP/LAB-007-queued-order-processing
+      - name: Verify nonroot imports static assets and private-bundle exclusions
+        run: |
+          docker run --rm --entrypoint python lab007-orders:ci -c "import os,pathlib,portal_runtime,queue_runtime; assert os.getuid()==10001; assert pathlib.Path('/srv/app/static/index.html').is_file(); assert not pathlib.Path('/srv/app/secrets').exists(); assert not pathlib.Path('/srv/sql').exists(); assert not pathlib.Path('/srv/tests').exists(); assert not pathlib.Path('/srv/scripts/create-secrets.py').exists()"
+
+  lab007-diagrams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Generate topology and event-flow diagrams from verified Google Cloud icons
+        run: python3 GCP/LAB-007-queued-order-processing/scripts/render-diagrams.py
+      - name: Render at document width for visual review
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          mkdir -p lab007-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-007-queued-order-processing/assets/solution.svg -o lab007-diagram-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-007-queued-order-processing/assets/event-flow.svg -o lab007-diagram-previews/event-flow.png
+          python3 -c "import base64,pathlib; [print('LAB007_PREVIEW_'+p.stem.upper().replace('-','_')+'='+base64.b64encode(p.read_bytes()).decode()) for p in sorted(pathlib.Path('lab007-diagram-previews').glob('*.png'))]"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab007-diagrams
+          path: |
+            lab007-diagram-previews/*.png
+            GCP/LAB-007-queued-order-processing/assets/*.svg
+            GCP/LAB-007-queued-order-processing/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
+
+  lab008-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate diagram accessibility, provenance and preview assets
+        run: python3 -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_diagrams.py -v
+      - name: Test report CSV and schedule-time contracts
+        run: python3 -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_domain.py -v
+      - name: Test pure ledger transitions and fencing
+        run: python3 -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_ledger_state.py -v
+      - name: Test deterministic synthetic input generator
+        run: python3 -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_generate_input.py -v
+
+  lab008-firestore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FIRESTORE_EMULATOR_HOST: 127.0.0.1:8087
+      GOOGLE_CLOUD_PROJECT: demo-lab008
+      CLOUDSDK_CORE_PROJECT: demo-lab008
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: cloud-firestore-emulator
+      - name: Install pinned Lab 08 dependencies
+        run: |
+          python3 -m venv .ci-lab008
+          .ci-lab008/bin/pip install -r GCP/LAB-008-daily-batch-reports/requirements.txt
+      - name: Test generation-pinned Cloud Storage adapter without cloud calls
+        run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_storage.py -v
+      - name: Test Cloud Run Jobs and Pub/Sub adapters without cloud calls
+        run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_integrations.py -v
+      - name: Test private coordinator schedule and watchdog routes
+        run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_coordinator.py -v
+      - name: Test daily worker idempotency and recovery workflow
+        run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_worker.py -v
+      - name: Test service and Job runtime entrypoints
+        run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_entrypoints.py -v
+      - name: Exercise Firestore transactions against loopback emulator
+        shell: bash
+        run: |
+          gcloud emulators firestore start --host-port=127.0.0.1:8087 --database-mode=firestore-native --quiet > "$RUNNER_TEMP/lab008-firestore.log" 2>&1 &
+          EMULATOR_PID=$!
+          trap 'kill "$EMULATOR_PID" 2>/dev/null || true' EXIT
+          .ci-lab008/bin/python - <<'PY'
+          import socket, time, subprocess
+          for attempt in range(120):
+              try:
+                  with socket.create_connection(("127.0.0.1", 8087), timeout=0.5):
+                      break
+              except OSError:
+                  time.sleep(0.5)
+          else:
+              raise SystemExit("Firestore emulator did not become ready")
+          subprocess.run([".ci-lab008/bin/python", "-m", "unittest", "discover",
+                          "-s", "GCP/LAB-008-daily-batch-reports/tests",
+                          "-p", "test_firestore_ledger.py", "-v"],
+                         check=True, timeout=180)
+          PY
+      - name: Show Firestore emulator diagnostics on failure
+        if: failure()
+        run: |
+          if [[ -f "$RUNNER_TEMP/lab008-firestore.log" ]]; then
+            tail -100 "$RUNNER_TEMP/lab008-firestore.log"
+          fi
+
+  lab008-diagrams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate official icon provenance and accessible SVGs
+        run: python3 GCP/LAB-008-daily-batch-reports/tests/test_diagrams.py
+      - name: Render at document width for visual review
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          mkdir -p lab008-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-008-daily-batch-reports/assets/solution.svg -o lab008-diagram-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-008-daily-batch-reports/assets/run-flow.svg -o lab008-diagram-previews/run-flow.png
+          python3 -c "import base64,pathlib; [print('LAB008_PREVIEW_'+p.stem.upper().replace('-','_')+'='+base64.b64encode(p.read_bytes()).decode()) for p in sorted(pathlib.Path('lab008-diagram-previews').glob('*.png'))]"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab008-diagrams
+          path: |
+            lab008-diagram-previews/*.png
+            GCP/LAB-008-daily-batch-reports/assets/*.svg
+            GCP/LAB-008-daily-batch-reports/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
+
+  lab008-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile Lab 08 Python application
+        run: python3 -m py_compile GCP/LAB-008-daily-batch-reports/app/*.py
+      - name: Build the self-contained nonroot Lab 08 image without cloud credentials
+        run: docker build -t lab008-daily-batch:ci GCP/LAB-008-daily-batch-reports
+      - name: Verify runtime imports and image excludes tests fixtures and diagrams
+        run: |
+          docker run --rm --entrypoint python lab008-daily-batch:ci -c "import os,pathlib,app.coordinator,app.integrations,app.job,app.runtime,app.storage,app.worker; assert os.getuid()==10001; assert pathlib.Path('/srv/app/job.py').is_file(); assert not pathlib.Path('/srv/tests').exists(); assert not pathlib.Path('/srv/fixtures').exists(); assert not pathlib.Path('/srv/assets').exists()"
+
+  lab007-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: lab007_bootstrap_ci
+          POSTGRES_USER: lab007_ci_admin
+          POSTGRES_PASSWORD: disposable-bootstrap-admin-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lab007_ci_admin -d lab007_bootstrap_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGDATABASE: lab007_bootstrap_ci
+      PGUSER: lab007_ci_admin
+      PGPASSWORD: disposable-bootstrap-admin-ci
+      LAB007_BOOTSTRAP_DISPOSABLE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned driver for isolated bootstrap checks
+        run: |
+          python3 -m venv .ci-lab007-bootstrap
+          .ci-lab007-bootstrap/bin/pip install -r GCP/LAB-007-queued-order-processing/requirements.txt
+      - name: Verify attached bootstrap Job guards private Connector and sequential login probes
+        run: .ci-lab007-bootstrap/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_bootstrap_runtime.py -v
+      - name: Verify first-install rollback no-reset and real runtime SCRAM logins without superuser
+        run: timeout 180s .ci-lab007-bootstrap/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_bootstrap.py -v
+      - name: Verify private Secret publication and first-run password guards without Google API calls
+        run: python3 -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_secret_publisher.py -v
+      - name: Build isolated nonroot bootstrap image without credentials or cloud calls
+        run: docker build -f GCP/LAB-007-queued-order-processing/bootstrap/Dockerfile -t lab007-bootstrap:ci GCP/LAB-007-queued-order-processing
+      - name: Check bootstrap image imports and excludes serving code private bundles and tests
+        run: |
+          docker run --rm --entrypoint python lab007-bootstrap:ci -c "import os,pathlib,installer,run; assert os.getuid()==10001; assert pathlib.Path('/srv/sql/schema.sql').is_file(); assert pathlib.Path('/srv/app/order_domain.py').is_file(); assert not pathlib.Path('/srv/app/portal_runtime.py').exists(); assert not pathlib.Path('/srv/secrets').exists(); assert not pathlib.Path('/srv/tests').exists()"
+
+  lab007-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate private SQL and single-region-replicated global Secret foundation without credentials or provisioning
+        working-directory: GCP/LAB-007-queued-order-processing/infra/foundation
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+      - name: Validate pinned-image workload roots without credentials or provisioning
+        working-directory: GCP/LAB-007-queued-order-processing/infra/workloads
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+
+
+  lab009-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Test Lab 09 schema, idempotency, task naming, HMAC and retry contracts
+        run: python3 -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_domain.py -v
+
+  lab009-firestore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FIRESTORE_EMULATOR_HOST: 127.0.0.1:8089
+      GOOGLE_CLOUD_PROJECT: demo-lab009
+      CLOUDSDK_CORE_PROJECT: demo-lab009
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: cloud-firestore-emulator
+      - name: Install pinned Lab 09 client libraries
+        run: |
+          python3 -m venv .ci-lab009
+          .ci-lab009/bin/pip install -r GCP/LAB-009-partner-webhook-delivery/requirements.txt
+      - name: Test Cloud Tasks deterministic task and OIDC request contracts without RPC
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_task_queue.py -v
+      - name: Test Scheduler reconciliation HTTP contract without cloud calls
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_reconciler_api.py -v
+      - name: Test private Worker HTTP target without cloud calls
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_worker_api.py -v
+      - name: Test create-only receipt adapter without GCP writes
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_receipt_store.py -v
+      - name: Test bounded Operator CLI output and receipt lookup without cloud calls
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_operator_cli.py -v
+      - name: Test HMAC partner simulator and bounded fault modes
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_simulator.py -v
+      - name: Test public simulator HTTP route contract
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_simulator_api.py -v
+      - name: Test strict Cloud Run runtime configuration without cloud calls
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_runtime_config.py -v
+      - name: Test pinned Secret Manager access contract without RPC
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_secret_manager.py -v
+      - name: Test fixed shared-image entrypoint contract
+        run: .ci-lab009/bin/python -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_entrypoint.py -v
+      - name: Compile Lab 09 Python application modules
+        run: .ci-lab009/bin/python -m py_compile GCP/LAB-009-partner-webhook-delivery/app/*.py
+      - name: Exercise event and outbox transactions against the loopback emulator
+        shell: bash
+        run: |
+          gcloud emulators firestore start --host-port=127.0.0.1:8089 --database-mode=firestore-native --quiet > "$RUNNER_TEMP/lab009-firestore.log" 2>&1 &
+          EMULATOR_PID=$!
+          trap 'kill "$EMULATOR_PID" 2>/dev/null || true' EXIT
+          .ci-lab009/bin/python - <<'PY'
+          import socket, time, subprocess
+          for attempt in range(120):
+              try:
+                  with socket.create_connection(("127.0.0.1", 8089), timeout=0.5):
+                      break
+              except OSError:
+                  time.sleep(0.5)
+          else:
+              raise SystemExit("Firestore emulator did not become ready")
+          subprocess.run([".ci-lab009/bin/python", "-m", "unittest", "discover",
+                          "-s", "GCP/LAB-009-partner-webhook-delivery/tests",
+                          "-p", "test_firestore_ledger.py", "-v"],
+                         check=True, timeout=180)
+          subprocess.run([".ci-lab009/bin/python", "-m", "unittest", "discover",
+                          "-s", "GCP/LAB-009-partner-webhook-delivery/tests",
+                          "-p", "test_api.py", "-v"],
+                         check=True, timeout=180)
+          subprocess.run([".ci-lab009/bin/python", "-m", "unittest", "discover",
+                          "-s", "GCP/LAB-009-partner-webhook-delivery/tests",
+                          "-p", "test_reconciler.py", "-v"],
+                         check=True, timeout=180)
+          subprocess.run([".ci-lab009/bin/python", "-m", "unittest", "discover",
+                          "-s", "GCP/LAB-009-partner-webhook-delivery/tests",
+                          "-p", "test_worker.py", "-v"],
+                         check=True, timeout=180)
+          PY
+      - name: Show Firestore emulator diagnostics on failure
+        if: failure()
+        run: |
+          if [[ -f "$RUNNER_TEMP/lab009-firestore.log" ]]; then
+            tail -100 "$RUNNER_TEMP/lab009-firestore.log"
+          fi
+
+  lab009-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the shared non-root Lab 09 image without cloud credentials
+        working-directory: GCP/LAB-009-partner-webhook-delivery
+        run: docker build --tag lab009:ci .
+      - name: Verify image user, source compilation and build-context exclusions
+        run: |
+          test "$(docker image inspect --format '{{.Config.User}}' lab009:ci)" = "10001:10001"
+          docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/lab09-pycache --entrypoint python lab009:ci -m compileall -q /app/app
+          docker run --rm --entrypoint python lab009:ci -c "import os; import app.api, app.domain, app.entrypoint, app.ledger, app.operator_cli, app.receipt_store, app.reconciler, app.reconciler_api, app.runtime_config, app.secret_manager, app.simulator, app.simulator_api, app.task_queue, app.worker, app.worker_api; assert not os.path.exists('/app/tests'); assert not os.path.exists('/app/infra')"
+
+  lab009-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 09 Task order, evidence fields, guide assets and Bash syntax
+        run: python3 -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_guide.py -v
+
+  lab009-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate Lab 09 foundation and workload gate without credentials or provisioning
+        working-directory: GCP/LAB-009-partner-webhook-delivery/infra
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+
+  lab009-diagrams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate accessible SVGs, icon hashes and Lab 09 design contracts
+        run: python3 -m unittest discover -s GCP/LAB-009-partner-webhook-delivery/tests -p test_diagrams.py -v
+      - name: Render diagrams at document width for visual review
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          mkdir -p lab009-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-009-partner-webhook-delivery/assets/solution.svg -o lab009-diagram-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-009-partner-webhook-delivery/assets/delivery-flow.svg -o lab009-diagram-previews/delivery-flow.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab009-diagrams
+          path: |
+            lab009-diagram-previews/*.png
+            GCP/LAB-009-partner-webhook-delivery/assets/*.svg
+            GCP/LAB-009-partner-webhook-delivery/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
+
+  lab008-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Task order, evidence fields, Bash syntax and local links
+        run: python3 -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_guide.py -v
+
+  lab008-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate Lab 08 resource foundation without credentials or provisioning
+        working-directory: GCP/LAB-008-daily-batch-reports/infra/foundation
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+      - name: Validate digest-pinned workloads without credentials or provisioning
+        working-directory: GCP/LAB-008-daily-batch-reports/infra/workloads
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+
+  lab010-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: lab010_ci
+          POSTGRES_USER: lab010_ci
+          POSTGRES_PASSWORD: disposable-lab010-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lab010_ci -d lab010_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PYTHONPATH: GCP/LAB-010-catalog-cache
+      DATABASE_URL: postgresql+pg8000://lab010_ci:disposable-lab010-ci@127.0.0.1:5432/lab010_ci
+      REDIS_URL: redis://127.0.0.1:6379/0
+      CACHE_ENABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Lab 10 dependencies
+        run: |
+          python3 -m venv .ci-lab010
+          .ci-lab010/bin/pip install --disable-pip-version-check -r GCP/LAB-010-catalog-cache/requirements.txt
+      - name: Compile app and scripts
+        run: .ci-lab010/bin/python -m compileall -q GCP/LAB-010-catalog-cache/app GCP/LAB-010-catalog-cache/scripts GCP/LAB-010-catalog-cache/tests
+      - name: Check browser script syntax
+        run: node --check GCP/LAB-010-catalog-cache/app/static/app.js
+      - name: Exercise Catalog, Redis fallback, cache contract and bounded load tooling
+        run: .ci-lab010/bin/python -m unittest discover -s GCP/LAB-010-catalog-cache/tests -v
+      - name: Build non-root Catalog image
+        run: docker build -t lab010-catalog:ci GCP/LAB-010-catalog-cache
+      - name: Verify image runs non-root and imports runtime
+        run: |
+          test "$(docker image inspect lab010-catalog:ci --format '{{.Config.User}}')" = "10010:10010"
+          docker run --rm --entrypoint python lab010-catalog:ci -c "from app.factory import create_app; print('Lab 10 runtime imports successfully')"
+
+  lab010-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate Lab 10 gated foundation and workload configuration without credentials or provisioning
+        working-directory: GCP/LAB-010-catalog-cache/infra
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+
+  lab010-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 10 Task order, evidence fields, Bash syntax and links
+        run: python3 -m unittest discover -s GCP/LAB-010-catalog-cache/tests -p test_guide.py -v
+
+  lab010-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 10 design contracts and icon provenance
+        run: python3 -m unittest discover -s GCP/LAB-010-catalog-cache/tests -p test_design.py -v
+      - name: Install SVG renderer
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+      - name: Render design diagrams at guide width
+        run: |
+          mkdir -p lab010-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-010-catalog-cache/assets/solution.svg -o lab010-diagram-previews/solution.png
+          rsvg-convert --width 960 GCP/LAB-010-catalog-cache/assets/cache-flow.svg -o lab010-diagram-previews/cache-flow.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab010-design-preview
+          path: |
+            lab010-diagram-previews/*.png
+            GCP/LAB-010-catalog-cache/assets/*.svg
+            GCP/LAB-010-catalog-cache/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
+
+  lab011-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 11 brief, diagram and pinned icon provenance
+        run: python3 -m unittest discover -s GCP/LAB-011-gke-quote-engine/tests -p test_design.py -v
+      - name: Install SVG renderer
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+      - name: Render Lab 11 solution diagram at guide width
+        run: |
+          mkdir -p lab011-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-011-gke-quote-engine/assets/solution.svg -o lab011-diagram-previews/solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab011-design-preview
+          path: |
+            lab011-diagram-previews/solution.png
+            GCP/LAB-011-gke-quote-engine/assets/solution.svg
+            GCP/LAB-011-gke-quote-engine/assets/diagram-provenance.json
+          if-no-files-found: error
+          retention-days: 14
+
+  lab011-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile the app and bounded load tool
+        run: python3 -m compileall -q GCP/LAB-011-gke-quote-engine/app GCP/LAB-011-gke-quote-engine/scripts/load_test.py GCP/LAB-011-gke-quote-engine/tests/test_app.py
+      - name: Exercise quote calculation, auth, secret separation and live API-to-worker path
+        run: python3 -m unittest discover -s GCP/LAB-011-gke-quote-engine/tests -p test_app.py -v
+      - name: Build the application image without publishing it
+        run: docker build --pull --tag lab011-quote-engine:ci --file GCP/LAB-011-gke-quote-engine/app/Dockerfile GCP/LAB-011-gke-quote-engine/app
+
+ 
+  lab011-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+      - name: Check Terraform formatting and validate infrastructure offline
+        run: |
+          terraform -chdir=GCP/LAB-011-gke-quote-engine/infra fmt -check -recursive
+          terraform -chdir=GCP/LAB-011-gke-quote-engine/infra init -backend=false -input=false
+          terraform -chdir=GCP/LAB-011-gke-quote-engine/infra validate
+      - name: Install pinned YAML parser
+        run: python3 -m pip install --disable-pip-version-check PyYAML==6.0.2
+      - name: Validate manifests and isolation contracts without cluster credentials
+        run: python3 -m unittest discover -s GCP/LAB-011-gke-quote-engine/tests -p test_infra.py -v
+
+  lab011-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 11 task order, recording fields, links and shell syntax
+        run: python3 -m unittest discover -s GCP/LAB-011-gke-quote-engine/tests -p test_guide.py -v
+
+  lab012-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 12 brief, diagram geometry and pinned icon provenance
+        run: python3 -m unittest discover -s GCP/LAB-012-cross-service-tracing/tests -p test_design.py -v
+      - name: Install SVG renderer and Thai fallback font
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin fonts-noto-core
+      - name: Render Lab 12 solution diagram at guide width
+        run: |
+          mkdir -p lab012-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-012-cross-service-tracing/assets/solution.svg -o lab012-diagram-previews/solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab012-design-preview
+          path: |
+            lab012-diagram-previews/solution.png
+            GCP/LAB-012-cross-service-tracing/README.md
+            GCP/LAB-012-cross-service-tracing/assets/**
+          if-no-files-found: error
+          retention-days: 14
+
+  lab012-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned app dependencies
+        run: |
+          python3 -m venv .ci-lab012
+          .ci-lab012/bin/pip install --disable-pip-version-check -r GCP/LAB-012-cross-service-tracing/app/requirements.txt
+      - name: Compile application, scripts and tests
+        run: .ci-lab012/bin/python -m compileall -q GCP/LAB-012-cross-service-tracing/app GCP/LAB-012-cross-service-tracing/scripts GCP/LAB-012-cross-service-tracing/tests
+      - name: Exercise service contracts, retry bounds and probe limits offline
+        run: |
+          .ci-lab012/bin/python -m unittest discover -s GCP/LAB-012-cross-service-tracing/tests -p test_app.py -v
+          .ci-lab012/bin/python -m unittest discover -s GCP/LAB-012-cross-service-tracing/tests -p test_probe.py -v
+      - name: Build application image without publishing it
+        run: docker build --pull --tag lab012-checkout:ci --file GCP/LAB-012-cross-service-tracing/app/Dockerfile GCP/LAB-012-cross-service-tracing/app
+
+  lab012-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Check formatting and validate infrastructure without credentials or provisioning
+        run: |
+          terraform -chdir=GCP/LAB-012-cross-service-tracing/infra fmt -check -recursive
+          terraform -chdir=GCP/LAB-012-cross-service-tracing/infra init -backend=false -input=false
+          terraform -chdir=GCP/LAB-012-cross-service-tracing/infra validate -no-color
+      - name: Install pinned YAML parser and verify manifests/IAM boundaries
+        run: |
+          python3 -m venv .ci-lab012-infra
+          .ci-lab012-infra/bin/pip install --disable-pip-version-check PyYAML==6.0.2
+          .ci-lab012-infra/bin/python -m unittest discover -s GCP/LAB-012-cross-service-tracing/tests -p test_infra.py -v
+
+  lab012-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 12 task order, recording fields, relative links and shell syntax
+        run: python3 -m unittest discover -s GCP/LAB-012-cross-service-tracing/tests -p test_guide.py -v
+
+
+  lab013-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 13 design brief, routing and pinned icon provenance
+        run: python3 -m unittest discover -s GCP/LAB-013-parallel-data-processing/tests -p test_design.py -v
+      - name: Install SVG renderer and Thai fallback font
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin fonts-noto-core
+      - name: Render Lab 13 solution at guide width
+        run: |
+          mkdir -p lab013-diagram-previews
+          rsvg-convert --width 960 GCP/LAB-013-parallel-data-processing/assets/solution.svg -o lab013-diagram-previews/solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab013-design-preview
+          path: |
+            lab013-diagram-previews/solution.png
+            GCP/LAB-013-parallel-data-processing/README.md
+            GCP/LAB-013-parallel-data-processing/assets/**
+          if-no-files-found: error
+          retention-days: 14
+  lab013-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned Cloud Storage client
+        run: |
+          python3 -m venv .ci-lab013
+          .ci-lab013/bin/pip install --disable-pip-version-check -r GCP/LAB-013-parallel-data-processing/app/requirements.txt
+      - name: Compile app, tools and tests; run no-cloud contracts
+        run: |
+          .ci-lab013/bin/python -m compileall -q GCP/LAB-013-parallel-data-processing/app GCP/LAB-013-parallel-data-processing/tools GCP/LAB-013-parallel-data-processing/tests
+          .ci-lab013/bin/python -m unittest discover -s GCP/LAB-013-parallel-data-processing/tests -p "test_*.py" -v
+      - name: Build non-root worker image without publishing or cloud credentials
+        run: docker build --pull --tag lab013-worker:ci --file GCP/LAB-013-parallel-data-processing/app/Dockerfile GCP/LAB-013-parallel-data-processing
+      - name: Verify non-root image and import runtime modules
+        run: |
+          test "$(docker image inspect lab013-worker:ci --format '{{.Config.User}}')" = "10001:10001"
+          docker run --rm --entrypoint python lab013-worker:ci -c "import lab13.worker, lab13.iam_probe; print('Lab 13 runtime imports successfully')"
+
+  lab013-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Format and validate Foundation without credentials or provisioning
+        run: |
+          terraform -chdir=GCP/LAB-013-parallel-data-processing/infra fmt -check -diff -recursive
+          terraform -chdir=GCP/LAB-013-parallel-data-processing/infra init -backend=false -input=false
+          terraform -chdir=GCP/LAB-013-parallel-data-processing/infra validate -no-color
+      - name: Validate custom Cloud Build service account and logging config
+        run: |
+          python3 -m venv .ci-lab013-infra
+          .ci-lab013-infra/bin/pip install --disable-pip-version-check PyYAML==6.0.2
+          .ci-lab013-infra/bin/python -c 'import yaml; c=yaml.safe_load(open("GCP/LAB-013-parallel-data-processing/cloudbuild.yaml", encoding="utf-8")); assert c["serviceAccount"] == "projects/$PROJECT_ID/serviceAccounts/lab013-build@$PROJECT_ID.iam.gserviceaccount.com"; assert c["options"]["logging"] == "CLOUD_LOGGING_ONLY"; assert len(c["images"]) == 1; print("Cloud Build config contract passed")'
+
+  lab013-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check 20 ordered Tasks, evidence fields, Bash syntax and local links
+        run: python3 -m unittest discover -s GCP/LAB-013-parallel-data-processing/tests -p test_guide.py -v
+
+  lab014-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned Lab 14 app and configuration-test dependencies
+        run: python -m pip install --requirement GCP/LAB-014-secure-app-delivery/app/requirements.txt --requirement GCP/LAB-014-secure-app-delivery/tests/requirements.txt
+      - name: Run Lab 14 API, bounded probe and release configuration contracts
+        run: |
+          python -m unittest discover -s GCP/LAB-014-secure-app-delivery/app/tests -v
+          python -m unittest discover -s GCP/LAB-014-secure-app-delivery/tests -p "test_*.py" -v
+      - name: Build the non-root application image
+        run: docker build --pull --file GCP/LAB-014-secure-app-delivery/app/Dockerfile --tag lab014-quote-api:ci GCP/LAB-014-secure-app-delivery
+      - name: Verify the image user and live health/business contract
+        run: |
+          test "$(docker image inspect --format '{{.Config.User}}' lab014-quote-api:ci)" = "10001:10001"
+          container_id="$(docker run --detach --rm --publish 127.0.0.1:18080:8080 --env QUOTE_PRICE_FACTOR=1.00 lab014-quote-api:ci)"
+          trap 'docker logs "$container_id" || true; docker stop "$container_id" >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18080/healthz >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+          python -c 'import json,urllib.request; d=json.load(urllib.request.urlopen("http://127.0.0.1:18080/api/v1/quote?origin=BKK&destination=CNX&weight_kg=5", timeout=3)); assert d["total_thb"] == "455.00", d'
+          docker run --rm --entrypoint python lab014-quote-api:ci /srv/quote-api/tools/verify_quote.py --help
+  lab014-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Format and validate Lab 14 foundation without credentials or provisioning
+        working-directory: GCP/LAB-014-secure-app-delivery/infra
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+      - name: Check Lab 14 infrastructure trust contracts offline
+        run: |
+          python3 -m venv .ci-lab014-infra
+          .ci-lab014-infra/bin/pip install --disable-pip-version-check -r GCP/LAB-014-secure-app-delivery/tests/requirements.txt
+          .ci-lab014-infra/bin/python -m unittest discover -s GCP/LAB-014-secure-app-delivery/tests -p test_infra_contract.py -v
+
+  lab014-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 14 diagram accessibility, icon provenance, scopes and routing
+        run: python3 -m unittest discover -s GCP/LAB-014-secure-app-delivery/tests -p test_design.py -v
+      - name: Install SVG renderer and Thai fallback font
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin fonts-noto-core
+      - name: Render Lab 14 solution diagram
+        run: |
+          mkdir -p lab014-diagram-previews
+          rsvg-convert --width 1440 GCP/LAB-014-secure-app-delivery/assets/solution.svg -o lab014-diagram-previews/solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab014-design-preview
+          path: |
+            lab014-diagram-previews/solution.png
+            GCP/LAB-014-secure-app-delivery/README.md
+            GCP/LAB-014-secure-app-delivery/assets/**
+          if-no-files-found: error
+          retention-days: 14
+
+
+  lab015-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile Lab 15 Python materials
+        run: python3 -m py_compile GCP/LAB-015-branch-private-connectivity/app/inventory_api.py GCP/LAB-015-branch-private-connectivity/scripts/probe.py GCP/LAB-015-branch-private-connectivity/scripts/cidr_check.py
+      - name: Test Inventory API, bounded probe and CIDR preflight
+        env:
+          PYTHONPATH: GCP/LAB-015-branch-private-connectivity
+        run: python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_app.py' -v && python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_probe.py' -v && python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_cidr_check.py' -v
+      - name: Build and smoke test non-root Inventory container
+        run: |
+          docker build -t lab015-inventory:ci GCP/LAB-015-branch-private-connectivity/app
+          test "$(docker image inspect --format '{{.Config.User}}' lab015-inventory:ci)" = "10001:10001"
+          container_id="$(docker run --detach --rm --publish 127.0.0.1:18015:8080 lab015-inventory:ci)"
+          trap 'docker logs "$container_id" || true; docker stop "$container_id" >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18015/healthz >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+          python3 -c 'import json,urllib.request; d=json.load(urllib.request.urlopen("http://127.0.0.1:18015/v1/items",timeout=3)); assert d["count"] == 3, d'
+
+  lab015-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+      - name: Format and validate Lab 15 Terraform without credentials or provisioning
+        working-directory: GCP/LAB-015-branch-private-connectivity/infra
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+      - name: Check private network, identity and fault-injection contracts
+        run: python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_infra_contract.py' -v
+
+  lab015-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify diagram accessibility, pinned icons, scopes and topology
+        run: python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_design.py' -v
+      - name: Install SVG renderer and Thai fallback font
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin fonts-noto-core
+      - name: Render Lab 15 diagram at reading width
+        run: |
+          mkdir -p lab015-diagram-preview
+          rsvg-convert --width 1440 GCP/LAB-015-branch-private-connectivity/assets/solution.svg -o lab015-diagram-preview/solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab015-diagram-preview
+          path: |
+            lab015-diagram-preview/solution.png
+            GCP/LAB-015-branch-private-connectivity/assets/**
+          if-no-files-found: error
+          retention-days: 14
+
+  lab015-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 15 task sequence, evidence fields and local links
+        run: python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_guide.py' -v

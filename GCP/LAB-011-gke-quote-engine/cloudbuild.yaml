@@ -1,0 +1,20 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --pull
+      - --tag
+      - ${_IMAGE}:${_REVISION}
+      - --file
+      - app/Dockerfile
+      - app
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_IMAGE}:${_REVISION}
+images:
+  - ${_IMAGE}:${_REVISION}
+serviceAccount: projects/${PROJECT_ID}/serviceAccounts/quote-build@${PROJECT_ID}.iam.gserviceaccount.com
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 1200s

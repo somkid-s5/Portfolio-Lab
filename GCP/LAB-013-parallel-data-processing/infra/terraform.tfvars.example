@@ -1,0 +1,4 @@
+project_id      = "replace-with-a-disposable-project-id"
+region          = "asia-southeast1"
+operator_member = "user:replace-with-your-login@example.com"
+bucket_prefix   = "lab13-unique-project-suffix"

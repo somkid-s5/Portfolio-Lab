@@ -1,0 +1,4 @@
+project_id      = "replace-with-disposable-project-id"
+region          = "asia-southeast1"
+operator_member = "user:replace-with-your-google-account@example.com"
+allow_destroy   = false
