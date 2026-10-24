@@ -38,6 +38,7 @@ class FakePortal:
             self.fail_once = False
             raise load_orders.OutcomeUnknown()
         order_id = "d" * 30 + f"{self.order_sequence:02x}"
+        self.order_id = order_id
         return 200, order_id, "confirmed", True
 
     def orders_page(self, cursor, timeout):
