@@ -728,3 +728,28 @@ jobs:
           terraform fmt -check -diff -recursive
           terraform init -backend=false -input=false
           terraform validate -no-color
+
+
+  lab008-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Validate Lab 08 resource foundation without credentials or provisioning
+        working-directory: GCP/LAB-008-daily-batch-reports/infra/foundation
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+      - name: Validate digest-pinned workloads without credentials or provisioning
+        working-directory: GCP/LAB-008-daily-batch-reports/infra/workloads
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
