@@ -470,7 +470,13 @@ terraform -chdir=infra apply -input=false scheduler.tfplan
 gcloud scheduler jobs describe lab009-reconcile-every-minute --location "$REGION" --project "$PROJECT_ID"
 ```
 
-Scheduler เรียก Reconciler ทุกนาทีใน UTC. รออย่างน้อยหนึ่งรอบและดู Cloud Scheduler → Jobs → job → Logs กับ Cloud Run logs ของ lab009-reconciler. ตรวจ response summary ว่า pending_seen/queued_seen/running_seen ถูกจำกัดต่อรอบรวมไม่เกิน 25. จะสั่ง run ทันทีได้ด้วย:
+Scheduler เรียก Reconciler ทุกนาทีใน UTC. รออย่างน้อยหนึ่งรอบและดู Cloud Scheduler → Jobs → job → Logs. อ่าน summary ที่ service บันทึกแบบไม่ใส่ payload/secret จาก Cloud Run logs:
+
+```bash
+gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="lab009-reconciler"' --project "$PROJECT_ID" --limit=20 --format='value(timestamp,textPayload,jsonPayload.message)'
+```
+
+ตรวจ pending_seen/queued_seen/running_seen ว่ารวมต่อรอบไม่เกิน 25; log นี้แสดงเฉพาะ bounded counters. จะสั่ง run ทันทีได้ด้วย:
 
 ```bash
 gcloud scheduler jobs run lab009-reconcile-every-minute --location "$REGION" --project "$PROJECT_ID"
@@ -658,6 +664,7 @@ terraform -chdir=infra destroy -var='allow_destroy=true'
 
 ## References used for design
 
+- [Authentication for Terraform in Cloud Shell](https://docs.cloud.google.com/docs/terraform/authentication)
 - [Lab 09 ใน Roadmap](../ROADMAP.md#lab-09)
 - [Cloud Tasks locations](https://docs.cloud.google.com/tasks/docs/locations) · [Cloud Scheduler locations](https://docs.cloud.google.com/scheduler/docs/locations) · [Firestore locations](https://docs.cloud.google.com/firestore/native/docs/locations) · [Cloud Run locations](https://docs.cloud.google.com/run/docs/locations) · [Cloud Storage locations](https://docs.cloud.google.com/storage/docs/locations) · [Secret Manager locations](https://docs.cloud.google.com/secret-manager/docs/locations)
 - [Cloud Tasks overview และ at-least-once behavior](https://docs.cloud.google.com/tasks/docs/dual-overview)

@@ -66,6 +66,16 @@ def create_reconciler_app(
             "moved_to_review": summary.moved_to_review,
             "errors": summary.errors,
         }
+        app.logger.info(
+            "reconciliation_summary pending_seen=%d queued_seen=%d running_seen=%d "
+            "enqueued=%d moved_to_review=%d errors=%d",
+            summary.pending_seen,
+            summary.queued_seen,
+            summary.running_seen,
+            summary.enqueued,
+            summary.moved_to_review,
+            summary.errors,
+        )
         if summary.errors:
             # A 5xx lets Cloud Scheduler retry; deterministic task names and
             # transactional state guards make replay safe.

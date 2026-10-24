@@ -39,8 +39,14 @@ class ReconcilerApiTests(unittest.TestCase):
         self.client = self.app.test_client()
 
     def test_empty_scheduler_request_runs_fixed_bounded_page(self):
-        response = self.client.post("/internal/reconcile")
+        with self.assertLogs("lab09-outbox-reconciler", level="INFO") as captured:
+            response = self.client.post("/internal/reconcile")
         self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            "reconciliation_summary pending_seen=4 queued_seen=3 running_seen=0 "
+            "enqueued=2 moved_to_review=1 errors=0",
+            chr(10).join(captured.output),
+        )
         self.assertEqual(response.get_json(), {
             "status": "completed",
             "pending_seen": 4,
