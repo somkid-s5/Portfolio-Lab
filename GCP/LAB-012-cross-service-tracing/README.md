@@ -623,6 +623,6 @@ Inventory ควรแสดงทุก Service เป็น ClusterIP; app KSA
 - [PyPI Requests 2.34.2](https://pypi.org/project/requests/2.34.2/)
 - [PyPI urllib3 2.8.0](https://pypi.org/project/urllib3/2.8.0/)
 - [PyPI OpenTelemetry SDK 1.45.1](https://pypi.org/project/opentelemetry-sdk/1.45.1/)
-- [PyPI OpenTelemetry Flask instrumentation 0.66b0](https://pypi.org/project/opentelemetry-instrumentation-flask/0.66b0/)
-- [PyPI OpenTelemetry Requests instrumentation 0.66b0](https://pypi.org/project/opentelemetry-instrumentation-requests/0.66b0/)
+- [PyPI OpenTelemetry Flask instrumentation 0.66b1](https://pypi.org/project/opentelemetry-instrumentation-flask/0.66b1/)
+- [PyPI OpenTelemetry Requests instrumentation 0.66b1](https://pypi.org/project/opentelemetry-instrumentation-requests/0.66b1/)
 - [PyPI Gunicorn 26.2.0](https://pypi.org/project/gunicorn/26.2.0/)

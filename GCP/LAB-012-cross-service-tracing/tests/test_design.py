@@ -17,16 +17,17 @@ SVG_NS = "{http://www.w3.org/2000/svg}"
 
 
 class Lab12DesignTests(unittest.TestCase):
-    def test_brief_is_design_checkpoint_not_cloud_evidence(self):
-        self.assertIn("phase: design", README)
-        self.assertIn("guide_status: design", README)
+    def test_guide_review_is_not_cloud_evidence(self):
+        self.assertIn("phase: guide", README)
+        self.assertIn("guide_status: review", README)
         self.assertIn("cloud_verification: not-run", README)
         self.assertIn("## ผู้ใช้และผลลัพธ์ที่ต้องพิสูจน์", README)
         self.assertIn("## Solution design", README)
         self.assertIn("Expected เป็นเกณฑ์ตรวจ ไม่ใช่ผลจริง", README)
         for requirement in range(1, 10):
             self.assertIn(f"R{requirement}", README)
-        self.assertNotRegex(README, r"(?m)^### Task \d{2} —")
+        self.assertRegex(README, r"(?m)^### Task 00 — .+$")
+        self.assertRegex(README, r"(?m)^### Task 19 — .+$")
 
     def test_svg_is_accessible_and_has_official_self_contained_icons(self):
         root = ET.fromstring(SVG)
