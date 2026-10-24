@@ -17,9 +17,9 @@ SVG_NS = "{http://www.w3.org/2000/svg}"
 
 
 class Lab11DesignTests(unittest.TestCase):
-    def test_authoring_and_cloud_status_are_honest(self):
-        self.assertIn("phase: authoring", README)
-        self.assertIn("guide_status: authoring", README)
+    def test_guide_ready_and_cloud_status_are_honest(self):
+        self.assertIn("phase: guide-ready", README)
+        self.assertIn("guide_status: guide-ready", README)
         self.assertIn("cloud_verification: not-run", README)
         self.assertIn("## Tasks", README)
         for requirement in range(1, 11):

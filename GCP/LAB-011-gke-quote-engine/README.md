@@ -1,14 +1,14 @@
 ---
 lab: LAB-011
 platform: GCP
-phase: authoring
-guide_status: authoring
+phase: guide-ready
+guide_status: guide-ready
 cloud_verification: not-run
 last_verified: null
 ---
 # Lab 11 — ระบบคำนวณราคาเสนอค่าขนส่งบน GKE
 
-**สถานะ:** Authoring — App/API-worker, pricing rules, bounded load tool, localhost integration tests และ image build check ผ่าน CI #313 ครบ 37/37 jobs. Terraform/Kubernetes และ Tasks 00–19 เขียนครบใน checkpoint นี้; CI รอบ Guide ยังรอตรวจ. ยังไม่มีการสร้าง Cloud resources โดยผู้เขียน และ Lab นี้ยังไม่ Cloud-verified; Cloud verification: Not run.
+**สถานะ:** Guide-ready — CI #315 ผ่านครบ 39/39 jobs รวม app/integration, Terraform fmt/init/validate, manifest contracts, task/evidence/link/shell syntax และ diagram/design checks. CI เป็นการตรวจ repository เท่านั้น. ยังไม่มีการสร้าง Cloud resources โดยผู้เขียน และ Lab นี้ยังไม่ Cloud-verified; Cloud verification: Not run.
 
 ## สถานการณ์
 
