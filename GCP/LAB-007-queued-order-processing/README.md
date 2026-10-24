@@ -1,7 +1,7 @@
 ---
 lab: LAB-007
 platform: GCP
-guide_status: authoring
+guide_status: guide-ready
 cloud_verification: not-run
 last_verified: null
 ---
