@@ -115,8 +115,17 @@ class StorageTests(unittest.TestCase):
         with self.assertRaises(SourceChanged):
             self.objects.read_source(SOURCE, "122", business_date=DAY)
         self.source.objects[SOURCE]["data"] = b"x" * (5 * 1024 * 1024 + 1)
+        generation = self.objects.source_generation(SOURCE, business_date=DAY)
         with self.assertRaisesRegex(InvalidSource, "INPUT_TOO_LARGE"):
-            self.objects.source_generation(SOURCE, business_date=DAY)
+            self.objects.read_source(SOURCE, generation, business_date=DAY)
+
+    def test_wrong_content_type_is_classified_after_generation_is_claimable(self):
+        self.source.objects[SOURCE] = {
+            "data": b"not csv", "generation": 123, "content_type": "application/octet-stream"
+        }
+        generation = self.objects.source_generation(SOURCE, business_date=DAY)
+        with self.assertRaisesRegex(InvalidSource, "INVALID_CONTENT_TYPE"):
+            self.objects.read_source(SOURCE, generation, business_date=DAY)
 
     def test_create_only_report_is_reused_only_when_body_and_metadata_match(self):
         body = b'{"report_id":"r"}\n'
