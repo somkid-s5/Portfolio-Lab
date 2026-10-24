@@ -37,15 +37,15 @@ def text(x, y, value, cls="small", anchor=None):
 
 
 def service(href, x, y, name, resource, detail=""):
-    cx = x + 30
+    cx = x + 34
     result = (
-        f'<image x="{x}" y="{y}" width="60" height="60" '
+        f'<image x="{x}" y="{y}" width="68" height="68" '
         f'preserveAspectRatio="xMidYMid meet" xlink:href="{href}"/>'
-        + text(cx, y + 78, name, "node", "middle")
-        + text(cx, y + 99, resource, "resource", "middle")
+        + text(cx, y + 84, name, "node", "middle")
+        + text(cx, y + 105, resource, "resource", "middle")
     )
     if detail:
-        result += text(cx, y + 119, detail, "small", "middle")
+        result += text(cx, y + 125, detail, "small", "middle")
     return result
 
 
@@ -100,7 +100,7 @@ def solution_diagram(icons):
 <rect x="140" y="340" width="1040" height="570" rx="4" fill="#fbfdff" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="7 5"/>
 <text x="160" y="370" class="frame-title">asia-southeast1 • regional services and customer network</text>
 <rect x="165" y="400" width="500" height="320" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
-<text x="185" y="428" class="frame-title">Cloud Run workloads • Direct VPC Egress</text>
+<text x="185" y="428" class="frame-title">Cloud Run • app and bootstrap</text>
 <rect x="690" y="420" width="210" height="280" rx="5" fill="#f0fdfa" stroke="#0f766e" stroke-width="1.5"/>
 <text x="795" y="452" class="frame-title" text-anchor="middle">Customer VPC</text>
 <text x="795" y="480" class="resource" text-anchor="middle">lab007-vpc</text>
@@ -115,33 +115,23 @@ def solution_diagram(icons):
 <text x="1037" y="678" class="small" text-anchor="middle">Private IP • PostgreSQL 16</text>
 '''
     body += service(icons["secret_manager"], 240, 190, "Secret Manager", "5 secrets • global API", "single replica in asia-southeast1")
-    body += service(icons["pubsub"], 600, 190, "Pub/Sub source", "orders • authenticated push", "storage policy: asia-southeast1")
-    body += service(icons["pubsub"], 900, 190, "Pub/Sub dead letter", "orders-dead • pull inspect", "storage policy: asia-southeast1")
-    body += service(icons["cloud_run"], 205, 440, "Portal", "lab007-portal", "public HTTPS • app login")
-    body += service(icons["cloud_run"], 355, 440, "Dispatcher", "lab007-dispatcher", "IAM-only • bounded outbox")
-    body += service(icons["cloud_run"], 505, 440, "Worker", "lab007-worker", "IAM-only • push endpoint")
-    body += service(icons["cloud_run"], 205, 585, "Bootstrap Job", "lab007-bootstrap", "one-off • private DB install")
+    body += service(icons["pubsub"], 600, 190, "Pub/Sub source", "dispatcher publish", "authenticated Worker push")
+    body += service(icons["pubsub"], 900, 190, "Pub/Sub dead letter", "orders-dead", "poison • operator pull")
+    body += service(icons["cloud_run"], 205, 440, "Portal", "lab007-portal", "public • login")
+    body += service(icons["cloud_run"], 355, 440, "Dispatcher", "lab007-dispatcher", "IAM • bounded")
+    body += service(icons["cloud_run"], 505, 440, "Worker", "lab007-worker", "IAM • push")
+    body += service(icons["cloud_run"], 205, 585, "Bootstrap Job", "lab007-bootstrap", "one-off • private")
     body += service(icons["cloud_sql"], 1005, 480, "Cloud SQL for PostgreSQL", "lab007-orders", "PSA private IP • no public IP")
     body += service(icons["artifact_registry"], 190, 770, "Artifact Registry", "lab007-images", "regional • image@sha256")
-    body += service(icons["cloud_scheduler"], 355, 770, "Cloud Scheduler", "lab007-outbox-dispatch", "OIDC • once per minute")
+    body += service(icons["cloud_scheduler"], 430, 770, "Cloud Scheduler", "lab007-outbox", "OIDC • dispatcher trigger")
     body += actor(10, 470, "Customer", "Browser")
     body += '''
 <path class="flow-blue" d="M102 505H155V474H205"/>
 <text x="126" y="492" class="small">HTTPS</text>
-<path class="flow-purple" d="M389 440V380H630V250"/>
-<text x="515" y="374" class="small">publish outbox event</text>
-<path class="flow-purple" d="M660 230H680V390H540V440"/>
-<text x="688" y="356" class="small">authenticated push</text>
-<path class="flow-purple" d="M389 770V500"/>
-<text x="402" y="645" class="small">OIDC invocation</text>
-<path class="flow-teal" d="M665 555H690"/>
-<text x="667" y="540" class="small">private SQL path</text>
-<path class="flow-teal" d="M900 555H920"/>
-<path class="flow-dashed" d="M300 320V400"/>
-<text x="310" y="357" class="small">version-pinned Secret mounts</text>
-<path class="flow-dashed" d="M220 770V740"/>
-<text x="232" y="755" class="small">immutable images</text>
-<text x="160" y="925" class="small">Cloud Run is regional but not contained by the VPC; only configured private-range egress uses the customer subnet.</text>
+<path class="flow-teal" d="M665 570H690"/>
+<path class="flow-teal" d="M900 570H920"/>
+<text x="160" y="925" class="small">Blue: customer HTTPS • Teal: private SQL path through Direct VPC Egress and PSA. The companion flow diagram shows queue and Scheduler directions.</text>
+<text x="160" y="945" class="small">Secret versions are numeric and image references use digests; Secret Manager is a global endpoint with one Asia replica, not a regional access boundary.</text>
 '''
     return base(
         "Lab 07 Order Queue Desk architecture",
