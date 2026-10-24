@@ -61,12 +61,12 @@ class FirestoreLedgerTests(unittest.TestCase):
             accepted_at=NOW,
         )
 
-    def task_name(self, event):
+    def task_name(self, event, generation=1):
         delivery = hashlib.sha256(
             f"{event['event_id']}:{event['partner_id']}".encode()
         ).hexdigest()
         return task_resource_name(
-            PROJECT, "asia-southeast1", "partner-a", delivery, 1
+            PROJECT, "asia-southeast1", "partner-a", delivery, generation
         )
 
     def accept(self, event=None, *, key=None, request_hash=None):
@@ -156,7 +156,7 @@ class FirestoreLedgerTests(unittest.TestCase):
         event = self.event()
         result = self.accept(event)
         self.assertFalse(self.ledger.mark_task_enqueued(
-            result.delivery_id, generation=2, task_name=self.task_name(event), now=NOW
+            result.delivery_id, generation=2, task_name=self.task_name(event, generation=2), now=NOW
         ))
         with self.assertRaises(ValidationError):
             self.ledger.mark_task_enqueued(
