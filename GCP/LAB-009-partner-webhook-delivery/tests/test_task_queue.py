@@ -107,6 +107,15 @@ class CloudTasksEnqueuerTests(unittest.TestCase):
         self.assertEqual(len(self.client.created), 1)
         self.assertEqual(len(self.client.get_calls), 1)
 
+    def test_task_exists_uses_get_task_and_treats_only_not_found_as_absent(self):
+        name = task_resource_name(
+            CONFIG.project_id, CONFIG.location_id, CONFIG.queue_id, DELIVERY, 1
+        )
+        self.client.existing_task = tasks_v2.Task(name=name)
+        self.assertTrue(self.enqueuer.task_exists(name))
+        self.client.existing_task = NotFound("gone")
+        self.assertFalse(self.enqueuer.task_exists(name))
+
     def test_get_task_name_mismatch_fails_closed(self):
         self.client.create_error = AlreadyExists("duplicate")
         self.client.existing_task = tasks_v2.Task(name="different")
