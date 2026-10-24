@@ -64,8 +64,7 @@ variable "operator_member" {
   default     = ""
   description = "Optional IAM member (for example user:you@example.com) allowed to pull the dead-letter inspection subscription."
   validation {
-    condition = var.operator_member == "" || startswith(var.operator_member, "user:") ||
-      startswith(var.operator_member, "group:") || startswith(var.operator_member, "serviceAccount:")
+    condition = var.operator_member == "" || can(regex("^(user|group|serviceAccount):.+$", var.operator_member))
     error_message = "Use a user:, group:, or serviceAccount: IAM member, or leave empty and grant access manually."
   }
 }

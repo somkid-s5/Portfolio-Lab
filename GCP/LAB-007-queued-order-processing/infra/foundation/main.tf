@@ -163,9 +163,9 @@ resource "google_project_iam_member" "cloud_sql_client" {
     for role, account in google_service_account.runtime : role => account
     if role != "scheduler"
   }
-  project  = var.project_id
-  role     = "roles/cloudsql.client"
-  member   = "serviceAccount:${each.value.email}"
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${each.value.email}"
 }
 
 resource "google_secret_manager_secret_iam_member" "access" {
