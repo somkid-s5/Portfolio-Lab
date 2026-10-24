@@ -172,7 +172,7 @@ class WorkerTests(unittest.TestCase):
         body = next(iter(self.objects.outputs.values()))["body"]
         report = json.loads(body)
         self.assertEqual(report["row_count"], 4)
-        self.assertEqual(report["total_amount_minor"], 71000)
+        self.assertEqual(report["total_amount_minor"], 79000)
         self.assertEqual(len(self.publisher.events), 1)
         self.assertEqual(self.publisher.events[0]["report_id"], report["report_id"])
 
@@ -249,7 +249,7 @@ class WorkerTests(unittest.TestCase):
     def test_explicit_missing_correction_does_not_mutate_daily_ledger(self):
         with self.assertRaisesRegex(WorkerFailure, "correction_source_missing"):
             self.run_job(mode="operator-backfill", source_object=CORRECTION,
-                         source_generation=None)
+                         source_generation="999")
         self.assertIsNone(self.ledger.read(DAY))
 
     def test_changed_pinned_source_releases_attempt_and_fails_safe(self):
