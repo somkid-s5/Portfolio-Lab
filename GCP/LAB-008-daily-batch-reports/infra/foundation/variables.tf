@@ -32,8 +32,3 @@ variable "artifact_publisher_member" {
   default     = ""
 }
 
-variable "allow_destroy" {
-  description = "Set true only during an intentional teardown after reviewing the Terraform plan."
-  type        = bool
-  default     = false
-}
