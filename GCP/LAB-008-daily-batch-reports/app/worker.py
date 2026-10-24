@@ -11,7 +11,7 @@ from app.integrations import PublishUncertain
 
 
 CORRECTION_RE = re.compile(
-    r"^incoming/business_date=(\\d{4}-\\d{2}-\\d{2})/corrections/[A-Za-z0-9_-]{1,64}\\.csv$"
+    r"^incoming/business_date=(\d{4}-\d{2}-\d{2})/corrections/[A-Za-z0-9_-]{1,64}\.csv$"
 )
 
 
