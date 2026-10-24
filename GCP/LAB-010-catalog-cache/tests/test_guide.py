@@ -107,7 +107,7 @@ class Lab10GuideTests(unittest.TestCase):
             "lifecycle.prevent_destroy",
             "plan -destroy",
             "-auto-approve",
-            "ไม่ใช้ wildcard หรือ recursive delete",
+            "ห้ามใช้ wildcard หรือ recursive delete",
         ):
             self.assertIn(phrase, self.text)
         self.assertIn("inspect_list_ttl", (ROOT / "app" / "cache.py").read_text(encoding="utf-8"))

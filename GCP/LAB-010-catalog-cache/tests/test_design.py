@@ -124,7 +124,7 @@ class DesignTests(unittest.TestCase):
     def test_topology_contains_solution_boundaries_and_roles(self):
         root = ET.parse(ASSETS / "solution.svg").getroot()
         content = " ".join(node.text or "" for node in root.findall(".//" + SVG_NS + "text"))
-        for phrase in ("asia-southeast1", "catalog-public", "catalog-admin",
+        for phrase in ("asia-southeast1", "catalog-public", "catalog-operator",
                        "Direct VPC egress", "Private Services Access",
                        "Cloud SQL", "Memorystore", "Secret Manager",
                        "Cloud Logging", "Cloud Monitoring", "Source of truth",

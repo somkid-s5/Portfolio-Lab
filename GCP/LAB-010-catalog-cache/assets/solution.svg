@@ -29,7 +29,7 @@ text{font-family:Arial,sans-serif;fill:#1f2937}.title{font-size:38px;font-weight
 <circle cx="62" cy="746" r="12" fill="#c4b5fd" stroke="#6d28d9" stroke-width="1.5"/>
 <path d="M41 787c2-16 12-24 21-24s19 8 21 24" fill="#ede9fe" stroke="#6d28d9" stroke-width="1.5"/>
 <text x="98" y="750" class="node">Operator</text><text x="98" y="773" class="small">IAM-authenticated</text>
-<text x="39" y="809" class="small">Only catalog-admin invoker</text>
+<text x="39" y="809" class="small">Only catalog-operator invoker</text>
 </g>
 
 <!-- project boundary -->
@@ -63,7 +63,7 @@ text{font-family:Arial,sans-serif;fill:#1f2937}.title{font-size:38px;font-weight
 
 <rect x="350" y="690" width="275" height="145" rx="7" class="service-card"/>
 <image x="370" y="724" width="80" height="80" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNhZWNiZmE7fS5jbHMtMSwuY2xzLTJ7ZmlsbC1ydWxlOmV2ZW5vZGQ7fS5jbHMtMntmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfQ2xvdWRSdW5fQ29sb3I8L3RpdGxlPjxnIGRhdGEtbmFtZT0iUHJvZHVjdCBJY29ucyI+PGcgPjxwb2x5Z29uIGNsYXNzPSJjbHMtMSIgcG9pbnRzPSI4LjkgMi42MyAxMi4wMiAxMiAyMS4zOCAxMiA4LjkgMi42MyIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIyMS4zOCAxMiAxMi4wMiAxMiA4LjkgMjEuMzggMjEuMzggMTIiLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMy40NCAyMS4zOCA2LjU3IDE5LjgxIDguOSAxMiA1Ljc4IDEyIDMuNDQgMjEuMzgiLz48cG9seWdvbiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iMy40NCAyLjYzIDUuNzggMTIgOC45IDEyIDYuNTcgNC4xOSAzLjQ0IDIuNjMiLz48L2c+PC9nPjwvc3ZnPg=="/>
-<text x="456" y="732" class="node">catalog-admin</text>
+<text x="456" y="732" class="node">catalog-operator</text>
 <text x="456" y="756" class="body">IAM-protected write API</text>
 <text x="456" y="781" class="small">DB: limited DML · cache: DEL</text>
 <text x="456" y="803" class="small">max 1 instance · min 0</text>

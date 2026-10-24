@@ -483,7 +483,7 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 
 ## ลำดับถัดไป
 
-Lab 10 design, app, Terraform foundation/workload และ cache/fault toggles ผ่าน CI run [40087406697 (#307)](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40087406697) ครบ 34 jobs โดยไม่มี credentials หรือ Cloud provisioning. กำลังเติม read-only Operator endpoint สำหรับตรวจ Redis category TTL จริง และเขียน Tasks 00–14 ใน [README](LAB-010-catalog-cache/README.md); guide checks ของ checkpoint นี้ยัง pending. ไม่มี GCP apply และ Cloud verification ยังคง Not run.
+Lab 10 design, app, Terraform foundation/workload และ cache/fault toggles ผ่าน CI run [40087406697 (#307)](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40087406697) ครบ 34 jobs โดยไม่มี credentials หรือ Cloud provisioning. กำลังเติม read-only Operator endpoint สำหรับตรวจ Redis category TTL จริง และเขียน Tasks 00–14 ใน [README](LAB-010-catalog-cache/README.md); CI #308 ผ่าน design/infra; app integration ทั้งหมดรวม TTL inspection tests ผ่าน แต่ shared guide test assertion ตรวจคำไม่ตรงกับคู่มือ จึงทำให้ guide/app job fail. กำลังแก้ assertion และ rerun; ไม่มี GCP apply และ Cloud verification ยังคง Not run.
 
 ตัวอย่างรูปแบบการอ่านที่ยืนยันแล้ว: [Lab Test 2](../test/lab-test-2/README.md) เป็นตัวอย่างรูปแบบ ไม่ถือเป็นผลการทำ Lab ใด
 

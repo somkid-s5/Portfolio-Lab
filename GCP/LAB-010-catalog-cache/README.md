@@ -69,11 +69,11 @@ Test profile ที่ล็อก: 2,000 products, hot set 20 รายกา�
 
 ![Lab 10 solution topology](assets/solution.svg)
 
-เส้นทางสร้างและเผยแพร่ image แยกจาก request path: Cloud Shell ส่ง source ให้ Cloud Build → เก็บ image ใน Artifact Registry ตำแหน่ง asia-southeast1 → resolve SHA-256 digest แล้ว deploy digest เดียวกันให้ `catalog-public` และ `catalog-admin`. ใน Guide จะสร้าง repository ใน foundation ก่อน build; CI ตรวจ build โดยไม่ push/deploy. ค่าบริการ build และ image storage อยู่ใน cost gate.
+เส้นทางสร้างและเผยแพร่ image แยกจาก request path: Cloud Shell ส่ง source ให้ Cloud Build → เก็บ image ใน Artifact Registry ตำแหน่ง asia-southeast1 → resolve SHA-256 digest แล้ว deploy digest เดียวกันให้ `catalog-public` และ `catalog-operator`. ใน Guide จะสร้าง repository ใน foundation ก่อน build; CI ตรวจ build โดยไม่ push/deploy. ค่าบริการ build และ image storage อยู่ใน cost gate.
 
 - **Region:** asia-southeast1 (Singapore). Cloud SQL for PostgreSQL และ Memorystore for Redis มี region นี้ในรายการรองรับ ณ วันที่จัดทำ Design; ตรวจ availability/quota/ราคาอีกครั้งก่อนเริ่ม Guide.
 - **VPC:** สร้าง catalog-vpc เฉพาะ Lab; ใช้ subnet catalog-run-egress ขนาด /26 สำหรับ Cloud Run Direct VPC egress. จอง IP ranges ที่ไม่ทับกันสำหรับ Private Services Access และสร้าง service networking connection ก่อนสร้าง managed private endpoints.
-- **Cloud Run:** ใช้ image digest เดียวกัน แต่ deploy สอง service: catalog-public เปิด public GET/UI เท่านั้น และ catalog-admin บังคับ Cloud Run IAM invoker. ทั้งคู่ใช้ Direct VPC egress เฉพาะ private ranges, minimum instances 0; public service max 2 instances, admin max 1.
+- **Cloud Run:** ใช้ image digest เดียวกัน แต่ deploy สอง service: catalog-public เปิด public GET/UI เท่านั้น และ catalog-operator บังคับ Cloud Run IAM invoker. ทั้งคู่ใช้ Direct VPC egress เฉพาะ private ranges, minimum instances 0; public service max 2 instances, admin max 1.
 - **Cloud SQL:** PostgreSQL 16, Enterprise, single-zone, db-custom-1-3840 (1 vCPU/3.75 GiB), 10 GiB SSD, private IP ผ่าน PSA, ไม่มี public IP. เลือกขนาดเพื่อทดสอบได้ใน sandbox ไม่อ้าง SLA/HA. Database เป็น source of truth.
 - **Database authentication:** ใช้ Cloud SQL Python Connector กับ private IP และ automatic IAM database authentication; allow connector egress TCP 3307 ไปยัง instance และ TCP 443 ไปยัง Cloud SQL Admin API; ไม่ใส่ database password ใน Terraform, image หรือ environment. แยก reader, operator และ migrator IAM database users กับ PostgreSQL grants; app DB grants ทดสอบกับ PostgreSQL จริงใน CI รวมถึง UPDATE แบบรายคอลัมน์. Runtime service accounts ได้เฉพาะ Cloud SQL Client + Cloud SQL Instance User ที่ต้องใช้ใน dedicated Lab project.
 - **Memorystore:** Memorystore for Redis 7.0 Basic Tier, 1 GiB, private connection ผ่าน PSA, AUTH เปิดและ TLS server authentication เปิด. Cache ยอมรับ cold restart/cache flush ได้; ถ้า cache หายให้เติมจาก PostgreSQL. ไม่มี Redis failover/HA ใน baseline.
@@ -84,7 +84,7 @@ Test profile ที่ล็อก: 2,000 products, hot set 20 รายกา�
 - **Cache-aside:** product key = catalog:v1:product:{id}; category key = catalog:v1:list:{category}. Baseline TTL 60 วินาที. จำกัด category เป็น 4 ค่าที่อนุญาต จึง invalidate product key และ category list เก่ากับใหม่ได้แบบ bounded หลัง DB commit. Cache ไม่ถือข้อมูล durable และไม่ใช้ KEYS/FLUSHDB.
 - **Write/cache consistency:** PostgreSQL commit มาก่อน Redis invalidation. หาก Redis ล้มเหลว write ยังคงเป็นจริงใน DB; Admin API ตอบว่าการ invalidate ยังไม่ยืนยันและบันทึก structured event, ห้ามแสดงว่า cache สด. Entry เดิมมีอายุเหลือไม่เกิน TTL 60 วินาที; product metadata เท่านั้นที่รับ stale bound นี้ได้.
 - **Cache failure:** Redis timeout 250 ms; เมื่อเกิด Redis error 3 ครั้งติดกัน service instance เปิด local circuit breaker 15 วินาทีและอ่าน DB โดยตรง พร้อม X-Cache: BYPASS. Circuit breaker เป็น per-instance ไม่อ้างว่า global. เมื่อ Redis กลับมาให้ MISS/เติม cache ใหม่. ถ้า DB ใช้ไม่ได้ตอบ sanitized 503; ไม่ยอมคืนข้อมูล stale เพื่อซ่อน source-of-truth failure.
-- **Connection budget:** SQLAlchemy pool size 3, max overflow 0; catalog-public ≤2 instances, catalog-admin ≤1, migration Job task ≤1. Maximum app connections ระหว่างงานปกติ = 9, migration Job เพิ่มได้ไม่เกิน 3 ระหว่างรัน; Guide ต้องตรวจค่า Cloud SQL limit/actual active sessions ก่อน load test. Cloud Run concurrency จำกัด 20 requests/instance, load driver ≤10 workers.
+- **Connection budget:** SQLAlchemy pool size 3, max overflow 0; catalog-public ≤2 instances, catalog-operator ≤1, migration Job task ≤1. Maximum app connections ระหว่างงานปกติ = 9, migration Job เพิ่มได้ไม่เกิน 3 ระหว่างรัน; Guide ต้องตรวจค่า Cloud SQL limit/actual active sessions ก่อน load test. Cloud Run concurrency จำกัด 20 requests/instance, load driver ≤10 workers.
 - **Measurement:** app ส่ง structured log ต่อ request ด้วย validated lab_run_id, cache_status, db_read flag, db_ms, total_ms, HTTP status และ error class; ห้าม log payload, auth token, AUTH string หรือ product text. Load tool ใช้ seed เดิมและ request distribution เดิม, สรุป status/cache headers/p50/p95/error rate. เปรียบเทียบ baseline cache bypass, cold, warm และ failure; ไม่มี latency target เพราะ cache overhead อาจทำให้ผลไม่ดีขึ้นใน workload เล็ก.
 - **Network fault exercise:** สร้าง Cloud Run revision ชั่วคราวที่ชี้ Redis ไปยัง port 6380 ของ private endpoint (ไม่ใช่ secure port 6378), ยิง bounded requests แล้วคืน port 6378. นี่พิสูจน์ client unreachable/fallback path ไม่ใช่การทำให้ Memorystore service ล่มจริงหรือพิสูจน์ failover.
 - **Change Request:** category listing ที่ถูกแก้บ่อยลด TTL จาก 60 → 15 วินาที โดยยังคง invalidate หลัง commit; ทดสอบ freshness, cache hit ratio และ DB reads ซ้ำ พร้อมอธิบายผลต่อ cache churn/DB load.
@@ -566,6 +566,10 @@ python3 scripts/run_load.py \
   --base-url "$PUBLIC_URL" --profile change-request \
   --requests 200 --workers 5 --seed 20261024 \
   --out-dir lab10-results/experiment-01
+
+for profile in bypass cold warm redis-failure change-request; do
+  python3 -c 'import json,sys; name=sys.argv[1]; path=f"lab10-results/experiment-01/{name}.json"; print(name, json.load(open(path))["run_id"])' "$profile"
+done
 ```
 
 หลัง clear แล้ว category request ควร MISS; `/admin/cache/ttl/books` ควรอ่าน TTL จริง 1–15. รอ 16 วินาทีให้ entry เดิมหมดอายุ แล้ว request ใหม่ควร MISS และเติม entry ใหม่; diagnostic ยืนยัน TTL รอบใหม่อยู่ในช่วง 1–15. ใน `change-request.json` เปรียบเทียบกับ warm profile และอธิบาย cache hit/read trade-off จากค่า actual — การทดสอบเพียง 200 requests ไม่ได้พิสูจน์ production freshness/SLA. หาก TTL ยังเป็น 60 ให้ตรวจ revision ว่า `CATEGORY_LIST_TTL_SECONDS=15`, key ที่ตรวจเป็น list key และได้ clear หลัง deploy แล้ว.
@@ -684,3 +688,4 @@ rm -f terraform.tfstate terraform.tfstate.backup \
 - [Memorystore AUTH string command](https://docs.cloud.google.com/sdk/gcloud/reference/redis/instances/get-auth-string)
 - [Memorystore Redis instance REST resource and server CA field](https://docs.cloud.google.com/memorystore/docs/redis/reference/rest/v1/projects.locations.instances)
 - [Pricing Calculator](https://cloud.google.com/products/calculator)
+- [Cloud SQL PostgreSQL connection metric and monitoring delay](https://docs.cloud.google.com/sql/docs/postgres/use-system-insights)
