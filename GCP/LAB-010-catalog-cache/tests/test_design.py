@@ -33,6 +33,22 @@ class DesignTests(unittest.TestCase):
         for requirement in range(1, 11):
             self.assertIn(f"R{requirement}", README)
 
+    def test_auth_secret_handoff_does_not_claim_state_is_secret_free(self):
+        self.assertIn("Terraform state ยังมี AUTH string", README)
+        self.assertIn("sensitive แต่ Terraform ยังบันทึก", README)
+        self.assertIn("pipe ผล", README)
+        self.assertIn("gcloud secrets versions add --data-file=-", README)
+        self.assertIn("ห้าม commit/อัปโหลด/แสดง state", README)
+        self.assertNotIn("แยกจาก Terraform state", README)
+        self.assertIn(
+            "https://developer.hashicorp.com/terraform/language/manage-sensitive-data",
+            README,
+        )
+        self.assertIn(
+            "https://docs.cloud.google.com/sdk/gcloud/reference/secrets/versions/add",
+            README,
+        )
+
     def test_readme_local_links_resolve(self):
         pattern = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
         for target in pattern.findall(README):
