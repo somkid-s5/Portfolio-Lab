@@ -138,6 +138,16 @@ class ReleaseWorkflowTests(unittest.TestCase):
         workflow = yaml.load((ROOT.parents[1] / ".github/workflows/release.yml").read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
         self.assertEqual(workflow["on"]["push"]["branches"], ["main"])
         self.assertEqual(workflow["jobs"]["attest"]["environment"], "gcp-attest")
+        expected_paths = {
+            "GCP/LAB-014-secure-app-delivery/app/**",
+            "GCP/LAB-014-secure-app-delivery/cloudbuild.yaml",
+            "GCP/LAB-014-secure-app-delivery/deploy/**",
+            "GCP/LAB-014-secure-app-delivery/skaffold.yaml",
+            "GCP/LAB-014-secure-app-delivery/tests/**",
+            "GCP/LAB-014-secure-app-delivery/tools/**",
+            ".github/workflows/release.yml",
+        }
+        self.assertEqual(set(workflow["on"]["push"]["paths"]), expected_paths)
         self.assertEqual(workflow["jobs"]["release"]["environment"], "gcp-release")
         for name in ("attest", "release"):
             job = workflow["jobs"][name]

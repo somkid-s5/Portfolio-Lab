@@ -4,7 +4,12 @@ on:
     branches:
       - main
     paths:
-      - 'GCP/LAB-014-secure-app-delivery/**'
+      - 'GCP/LAB-014-secure-app-delivery/app/**'
+      - 'GCP/LAB-014-secure-app-delivery/cloudbuild.yaml'
+      - 'GCP/LAB-014-secure-app-delivery/deploy/**'
+      - 'GCP/LAB-014-secure-app-delivery/skaffold.yaml'
+      - 'GCP/LAB-014-secure-app-delivery/tests/**'
+      - 'GCP/LAB-014-secure-app-delivery/tools/**'
       - '.github/workflows/release.yml'
   workflow_dispatch:
 concurrency:

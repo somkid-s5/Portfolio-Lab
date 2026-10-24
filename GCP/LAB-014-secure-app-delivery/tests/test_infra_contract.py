@@ -54,7 +54,8 @@ class InfrastructureContractTests(unittest.TestCase):
         source = (INFRA / "main.tf").read_text(encoding="utf-8")
         self.assertIn('count           = var.cloudbuild_connection_id == "" ? 0 : 1', source)
         self.assertIn('branch = "^main$"', source)
-        self.assertIn('GCP/LAB-014-secure-app-delivery/**', source)
+        self.assertIn('GCP/LAB-014-secure-app-delivery/app/**', source)
+        self.assertIn('.github/workflows/release.yml', source)
         self.assertIn('filename        = "GCP/LAB-014-secure-app-delivery/cloudbuild.yaml"', source)
 
 

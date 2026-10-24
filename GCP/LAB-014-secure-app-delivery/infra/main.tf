@@ -161,7 +161,15 @@ resource "google_cloudbuild_trigger" "main_push" {
   description     = "Build Lab 14 only for trusted pushes to main."
   service_account = google_service_account.lab014["builder"].name
   filename        = "GCP/LAB-014-secure-app-delivery/cloudbuild.yaml"
-  included_files  = ["GCP/LAB-014-secure-app-delivery/**"]
+  included_files  = [
+    "GCP/LAB-014-secure-app-delivery/app/**",
+    "GCP/LAB-014-secure-app-delivery/cloudbuild.yaml",
+    "GCP/LAB-014-secure-app-delivery/deploy/**",
+    "GCP/LAB-014-secure-app-delivery/skaffold.yaml",
+    "GCP/LAB-014-secure-app-delivery/tests/**",
+    "GCP/LAB-014-secure-app-delivery/tools/**",
+    ".github/workflows/release.yml",
+  ]
   repository_event_config {
     repository = google_cloudbuildv2_repository.portfolio_lab[0].id
     push {
