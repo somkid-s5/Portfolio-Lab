@@ -8,4 +8,4 @@
 
 ตัวอย่างรูปแบบคู่มือ: [Lab Test 2](../test/lab-test-2/README.md)
 
-สถานะปัจจุบัน: [Lab 01](LAB-001-multi-zone-web/README.md) ถึง [Lab 11 — GKE Quote Engine](LAB-011-gke-quote-engine/README.md) อยู่ระดับ Guide-ready. Lab 11 ผ่าน [CI #315](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40092884085) ครบ 39/39 jobs; CI ตรวจ App/Integration, Terraform, manifests, 20 Tasks, evidence fields, Bash syntax, links และ diagram/design. Lab 12–20 ยัง Planned ตาม [Progress](PROGRESS.md). ไม่มีการ provision GCP; Cloud verification ยังคง Not run.
+สถานะปัจจุบัน: [Lab 01](LAB-001-multi-zone-web/README.md) ถึง [Lab 11 — GKE Quote Engine](LAB-011-gke-quote-engine/README.md) อยู่ระดับ Guide-ready. Lab 12 — [Microservices tracing](LAB-012-cross-service-tracing/README.md) อยู่ขั้น Design หลัง [CI #324](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40095281229) ผ่าน 40/40 jobs; ยังไม่มี Tasks/Cloud execution. Lab 13–20 ยัง Planned ตาม [Progress](PROGRESS.md). ไม่มีการ provision GCP; Cloud verification ยังคง Not run.

@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–11 Guide-ready; Lab 12–20 ยัง Planned. Lab 10 ผ่าน CI #310/#311 ครบ 35/35 jobs; Lab 11 ผ่าน CI #315 ครบ 39/39 jobs ใน App, Infrastructure, Design และ Guide. ไม่มี GCP provisioning และ Cloud verification ยัง Not run.
+**สถานะ:** Lab 01–11 Guide-ready; Lab 12 อยู่ขั้น Design หลัง brief/architecture ผ่าน [CI #324](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40095281229) (40/40 jobs); Lab 13–20 ยัง Planned. Lab 10 ผ่าน CI #310/#311 ครบ 35/35 jobs; Lab 11 ผ่าน CI #315 ครบ 39/39 jobs. Lab 12 ยังไม่มี Tasks หรือ Cloud deployment. ไม่มี GCP provisioning และ Cloud verification ทุก Lab ยังคง Not run.
 
 ## ผลลัพธ์ปลายทาง
 
@@ -92,4 +92,4 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## สถานะดำเนินงาน
 
-Lab 01–11 Guide-ready; Lab 10 Tasks 00–14 ผ่าน [CI #310](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40088902566) (35/35 jobs). Lab 11 Tasks 00–19 ผ่าน [CI #315](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40092884085) (39/39 jobs) รวม App/Integration, Terraform validation, manifest contracts, shell syntax, guide evidence fields และ diagram/design. CI เป็นหลักฐานตรวจ repository เท่านั้น ไม่มี GCP provisioning และ Cloud verification ยังคง Not run. Lab 12–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.
+Lab 01–11 Guide-ready; Lab 12 brief/design ผ่าน [CI #324](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40095281229) (40/40 jobs) และยังไม่เริ่มเขียน Tasks; CI ตรวจ repository/render เท่านั้น ไม่มี GCP provisioning และ Cloud verification ยังคง Not run. Lab 13–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.

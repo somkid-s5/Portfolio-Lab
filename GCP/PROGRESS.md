@@ -15,7 +15,7 @@
 | 09 | [ระบบส่ง Webhook ให้ระบบคู่ค้า](LAB-009-partner-webhook-delivery/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 10 | [ระบบ Catalog ที่ใช้ Cache ลดภาระ Database](LAB-010-catalog-cache/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 11 | [ระบบคำนวณราคาเสนอค่าขนส่งบน GKE](LAB-011-gke-quote-engine/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 12 | ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้ | Planned | Not run | — |
+| 12 | [ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้](LAB-012-cross-service-tracing/README.md) | Design | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #324](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40095281229) |
 | 13 | ระบบประมวลผลข้อมูลนำเข้าแบบขนาน | Planned | Not run | — |
 | 14 | แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา | Planned | Not run | — |
 | 15 | ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud | Planned | Not run | — |
@@ -375,3 +375,5 @@ Lab11 / Brief and Design checkpoint: สรุป Quote Engine บน regional G
 Lab11 / Brief and Design verified: [CI #312](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40090486212) ผ่านครบ 36/36 jobs. Lab11 design test, pinned official-icon SHA-256 provenance, standalone HTML/SVG equality, route layout assertions และ render ที่ 960px ผ่าน; preview artifact `lab011-design-preview`. นี่เป็น repository CI เท่านั้น; no GCP provisioning; Cloud verification Not run.
 
 Lab11 / Authoring checkpoint: เพิ่ม Python Quote API/worker, Secret Manager client 2.31.0, deterministic synthetic pricing rules v1, authenticated `/v1/quotes`, internal worker path, health/readiness endpoints, bounded request validation, sanitized JSON logs, bounded HTTPS load script และ localhost end-to-end tests. App CI pending. Terraform/Kubernetes/guide Tasks ยังอยู่ระหว่างเขียน; no GCP provisioning; Cloud verification Not run.
+
+Lab 12 / Brief + Design checkpoint (2026-10-24): เพิ่ม scenario checkout จำลอง, requirements R1–R9, architecture/trade-offs/cost/access boundaries และ diagram self-contained พร้อม official GCP icons, attribution, orthogonal request/trace/log/build routes และ Noto Sans Thai fallback. [CI #324](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40095281229) ผ่าน 40/40 jobs; Lab 12 design contract/icon provenance tests และ render preview ที่ 960px ผ่าน. CI เป็น repository evidence เท่านั้น: ไม่มี GCP provisioning, Cloud verification Not run. README ยังไม่มี Tasks 00–19; ขั้นถัดไปคือทำ app/infra/test materials และ Guide ให้ Lab 12 ครบก่อนขยับ Lab 13.

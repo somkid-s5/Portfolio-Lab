@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนขอบเขตฉบับปรับใหม่ — ยังไม่ใช่คู่มือติดตั้ง และยังไม่มีผลรันทดสอบจริง
+**สถานะ:** แผนขอบเขตฉบับปรับใหม่ — ยังไม่ใช่คู่มือติดตั้ง และยังไม่มีผล Cloud run จริง. Lab 12 brief/design ผ่าน repository CI #324 (40/40 jobs); ยังไม่ใช่ Guide-ready หรือ Cloud-verified.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -486,6 +486,8 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 Lab 10 — [Catalog Cache](LAB-010-catalog-cache/README.md) — Guide-ready หลัง [CI #310](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40088902566) และ [CI #311](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40089135500) ผ่านครบ 35/35 jobs ต่อรอบ: app/TTL integration, Guide Tasks/evidence/Bash syntax/links, design/diagram และ Terraform fmt/init/validate. คู่มือมี troubleshooting, cleanup และ clean rebuild path. ไม่ได้ provision GCP; Cloud verification ยังคง Not run.
 
 Lab 11 — [GKE Quote Engine](LAB-011-gke-quote-engine/README.md) — Guide-ready หลัง [CI #315](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40092884085) ผ่านครบ 39/39 jobs. ครอบคลุม App/API-worker, Terraform foundation, regional GKE Autopilot, HTTPS Gateway, private worker, per-workload Secret Manager access, bounded HPA/load observation, logs, readiness rollback, pod recovery, pricing change request, token rotation และ cleanup. CI ตรวจ source/config เท่านั้น; ไม่ได้ provision GCP และ Cloud verification ยัง Not run.
+
+Lab 12 — [Microservices tracing](LAB-012-cross-service-tracing/README.md) — Brief + Design checkpoint ผ่าน [CI #324](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40095281229) ครบ 40/40 jobs. ยืนยัน requirements R1–R9, request/identity/telemetry flows, official icon provenance และ render diagram ที่ 960px; README ยังไม่มี Tasks 00–19 และไม่มีผลทดสอบ Cloud. ขั้นถัดไปคือสร้าง app/infra/test materials และ Guide ใน Lab นี้ก่อนเริ่ม Lab 13.
 
 ตัวอย่างรูปแบบการอ่านที่ยืนยันแล้ว: [Lab Test 2](../test/lab-test-2/README.md) เป็นตัวอย่างรูปแบบ ไม่ถือเป็นผลการทำ Lab ใด
 
