@@ -589,6 +589,8 @@ jobs:
         run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_integrations.py -v
       - name: Test private coordinator schedule and watchdog routes
         run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_coordinator.py -v
+      - name: Test daily worker idempotency and recovery workflow
+        run: .ci-lab008/bin/python -m unittest discover -s GCP/LAB-008-daily-batch-reports/tests -p test_worker.py -v
       - name: Exercise Firestore transactions against loopback emulator
         shell: bash
         run: |
