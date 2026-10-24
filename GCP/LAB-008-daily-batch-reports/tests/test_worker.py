@@ -112,16 +112,18 @@ class InMemoryObjects:
                       source_sha256, report_id):
         name = self.report_name(business_date)
         output_sha = hashlib.sha256(body).hexdigest()
-        metadata = {
-            "object": name, "generation": str(self.output_generation),
-            "sha256": output_sha, "report_id": report_id,
+        expected = {
+            "object": name, "sha256": output_sha, "report_id": report_id,
             "source_generation": source_generation, "source_sha256": source_sha256,
         }
         existing = self.outputs.get(name)
         if existing is not None:
-            if existing["body"] != body or existing["metadata"] != metadata:
+            previous = existing["metadata"]
+            if (existing["body"] != body or any(
+                    previous.get(key) != value for key, value in expected.items())):
                 raise ArtifactConflict("existing_report_mismatch")
-            return dict(existing["metadata"])
+            return dict(previous)
+        metadata = {**expected, "generation": str(self.output_generation)}
         self.output_generation += 1
         self.create_count += 1
         self.outputs[name] = {"body": body, "metadata": dict(metadata)}
