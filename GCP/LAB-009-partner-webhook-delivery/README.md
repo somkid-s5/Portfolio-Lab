@@ -7,7 +7,7 @@ last_verified: null
 ---
 # Lab 09 — ระบบส่ง Webhook ให้ระบบคู่ค้า
 
-**สถานะ:** Guide-ready — คู่มือ Tasks 00–12 พร้อมลำดับสร้าง, Deploy, ตรวจสอบ, operation, fault/recovery, change request, เก็บหลักฐาน และ cleanup พร้อม App, Terraform และ diagrams. [CI run #292](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40082684861) ผ่าน 30/30 jobs รวม Lab09 guide/domain/Firestore/infra/diagram checks; shared non-root container check ผ่านใน [CI run #291](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40082200102). เป็นผลตรวจ repository/CI เท่านั้น ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
+**สถานะ:** Guide-ready — คู่มือ Tasks 00–12 พร้อมลำดับสร้าง, Deploy, ตรวจสอบ, operation, fault/recovery, change request, เก็บหลักฐาน และ cleanup พร้อม App, Terraform และ diagrams. [CI run #293](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40082904661) ผ่าน 30/30 jobs รวม Lab09 guide/domain/Firestore/container/infra/diagram checks. เป็นผลตรวจ repository/CI เท่านั้น ไม่มี GCP provisioning และ Cloud verification ยังคง Not run.
 
 ## สถานการณ์
 

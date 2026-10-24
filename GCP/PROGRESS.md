@@ -13,7 +13,7 @@
 | 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 08 | [ระบบรายงานยอดขายรายวันและ Batch ที่รันย้อนหลังได้](LAB-008-daily-batch-reports/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 09 | [ระบบส่ง Webhook ให้ระบบคู่ค้า](LAB-009-partner-webhook-delivery/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 10 | ระบบ Catalog ที่ใช้ Cache ลดภาระ Database | Planned | Not run | — |
+| 10 | [ระบบ Catalog ที่ใช้ Cache ลดภาระ Database](LAB-010-catalog-cache/README.md) | Brief | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 11 | ระบบบริการบน GKE ที่ Deploy และขยายได้ | Planned | Not run | — |
 | 12 | ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้ | Planned | Not run | — |
 | 13 | ระบบประมวลผลข้อมูลนำเข้าแบบขนาน | Planned | Not run | — |
@@ -332,3 +332,5 @@ Lab09 / Build materials: Full CI run 40080148821 passed 28/28 jobs after the Wor
 
 
 Lab09 / Guide-ready: [CI run 40082684861](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40082684861) at commit `4a4ae31e270c97c7e5fb1a5495172062e76b89d3` passed 30/30 jobs, including Lab09 guide (13 ordered tasks, Bash syntax, local links and status boundary), domain, Firestore emulator, Terraform validation and diagram checks. Shared non-root container build/import/exclusion passed in [CI run 40082200102](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40082200102). This is repository/CI evidence only; no GCP resources were created, and Cloud verification remains Not run. Next: Lab10 Brief for Catalog caching; no Lab10 guide/task writing before its requirements and design are closed.
+
+Lab10 / Brief: เพิ่ม [README](LAB-010-catalog-cache/README.md) ที่ปิดโจทย์ Catalog metadata read-heavy, requirements R1–R10, acceptance, test/evidence intent, security/cost boundaries และ official source references. วาง solution direction เป็น Public read Cloud Run + IAM-protected operator service, private PostgreSQL source of truth, Memorystore for Redis cache-aside และ bounded before/cold/warm/failure/change measurements. ยังไม่มี Task guide, Terraform/App หรือ GCP provisioning; Cloud verification Not run. ขั้นถัดไป Lab10 Design ต้องปิด SQL private/auth, Redis network/AUTH/TLS, schema/key/invalidation/metrics, failure test, quotas/cost และ architecture diagram ก่อนเริ่ม Tasks.

@@ -483,7 +483,7 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 
 ## ลำดับถัดไป
 
-เริ่มจาก **Lab 10 — ระบบ Catalog ที่ใช้ Cache ลดภาระ Database** โดยปิด Lab brief ก่อนเขียน Tasks: ระบุผู้ใช้และ catalog read/update requirements, consistency และ freshness ที่ต้องรับประกัน, cache key/TTL/invalidation, Cloud Run/PostgreSQL/managed Redis topology, failure fallback, bounded load test, IAM/network boundaries, cost/quota/region prerequisites และ acceptance ที่วัด hit/miss, latency/error, database connections ได้จริง จากนั้นจึงออกแบบลำดับการทำและหลักฐานของ Lab10 ให้ครบใน Solution เดียว.
+Lab 10 Brief อยู่ใน [README](LAB-010-catalog-cache/README.md) แล้ว. ขั้นถัดไปคือปิด Design ก่อนเขียน Tasks: เลือกวิธีเชื่อม Cloud SQL private, IAM/database auth, Memorystore network/AUTH/TLS, schema/index, cache key/TTL/invalidation/freshness, fault injection, metrics, limits/cost และ diagram ให้สอดคล้องกัน. เมื่อ requirements และ design มีวิธีพิสูจน์ที่ปลอดภัยและทำซ้ำได้แล้ว จึงเขียน Task guide เดียวสำหรับ Lab10.
 
 ตัวอย่างรูปแบบการอ่านที่ยืนยันแล้ว: [Lab Test 2](../test/lab-test-2/README.md) เป็นตัวอย่างรูปแบบ ไม่ถือเป็นผลการทำ Lab ใด
 
