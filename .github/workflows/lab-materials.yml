@@ -1359,6 +1359,8 @@ jobs:
       - name: Compile Lab 15 Python materials
         run: python3 -m py_compile GCP/LAB-015-branch-private-connectivity/app/inventory_api.py GCP/LAB-015-branch-private-connectivity/scripts/probe.py GCP/LAB-015-branch-private-connectivity/scripts/cidr_check.py
       - name: Test Inventory API, bounded probe and CIDR preflight
+        env:
+          PYTHONPATH: GCP/LAB-015-branch-private-connectivity
         run: python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_app.py' -v && python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_probe.py' -v && python3 -m unittest discover -s GCP/LAB-015-branch-private-connectivity/tests -p 'test_cidr_check.py' -v
       - name: Build and smoke test non-root Inventory container
         run: |

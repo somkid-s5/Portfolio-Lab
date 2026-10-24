@@ -287,7 +287,7 @@ resource "google_compute_instance" "branch_probe" {
   metadata = {
     enable-oslogin = "TRUE"
   }
-  labels = { lab = "lab015", role = "branch-probe" }
+  labels     = { lab = "lab015", role = "branch-probe" }
   depends_on = [google_project_iam_member.operator_access, google_service_account_iam_member.operator_act_as]
 }
 
@@ -317,7 +317,7 @@ resource "google_compute_instance" "branch_change_probe" {
   metadata = {
     enable-oslogin = "TRUE"
   }
-  labels = { lab = "lab015", role = "branch-change-probe" }
+  labels     = { lab = "lab015", role = "branch-change-probe" }
   depends_on = [google_project_iam_member.operator_access, google_service_account_iam_member.operator_act_as]
 }
 
@@ -374,31 +374,31 @@ resource "google_compute_ha_vpn_gateway" "branch" {
 }
 
 resource "google_compute_vpn_tunnel" "hub" {
-  for_each = local.active_tunnel_pairs
-  project  = var.project_id
-  name     = format("lab015-hub-to-branch-%s", each.key)
-  region   = var.region
-  router   = google_compute_router.hub.name
-  vpn_gateway = google_compute_ha_vpn_gateway.hub.id
-  vpn_gateway_interface = each.value.hub_interface
-  peer_gcp_gateway = google_compute_ha_vpn_gateway.branch.id
-  shared_secret_wo = each.key == "a" ? var.vpn_shared_secret_a : var.vpn_shared_secret_b
+  for_each                 = local.active_tunnel_pairs
+  project                  = var.project_id
+  name                     = format("lab015-hub-to-branch-%s", each.key)
+  region                   = var.region
+  router                   = google_compute_router.hub.name
+  vpn_gateway              = google_compute_ha_vpn_gateway.hub.id
+  vpn_gateway_interface    = each.value.hub_interface
+  peer_gcp_gateway         = google_compute_ha_vpn_gateway.branch.id
+  shared_secret_wo         = each.key == "a" ? var.vpn_shared_secret_a : var.vpn_shared_secret_b
   shared_secret_wo_version = var.vpn_secret_version
-  ike_version = 2
+  ike_version              = 2
 }
 
 resource "google_compute_vpn_tunnel" "branch" {
-  for_each = local.active_tunnel_pairs
-  project  = var.project_id
-  name     = format("lab015-branch-to-hub-%s", each.key)
-  region   = var.region
-  router   = google_compute_router.branch.name
-  vpn_gateway = google_compute_ha_vpn_gateway.branch.id
-  vpn_gateway_interface = each.value.branch_interface
-  peer_gcp_gateway = google_compute_ha_vpn_gateway.hub.id
-  shared_secret_wo = each.key == "a" ? var.vpn_shared_secret_a : var.vpn_shared_secret_b
+  for_each                 = local.active_tunnel_pairs
+  project                  = var.project_id
+  name                     = format("lab015-branch-to-hub-%s", each.key)
+  region                   = var.region
+  router                   = google_compute_router.branch.name
+  vpn_gateway              = google_compute_ha_vpn_gateway.branch.id
+  vpn_gateway_interface    = each.value.branch_interface
+  peer_gcp_gateway         = google_compute_ha_vpn_gateway.hub.id
+  shared_secret_wo         = each.key == "a" ? var.vpn_shared_secret_a : var.vpn_shared_secret_b
   shared_secret_wo_version = var.vpn_secret_version
-  ike_version = 2
+  ike_version              = 2
 }
 
 resource "google_compute_router_interface" "hub" {
@@ -422,27 +422,27 @@ resource "google_compute_router_interface" "branch" {
 }
 
 resource "google_compute_router_peer" "hub" {
-  for_each                   = local.active_tunnel_pairs
-  project                    = var.project_id
-  name                       = format("lab015-hub-peer-%s", each.key)
-  region                     = var.region
-  router                     = google_compute_router.hub.name
-  interface                  = google_compute_router_interface.hub[each.key].name
-  peer_asn                   = 64515
-  peer_ip_address            = each.value.hub_peer_ip
-  advertised_route_priority  = 100
+  for_each                  = local.active_tunnel_pairs
+  project                   = var.project_id
+  name                      = format("lab015-hub-peer-%s", each.key)
+  region                    = var.region
+  router                    = google_compute_router.hub.name
+  interface                 = google_compute_router_interface.hub[each.key].name
+  peer_asn                  = 64515
+  peer_ip_address           = each.value.hub_peer_ip
+  advertised_route_priority = 100
 }
 
 resource "google_compute_router_peer" "branch" {
-  for_each                   = local.active_tunnel_pairs
-  project                    = var.project_id
-  name                       = format("lab015-branch-peer-%s", each.key)
-  region                     = var.region
-  router                     = google_compute_router.branch.name
-  interface                  = google_compute_router_interface.branch[each.key].name
-  peer_asn                   = 64514
-  peer_ip_address            = each.value.branch_peer_ip
-  advertised_route_priority  = 100
+  for_each                  = local.active_tunnel_pairs
+  project                   = var.project_id
+  name                      = format("lab015-branch-peer-%s", each.key)
+  region                    = var.region
+  router                    = google_compute_router.branch.name
+  interface                 = google_compute_router_interface.branch[each.key].name
+  peer_asn                  = 64514
+  peer_ip_address           = each.value.branch_peer_ip
+  advertised_route_priority = 100
 }
 
 resource "google_compute_address" "inventory_vip" {

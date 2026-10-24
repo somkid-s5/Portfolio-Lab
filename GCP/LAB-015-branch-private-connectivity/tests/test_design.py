@@ -44,7 +44,7 @@ class DiagramTests(unittest.TestCase):
         decoded = [base64.b64decode(value) for value in embedded]
         self.assertGreaterEqual(len(decoded), len(PROVENANCE["icons"]))
         for filename, source in PROVENANCE["icons"].items():
-            icon = (ROOT / source["path"].removeprefix("assets/")).read_bytes()
+            icon = (ROOT / source["path"]).read_bytes()
             git_blob = b"blob " + str(len(icon)).encode("ascii") + b"\x00" + icon
             self.assertEqual(hashlib.sha1(git_blob).hexdigest(), source["git_blob_sha"], filename)
             self.assertIn(icon, decoded, filename)
