@@ -3,11 +3,6 @@ locals {
   service_name = "lab008-coordinator"
   report_scheduler_name = "lab008-report-schedule"
   watchdog_scheduler_name = "lab008-watchdog"
-  runtime_accounts = {
-    coordinator = var.coordinator_service_account
-    worker      = var.worker_service_account
-    scheduler   = var.scheduler_service_account
-  }
   common_environment = {
     GOOGLE_CLOUD_PROJECT = var.project_id
     FIRESTORE_DATABASE   = var.firestore_database
@@ -16,25 +11,14 @@ locals {
     REPORT_BUCKET        = var.report_bucket
     REPORT_READY_TOPIC   = var.report_ready_topic
   }
-  report_scheduler_resource = "projects/${var.project_id}/locations/${var.region}/jobs/${local.report_scheduler_name}"
+  report_scheduler_resource   = "projects/${var.project_id}/locations/${var.region}/jobs/${local.report_scheduler_name}"
   watchdog_scheduler_resource = "projects/${var.project_id}/locations/${var.region}/jobs/${local.watchdog_scheduler_name}"
-}
-
-data "google_project" "current" {
-  project_id = var.project_id
 }
 
 resource "google_project_service_identity" "scheduler" {
   provider = google-beta
   project  = var.project_id
   service  = "cloudscheduler.googleapis.com"
-}
-
-resource "google_service_account_iam_member" "operator_act_as" {
-  for_each = local.runtime_accounts
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${each.value}"
-  role               = "roles/iam.serviceAccountUser"
-  member             = var.operator_member
 }
 
 resource "google_cloud_run_v2_service" "coordinator" {
@@ -76,8 +60,8 @@ resource "google_cloud_run_v2_service" "coordinator" {
         for_each = merge(local.common_environment, {
           RUN_REGION                    = var.region
           RUN_JOB_NAME                  = local.job_name
-          REPORT_SCHEDULER_JOB_NAME     = local.report_scheduler_resource
-          WATCHDOG_SCHEDULER_JOB_NAME   = local.watchdog_scheduler_resource
+          REPORT_SCHEDULER_JOB_NAME   = local.report_scheduler_resource
+          WATCHDOG_SCHEDULER_JOB_NAME = local.watchdog_scheduler_resource
         })
         content {
           name  = env.key
@@ -165,6 +149,12 @@ resource "google_project_iam_member" "operator_diagnostics" {
   project = var.project_id
   role    = each.value
   member  = var.operator_member
+}
+
+resource "google_storage_bucket_iam_member" "operator_source_uploader" {
+  bucket = var.source_bucket
+  role   = "roles/storage.objectCreator"
+  member = var.operator_member
 }
 
 resource "google_storage_bucket_iam_member" "operator_report_reader" {
