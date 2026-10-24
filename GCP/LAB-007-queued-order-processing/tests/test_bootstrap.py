@@ -195,7 +195,7 @@ class BootstrapTests(unittest.TestCase):
         admin("INSERT INTO public.bootstrap_ci_existing VALUES (17)")
         with self.assertRaisesRegex(ValueError,"existing_public_application_objects_refused"):
             self.run_install()
-        self.assertEqual(admin("SELECT id FROM public.bootstrap_ci_existing"),[[17]])
+        self.assertEqual([row[0] for row in admin("SELECT id FROM public.bootstrap_ci_existing")],[17])
         self.assertFalse(admin("SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='lab007')")[0][0])
         self.assertEqual(admin("SELECT count(*) FROM pg_roles WHERE rolname IN ('order_api','order_worker','outbox_dispatcher')")[0][0],0)
 
