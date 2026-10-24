@@ -371,7 +371,7 @@ gcloud storage objects describe "gs://$REPORT_BUCKET/$REPORT_OBJECT" --format='v
 
 สร้างวันที่ทดสอบอีกวันภายในช่วง 7 วันย้อนหลัง (ตัวอย่างใช้สองวันก่อนวันนี้) และยืนยันว่าไม่มี object/ledger ของวันนั้นก่อนเริ่ม. สร้าง input ที่ถูกต้องไว้หนึ่งชุด แล้วสร้าง invalid copy โดยเปลี่ยน currency ของแถวแรกเป็น USD:
 
-~~~~bash
+~~~bash
 cd ../..
 export RECOVERY_DATE="$(TZ=Asia/Bangkok date -d '2 days ago' +%F)"
 python3 scripts/generate_input.py --business-date "$RECOVERY_DATE" --output "/tmp/lab008-valid-$RECOVERY_DATE.csv"
