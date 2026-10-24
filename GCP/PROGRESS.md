@@ -11,7 +11,7 @@
 | 05 | [ระบบสั่งซื้อสามชั้นบน VM](LAB-005-three-tier-orders/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 06 | [ระบบรับไฟล์ยอดขายและสร้างรายงานส่วนตัว](LAB-006-private-file-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 07 | [ระบบรับคำสั่งซื้อและประมวลผลงานผ่าน Queue](LAB-007-queued-order-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 08 | [ระบบรายงานยอดขายรายวันและ Batch ที่รันย้อนหลังได้](LAB-008-daily-batch-reports/README.md) | Design | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 08 | [ระบบรายงานยอดขายรายวันและ Batch ที่รันย้อนหลังได้](LAB-008-daily-batch-reports/README.md) | Authoring | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 09 | ระบบส่ง Webhook ให้ระบบคู่ค้า | Planned | Not run | — |
 | 10 | ระบบ Catalog ที่ใช้ Cache ลดภาระ Database | Planned | Not run | — |
 | 11 | ระบบบริการบน GKE ที่ Deploy และขยายได้ | Planned | Not run | — |
@@ -314,4 +314,4 @@ Lab 07: Guide-ready — [CI run 40067214073](https://github.com/somkid-s5/Portfo
 
 Lab 08 / Brief: กำหนดโจทย์ Daily Sales Close สำหรับรายงานสรุปยอดขายสังเคราะห์รายวัน พร้อม timezone ที่ชัดเจน, การตรวจ missed/late run, การ retry/overlap/backfill, immutable report artifacts และ report-ready notification event แล้ว; แนวทางตั้งต้นคือ Cloud Scheduler แบบ OIDC → coordinator → Cloud Run Job, ใช้ Firestore run ledger และ Cloud Storage, โดยต้องปิด IAM/state transition/notification recovery/cost ใน Design ก่อนสร้าง App หรือ Tasks. ไม่มี GCP provisioning; Cloud verification Not run.
 
-Lab 08 / Design: ปิด schedule/business-date contract (Asia/Bangkok 01:15, date จาก scheduled timestamp), OIDC coordinator→Cloud Run Job override, Firestore claim/lease/fence, generation-bound source, create-only report artifact และ recoverable Pub/Sub notification state แล้ว; bounded retry, missed-run status/backfill และ 7-day/2-concurrency change request ระบุชัด. SVG topology/run-flow และ CI icon/render checks เพิ่มใน checkpoint นี้; ต้องผ่าน CI และตรวจ preview ก่อนเริ่ม Materials. ไม่มี GCP provisioning; Cloud verification Not run.
+Lab 08 / Design complete: ยืนยัน business-date/timezone, OIDC/IAM boundary, Firestore lease/fencing, immutable generation-bound artifacts, notification recovery, watchdog/alert, retry/backfill/cost และ cleanup contracts. ตรวจ topology กับ execution/recovery preview ที่ 960px; [CI run 40069925989, job lab008-diagrams](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40069925989) ผ่าน icon provenance, SVG validation และ render. PNG previews ที่ review แล้วเผยแพร่ใน assets. เริ่ม Materials/Authoring ต่อได้; ยังไม่มี App, Terraform guide หรือ Tasks, ไม่มี GCP provisioning และ Cloud verification Not run.
