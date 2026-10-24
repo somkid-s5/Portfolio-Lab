@@ -11,7 +11,7 @@ spec:
         autoscaling.knative.dev/maxScale: "2"
         run.googleapis.com/cpu-throttling: "true"
     spec:
-      serviceAccountName: lab014-runtime@$PROJECT_ID.iam.gserviceaccount.com
+      serviceAccountName: lab014-runtime@invalid-project.iam.gserviceaccount.com # from-param: ${runtime-service-account}
       containerConcurrency: 40
       timeoutSeconds: 30
       containers:

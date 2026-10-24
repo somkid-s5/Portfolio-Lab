@@ -1297,6 +1297,7 @@ jobs:
           done
           test "$ready" -eq 1
           python -c 'import json,urllib.request; d=json.load(urllib.request.urlopen("http://127.0.0.1:18080/api/v1/quote?origin=BKK&destination=CNX&weight_kg=5", timeout=3)); assert d["total_thb"] == "455.00", d'
+          docker run --rm --entrypoint python lab014-quote-api:ci /srv/quote-api/tools/verify_quote.py --help
   lab014-design:
     runs-on: ubuntu-latest
     timeout-minutes: 10

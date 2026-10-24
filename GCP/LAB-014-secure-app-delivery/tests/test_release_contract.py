@@ -17,6 +17,10 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertEqual(config["manifests"]["rawYaml"], ["deploy/service-staging.yaml"])
         self.assertEqual(config["profiles"][0]["manifests"]["rawYaml"], ["deploy/service-production.yaml"])
         self.assertIn("/srv/quote-api/tools/verify_quote.py", config["verify"][0]["container"]["command"])
+        for service_file in ("service-staging.yaml", "service-production.yaml"):
+            text = (ROOT / "deploy" / service_file).read_text(encoding="utf-8")
+            self.assertIn("# from-param: ${runtime-service-account}", text)
+            self.assertIn("invalid-project", text)
 
     def test_cloud_deploy_requires_staging_verify_and_approved_canary(self):
         pipeline, staging, production = yaml.safe_load_all(
@@ -44,7 +48,7 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertEqual(production["metadata"]["name"], "quote-api-production")
         for service in (staging, production):
             spec = service["spec"]["template"]["spec"]
-            self.assertEqual(spec["serviceAccountName"], "lab014-runtime@$PROJECT_ID.iam.gserviceaccount.com")
+            self.assertIn("invalid-project", spec["serviceAccountName"])
             container = spec["containers"][0]
             self.assertEqual(container["image"], "shipping-quote-api")
             self.assertEqual(container["resources"]["limits"], {"cpu": "1", "memory": "512Mi"})
