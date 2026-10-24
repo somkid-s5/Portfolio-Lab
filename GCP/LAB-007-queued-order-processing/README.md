@@ -13,7 +13,7 @@ last_verified: null
 
 Solution นี้ชื่อ **Order Queue Desk** ผลสำเร็จทางธุรกิจคือจองสต็อกและเปลี่ยนคำสั่งซื้อเป็น confirmed ไม่ใช่การตัดเงิน ส่งสินค้า หรือรับประกัน exactly-once ของบริการภายนอก
 
-**สถานะ:** กำลังสร้าง Materials — มี Portal/Queue worker/dispatcher, PostgreSQL transactions และ serving image ที่ตรวจใน CI แล้ว แต่ยังขาด bootstrap, infrastructure, Diagram และคู่มือครบทุก Task จึงยังไม่ Guide-ready และไม่มีผลทดสอบ GCP จริง
+**สถานะ:** กำลังสร้าง Materials — มี Portal/Queue worker/dispatcher, PostgreSQL transactions และ serving image ที่ตรวจใน CI แล้ว แต่ยังขาดขั้นจัดเตรียม Secret บน Cloud, infrastructure, เครื่องมือทดสอบ fault/load, Diagram และคู่มือครบทุก Task จึงยังไม่ Guide-ready และไม่มีผลทดสอบ GCP จริง
 
 ## ผู้ใช้และงานที่ต้องทำได้
 
@@ -512,3 +512,52 @@ Expected เมื่อ RPC ตอบรับ: ack_request=accepted และ 
 [CI40014805061](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40014805061) / source08a64c0153b77b59645fd648f349218e13a760ec: jobs ของ Lab07 ผ่าน **139 tests** (34pure/client +105SDK/HTTP/runtime/auth/PG/browser) รวม SQL43/API17/DLQ15 ภายใน [browser/HTTPS journey](tests/test_browser_journey.py) ตัว operator client อ่าน terminal proof และบันทึก audit ผ่าน Portal/PostgreSQL จริงก่อน ack ไปยัง Pub/Sub double ตรวจ audit เพิ่มเฉพาะ approval ที่ตั้งใจ และ order/stock/processed ledger ไม่เปลี่ยนเพิ่ม
 
 อีก3 CLI tests สำหรับ inspect/private receipts, ack workflow/journal และ lost-audit-response เพิ่มภายหลัง source นี้ ผ่านแล้วใน [CI40015022666](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40015022666) / source34b0e1b9781ee829560e1b5d8ec67b775a9f69e5 รวม Lab07 เป็น142tests (34pure+108SDK/HTTP/runtime/auth/PG/browser); jobs120626108734/120626108421/120626108328 completed success ตัวอย่าง forwarded metadata/poison ใน CI เป็น fixture ตาม contract ไม่ใช่ broker-forwarded message จริง จึงยังต้องกรอกผล source IAM/forwarding/dead-letter/ack บน GCP ในขั้นลงมือ
+
+## Bootstrap ฐานข้อมูลใหม่โดยไม่ reset ระบบเดิม
+
+ใช้ [bootstrap image แยก](bootstrap/Dockerfile) รัน [one-off Job](bootstrap/run.py) ก่อนเปิด Portal/dispatcher/worker ไม่ใช้ serving service ทำ DDL หรือโหลด admin Secret ระหว่างรับ request ตัว image รัน non-root และมีเฉพาะ installer/runtime, SQL สองไฟล์ และตัวตรวจ JSON ไม่คัดลอก private bundles หรือโค้ด serving ทั้งชุด
+
+[Installer](bootstrap/installer.py) รองรับ PostgreSQL16 และ database order_queue ของ dedicated instance เท่านั้น เริ่มด้วย transaction/advisory lock เพื่อให้การติดตั้งพร้อมกันมีเพียงรอบเดียวสร้าง schema/seed/roles รอบถัดไปต้องเห็น receipt ของ release และ bundle ชุดเดิม
+
+**ครั้งแรก:** ต้องไม่มี lab007 schema/runtime roles และไม่มีตาราง/view/sequence/foreign table ของแอปเดิมใน public schema ที่ไม่ใช่ของ extension หากพบให้หยุดตรวจ project/instance/database เป้าหมายและเลือก sandbox ใหม่ ไม่ drop ของเดิมเพื่อให้ guard ผ่าน Installer ไม่ adopt role ของระบบอื่น ไม่ใช้ CREATE IF NOT EXISTS ซ่อนการติดตั้งที่ไม่ครบ
+
+การสร้าง schema/seed/grants, เปิด LOGIN ของ runtime roles และ bootstrap receipt อยู่ใน transaction เดียว หากขั้นกลางล้มทั้งหมด rollback ไม่เหลือ role หรือ seed ที่ต้องลบทิ้งด้วยมือก่อนลองใหม่
+
+**รันซ้ำ:** ต้องตรงทั้ง manifest ของ SQL และ fingerprint ของ private runtime bundles ตรวจ schema/seed version, role attributes/connection limits/memberships และ effective table/column grants ไม่เขียน stock, order, ledger หรือรหัสผ่านใหม่ หาก schema ไม่มี receipt, release/bundle เปลี่ยน หรือสิทธิ์ drift ให้หยุด ไม่ซ่อมด้วยการ reset เงียบ ๆ
+
+รหัสผ่าน runtime ใช้ชุดที่สร้างไว้ใน secrets/db-portal.json, db-worker.json และ db-dispatcher.json Installer สร้าง SCRAM-SHA-256 verifier ในหน่วยความจำแล้วส่ง verifier แทน plaintext SQL password literal PostgreSQL รองรับ pre-encrypted SCRAM ตาม [CREATE ROLE](https://www.postgresql.org/docs/16/sql-createrole.html) verifier ยังเป็นข้อมูลอ่อนไหว จึงไม่เปิด debug/statement logging ระหว่าง bootstrap และไม่เผยแพร่ SQL traces/private bundles
+
+บัญชี postgres ของ Cloud SQL ไม่ใช่ PostgreSQL superuser แบบเต็ม ให้ใช้ SQL roles ที่กำหนดสิทธิ์จำกัด ไม่สร้าง runtime users ด้วยเส้นทางที่เพิ่ม cloudsqlsuperuser อัตโนมัติ อ้างอิง [Cloud SQL users and roles](https://docs.cloud.google.com/sql/docs/postgres/users) การทดสอบ CI จึงใช้ installer ที่มี CREATEDB/CREATEROLE แต่ NOSUPERUSER แยกจากบัญชีตั้ง service container
+
+### Job configuration ที่ต้องตรงกับ deployment
+
+| ค่า | สิ่งที่ Job ยอมรับ |
+|---|---|
+| CLOUD_RUN_JOB / SERVICE_ROLE | lab007-bootstrap / bootstrap; ไม่ยอมรันเป็น serving K_SERVICE |
+| GOOGLE_CLOUD_PROJECT | sandbox project ของ Lab |
+| SQL_INSTANCE_CONNECTION_NAME | project:asia-southeast1:lab007-orders |
+| BOOTSTRAP_SECRET_VERSION | เวอร์ชันตัวเลขของ /secrets/bootstrap/db.json |
+| PORTAL_DB_SECRET_VERSION | เวอร์ชันตัวเลขของ /secrets/portal/db.json |
+| WORKER_DB_SECRET_VERSION | เวอร์ชันตัวเลขของ /secrets/worker/db.json |
+| DISPATCHER_DB_SECRET_VERSION | เวอร์ชันตัวเลขของ /secrets/dispatcher/db.json |
+
+admin bundle ต้องเป็น postgres/order_queue ส่วนสาม runtime bundles ต้องเป็น order_api/order_worker/outbox_dispatcher ตาม role ที่กำหนด ไม่ใช้ latest, GOOGLE_APPLICATION_CREDENTIALS, PGHOST หรือ public-IP fallback เป็นทางแก้เมื่อ bootstrap ไม่เชื่อมต่อ
+
+Connector ใช้ PRIVATE/LAZY/TLS และ attached Job identity พร้อม Direct VPC egress ที่ต้องสร้างใน infrastructure หลัง install/recheck จะ **ปิด admin connection ก่อน** แล้วเชื่อมด้วย credentials ของแต่ละ runtime role ทีละรายการ ตรวจ current_user/current_database/schema version จริง ไม่ใช้ SET ROLE แทนการตรวจ login ในขั้นนี้
+
+Expected เมื่อครบทุกขั้น: disposition=installed หรือ already_installed, schema_version1/seed_version catalog-v1 และ runtime_logins_checked3 ไม่แสดง password, credential fingerprint หรือ SCRAM verifier บน stdout
+
+หากคำตอบ commit หาย หรือ runtime probe ล้มหลัง install อาจมีการ commit สำเร็จแล้ว Job จึงรายงาน bootstrap_not_confirmed/exit2 ให้ตรวจ dependency/Secret/version แล้วรันด้วย **image และ private bundles เดิม** เพื่อ resolve receipt ห้าม generate credentials ใหม่หรือล้าง schema เพื่อแก้ unknown outcome Bootstrap นี้ไม่ใช่ migration, password rotation, backup หรือ restore workflow
+
+
+รหัส reason ที่อนุญาตแสดงช่วยแยกสาเหตุโดยไม่พิมพ์ exception ตรง ๆ: existing_installation_mismatch_no_changes ให้ตรวจ release และ bundle เดิม; runtime_*_drift ให้ตรวจสิทธิ์เทียบ baseline ไม่ใช่ reset; required_file_unavailable ให้ตรวจ Secret mount/image; dependency_or_installation_unconfirmed ให้ตรวจ IAM/private path/DB connectivity และ resolve ด้วย bundle เดิม
+
+### ขอบเขตหลักฐาน Bootstrap
+
+[CI40062382480](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40062382480) / source043f8fb381e04433c9191f5b5bcca31a50b38620: jobs ของ Lab07 ผ่านรวม **158 tests** (34pure/client +108SDK/HTTP/runtime/auth/PG/browser +16bootstrap), พร้อม serving/bootstrap image checks
+
+[11 PostgreSQL bootstrap tests](tests/test_bootstrap.py) ใช้ฐาน lab007_bootstrap_ci แยกจาก app integration และใช้ installer NOSUPERUSER ที่มี CREATEROLE/CREATEDB ตรวจ SCRAM authentication ด้วยการ login ของ runtime roles จริง, concurrent install, partial rollback, commit reply lost, same-bundle rerun หลังธุรกรรม, changed credentials/release, preexisting role/schema/application table และ grant drift
+
+[5 bootstrap runtime tests](tests/test_bootstrap_runtime.py) ใช้ Connector mock เฉพาะ Google control-plane contract เพื่อยืนยัน private/LAZY/numeric mounts/job guards, การปิด admin ก่อน probes ทีละ role, failure cleanup และ stdout sanitization ไม่อ้างว่าได้เชื่อม private Cloud SQL ผ่าน Cloud Run จริง
+
+image build/import/exclusion ผ่าน UID10001; schema/role SQL อยู่เฉพาะ bootstrap image ไม่ใช่ serving image ขั้นถัดไปต้องเตรียม Secret/version และ infrastructure ให้ครบก่อนผู้เรียนรัน Job บน GCP ช่องผล Cloud ยัง Not run ไม่ถือ container CI เป็นหลักฐาน IAM/network/Secret mounts หรือ Cloud SQL login จริง
