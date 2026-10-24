@@ -81,7 +81,9 @@ def _base(component, database_health, body_limit):
     return app,error
 
 
-def create_worker(repository, expected_subscription, *, database_health):
+def create_worker(repository, expected_subscription, *, database_health, fault_mode="off"):
+    if fault_mode not in ("off", "retryable_503"):
+        raise ValueError("invalid_worker_fault_mode")
     if not isinstance(expected_subscription,str) or not re.fullmatch(
             r"projects/[a-z0-9-]{6,63}/subscriptions/[A-Za-z][A-Za-z0-9._~-]{2,254}",
             expected_subscription):
@@ -99,6 +101,8 @@ def create_worker(repository, expected_subscription, *, database_health):
         g.identifiers = {"event_id":delivery.event.event_id,
                          "order_id":delivery.event.order_id,
                          "message_id":delivery.message_id}
+        if fault_mode == "retryable_503":
+            return error("lab_fault_retryable", 503)
         try:
             result = repository.process(delivery.event)
         except Conflict as exc:

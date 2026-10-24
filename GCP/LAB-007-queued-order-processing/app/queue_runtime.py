@@ -15,9 +15,10 @@ def build_worker():
     try:
         repository = Orders(database.connect)
         project = os.environ["GOOGLE_CLOUD_PROJECT"]
+        fault_mode = os.environ.get("LAB007_WORKER_FAULT_MODE", "off")
         app = create_worker(repository,
             f"projects/{project}/subscriptions/lab007-orders-worker",
-            database_health=repository.health)
+            database_health=repository.health, fault_mode=fault_mode)
     except BaseException:
         database.close()
         raise

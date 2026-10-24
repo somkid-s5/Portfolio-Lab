@@ -169,6 +169,9 @@ resource "google_cloud_run_v2_service" "app" {
           each.key == "portal" ? {
             AUTH_FILE           = "/secrets/auth/auth.json"
             AUTH_SECRET_VERSION = var.secret_versions.auth
+          } : {},
+          each.key == "worker" ? {
+            LAB007_WORKER_FAULT_MODE = var.worker_fault_mode
           } : {}
         )
         content {

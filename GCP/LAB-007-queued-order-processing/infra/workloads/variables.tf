@@ -59,6 +59,16 @@ variable "worker_max_instances" {
   }
 }
 
+variable "worker_fault_mode" {
+  type        = string
+  default     = "off"
+  description = "Lab-only retryable 503 before any Worker database write; default off."
+  validation {
+    condition     = contains(["off", "retryable_503"], var.worker_fault_mode)
+    error_message = "Use off or the controlled retryable_503 exercise mode."
+  }
+}
+
 variable "operator_member" {
   type        = string
   default     = ""

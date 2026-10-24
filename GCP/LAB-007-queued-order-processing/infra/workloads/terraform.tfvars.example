@@ -16,4 +16,5 @@ secret_versions = {
 # Optional; example: "user:you@example.com"
 operator_member     = ""
 worker_max_instances = 1
+worker_fault_mode    = "off"
 allow_destroy        = false

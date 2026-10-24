@@ -85,6 +85,20 @@ class HTTPTests(unittest.TestCase):
         self.assertEqual(response.status_code,400)
         self.assertEqual(response.json["error"],"event_binding_mismatch")
 
+    def test_lab_retryable_fault_nacks_valid_delivery_before_database_write(self):
+        app=create_worker(self.repo,SUB,database_health=self.health,
+                          fault_mode="retryable_503")
+        response=app.test_client().post("/events/orders",json=push())
+        self.assertEqual(response.status_code,503)
+        self.assertEqual(response.json["error"],"lab_fault_retryable")
+        self.repo.process.assert_not_called()
+        record=json.loads(self.output.call_args.args[0])
+        self.assertEqual(record["outcome"],"lab_fault_retryable")
+
+    def test_unknown_worker_fault_mode_fails_closed(self):
+        with self.assertRaisesRegex(ValueError,"invalid_worker_fault_mode"):
+            create_worker(self.repo,SUB,database_health=self.health,fault_mode="drop_database")
+
     def test_body_mimetype_subscription_and_method_bounds(self):
         self.assertEqual(self.client.post("/events/orders",data=b"x"*65537,
                                          content_type="application/json").status_code,413)

@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 from pathlib import Path
@@ -14,6 +15,7 @@ LAB=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(LAB/"app"))
 import database
 import queue_runtime
+from order_domain import event_bytes
 
 
 def environment(role="worker"):
@@ -125,6 +127,21 @@ class DatabaseTests(unittest.TestCase):
             self.assertEqual(app.test_client().get("/livez").status_code,200)
             repo.health.assert_not_called()
             register.assert_called_once_with(db.close)
+
+    def test_worker_factory_passes_private_retryable_fault_switch(self):
+        db,repo=Mock(),Mock()
+        subscription="projects/demo-lab007/subscriptions/lab007-orders-worker"
+        with patch.object(queue_runtime,"build_database",return_value=db), \
+             patch.object(queue_runtime,"Orders",return_value=repo), \
+             patch.object(queue_runtime.atexit,"register"), \
+             patch.dict(os.environ,{"GOOGLE_CLOUD_PROJECT":"demo-lab007",
+                                   "LAB007_WORKER_FAULT_MODE":"retryable_503"},clear=True):
+            app=queue_runtime.build_worker()
+            payload={"subscription":subscription,"message":{"messageId":"ci-message",
+                "data":base64.b64encode(event_bytes("a"*32,"b"*32,"c"*64)).decode("ascii")}}
+            response=app.test_client().post("/events/orders",json=payload)
+            self.assertEqual(response.status_code,503)
+            repo.process.assert_not_called()
 
     def test_dispatcher_factory_owns_and_closes_its_resources(self):
         db,publisher=Mock(),Mock()
