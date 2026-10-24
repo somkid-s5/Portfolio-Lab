@@ -483,9 +483,9 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 
 ## ลำดับถัดไป
 
-เริ่มจาก **Lab 01** โดยทำ Lab brief ให้ชัดก่อน: สถานการณ์, requirements/acceptance, architecture, App behavior, fault/change scenarios และทรัพยากรที่ต้องใช้ จากนั้นค่อยเขียนคู่มือและตรวจทีละ Task จนจบ Solution ก่อนเริ่ม Lab 02
+เริ่มจาก **Lab 10 — ระบบ Catalog ที่ใช้ Cache ลดภาระ Database** โดยปิด Lab brief ก่อนเขียน Tasks: ระบุผู้ใช้และ catalog read/update requirements, consistency และ freshness ที่ต้องรับประกัน, cache key/TTL/invalidation, Cloud Run/PostgreSQL/managed Redis topology, failure fallback, bounded load test, IAM/network boundaries, cost/quota/region prerequisites และ acceptance ที่วัด hit/miss, latency/error, database connections ได้จริง จากนั้นจึงออกแบบลำดับการทำและหลักฐานของ Lab10 ให้ครบใน Solution เดียว.
 
-ตัวอย่างรูปแบบการอ่านที่ยืนยันแล้ว: [Lab Test 2](../test/lab-test-2/README.md) เป็นตัวอย่างรูปแบบ ไม่ถือเป็นผลการทำ Lab 01
+ตัวอย่างรูปแบบการอ่านที่ยืนยันแล้ว: [Lab Test 2](../test/lab-test-2/README.md) เป็นตัวอย่างรูปแบบ ไม่ถือเป็นผลการทำ Lab ใด
 
 ## แหล่งอ้างอิงในการจัดขอบเขต
 

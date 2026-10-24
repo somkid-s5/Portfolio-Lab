@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–08 Guide-ready; Lab 09 กำลังทำ Build materials; Lab 10–20 ยัง Planned
+**สถานะ:** Lab 01–09 Guide-ready; Lab 10 เป็นลำดับถัดไปสำหรับ Brief; Lab 11–20 ยัง Planned
 
 ## ผลลัพธ์ปลายทาง
 
@@ -88,8 +88,8 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## ข้อความตั้ง Goal ที่พร้อมใช้
 
-> จัดทำ GCP Solution Labs ทั้ง 20 เรื่องใน repository somkid-s5/Portfolio-Lab ตาม PLAN.md และ GCP/ROADMAP.md ให้ครบระดับ Guide-ready ทำทีละ Lab เริ่มจาก Lab 01: วาง brief และ architecture ให้ชัดก่อนเขียน Task/README พร้อม App, scripts, Diagram และการตรวจที่เหมาะสม เมื่อ Lab ปัจจุบันผ่าน self-review แล้วจึงไป Lab ถัดไป บันทึกงานบน GitHub ผ่าน branch/PR และอัปเดต GCP/PROGRESS.md ทุก checkpoint ทำใน Cloud โดยไม่พึ่ง laptop ไม่สร้างทรัพยากร GCP ที่คิดค่าใช้จ่าย ไม่ deploy เว็บไซต์ Portfolio และไม่อ้าง Cloud-verified เมื่อยังไม่ได้รันจริง
+> จัดทำ GCP Solution Labs ทั้ง 20 เรื่องใน repository somkid-s5/Portfolio-Lab ตาม PLAN.md และ GCP/ROADMAP.md ให้ครบระดับ Guide-ready ทำทีละ Lab เริ่มจาก Lab ที่ยังไม่ Guide-ready ลำดับถัดไป: วาง brief และ architecture ให้ชัดก่อนเขียน Task/README พร้อม App, scripts, Diagram และการตรวจที่เหมาะสม เมื่อ Lab ปัจจุบันผ่าน self-review แล้วจึงไป Lab ถัดไป บันทึกงานบน GitHub ผ่าน branch/PR และอัปเดต GCP/PROGRESS.md ทุก checkpoint ทำใน Cloud โดยไม่พึ่ง laptop ไม่สร้างทรัพยากร GCP ที่คิดค่าใช้จ่าย ไม่ deploy เว็บไซต์ Portfolio และไม่อ้าง Cloud-verified เมื่อยังไม่ได้รันจริง
 
 ## สถานะดำเนินงาน
 
-Lab 01–08 Guide-ready; Lab 09 ปิด Brief/Design แล้วและกำลังทำ Build materials; Lab 10–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md; ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานทดสอบบน GCP จริง.
+Lab 01–09 Guide-ready; Lab 10 เป็นลำดับถัดไปสำหรับ Brief; Lab 11–20 ยัง Planned. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md; ทุก Lab ยังคง Cloud verification: Not run จนกว่าจะมีหลักฐานทดสอบบน GCP จริง.
