@@ -1,0 +1,13 @@
+**
+!bootstrap/
+!bootstrap/Dockerfile
+!bootstrap/requirements.txt
+!bootstrap/run.py
+!bootstrap/installer.py
+!sql/
+!sql/schema.sql
+!sql/roles.sql
+!app/
+!app/order_domain.py
+**/__pycache__/
+**/*.pyc

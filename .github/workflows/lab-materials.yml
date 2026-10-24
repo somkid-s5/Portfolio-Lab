@@ -546,5 +546,12 @@ jobs:
         run: |
           python3 -m venv .ci-lab007-bootstrap
           .ci-lab007-bootstrap/bin/pip install -r GCP/LAB-007-queued-order-processing/requirements.txt
+      - name: Verify attached bootstrap Job guards private Connector and sequential login probes
+        run: .ci-lab007-bootstrap/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_bootstrap_runtime.py -v
       - name: Verify first-install rollback no-reset and real runtime SCRAM logins without superuser
         run: timeout 180s .ci-lab007-bootstrap/bin/python -m unittest discover -s GCP/LAB-007-queued-order-processing/tests -p test_bootstrap.py -v
+      - name: Build isolated nonroot bootstrap image without credentials or cloud calls
+        run: docker build -f GCP/LAB-007-queued-order-processing/bootstrap/Dockerfile -t lab007-bootstrap:ci GCP/LAB-007-queued-order-processing
+      - name: Check bootstrap image imports and excludes serving code private bundles and tests
+        run: |
+          docker run --rm --entrypoint python lab007-bootstrap:ci -c "import os,pathlib,installer,run; assert os.getuid()==10001; assert pathlib.Path('/srv/sql/schema.sql').is_file(); assert pathlib.Path('/srv/app/order_domain.py').is_file(); assert not pathlib.Path('/srv/app/portal_runtime.py').exists(); assert not pathlib.Path('/srv/secrets').exists(); assert not pathlib.Path('/srv/tests').exists()"
