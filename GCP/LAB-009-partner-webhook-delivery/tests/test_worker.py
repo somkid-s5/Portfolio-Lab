@@ -11,7 +11,13 @@ from google.auth.credentials import AnonymousCredentials
 from google.cloud import firestore
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from app.domain import build_event, delivery_id, parse_submission, task_payload
+from app.domain import (
+    build_event,
+    delivery_id,
+    parse_submission,
+    task_payload,
+    task_resource_name,
+)
 from app.ledger import FirestoreLedger
 from app.worker import DeliveryWorker, PartnerEndpoint
 
@@ -76,9 +82,8 @@ class DeliveryWorkerTests(unittest.TestCase):
             self.event,
             idempotency_key="lab09-worker-" + uuid.uuid4().hex,
             request_sha256="a" * 64,
-            task_name=(
-                "projects/demo-lab009/locations/asia-southeast1/queues/partner-a/tasks/"
-                + "d-" + self.delivery + "-g1"
+            task_name=task_resource_name(
+                PROJECT, "asia-southeast1", "partner-a", self.delivery, 1
             ),
         )
         self.http = FakeHttpSession()
