@@ -1,15 +1,15 @@
 ---
 lab: LAB-014
 platform: GCP
-phase: authoring
-guide_status: authoring
+phase: guide-ready
+guide_status: guide-ready
 cloud_verification: not-run
 last_verified: null
 ---
 
 # Lab 14 — แพลตฟอร์มส่งมอบ App แบบตรวจสอบย้อนกลับได้
 
-> **สถานะเอกสาร:** คู่มือกำลังจัดทำและตรวจด้วย repository CI; ใช้ทำตามได้เมื่อโค้ดชุดนี้อยู่บน `main` และเตรียม project ตามข้อกำหนดแล้ว
+> **สถานะเอกสาร:** Guide-ready หลัง repository CI [#367](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40111516650) ผ่านครบ 50/50 jobs; CI ตรวจ app, Terraform, diagram และคู่มือแบบ offline ไม่ใช่ผลทดสอบ GCP จริง. ใช้ทำตามเมื่อโค้ดชุดนี้อยู่บน `main` และเตรียม project ตามข้อกำหนดแล้ว
 > **สถานะ Cloud:** Not run — ไม่มีการสร้างหรือทดสอบทรัพยากร GCP ในการจัดทำเอกสารนี้
 
 ## โจทย์

@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–13 Guide-ready; Lab 13 ผ่าน repository CI [#342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) ครบ 47/47 jobs; Lab 14 Design/trust revision ผ่าน CI [#346](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40105778148) ครบ 48/48 jobs และ design checkpoint ปิดแล้ว. ขั้นถัดไปสร้าง app/build/release materials ก่อนเขียน Task Guide; ยังไม่มี GCP provisioning และ Cloud verification Not run. Lab 15–20 Planned.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–14 Guide-ready. Lab 14 ผ่าน repository CI [#367](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40111516650) ครบ 50/50 jobs บน commit `8fd825f93c795ec0453b92cdf3b6141c798e5fde`; ตรวจ app/build contracts, Terraform, guide และ diagram แบบ offline. ยังไม่มี GCP provisioning และ Cloud verification ยังคง Not run; Lab 15–20 Planned.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -303,7 +303,7 @@
 
 **วิธีหลักที่วางไว้:** GitHub Actions + Workload Identity Federation, Cloud Build/Artifact Registry, Binary Authorization, Cloud Deploy + Terraform
 
-**สถานะปัจจุบัน:** Design revision — [README](LAB-014-secure-app-delivery/README.md) และ diagram แยก GitHub App → Cloud Build main trigger ออกจาก WIF attestation/release jobs หลังทบทวน least privilege; CI รอบ revision กำลังรอ. ไม่มี GCP provisioning.
+**สถานะปัจจุบัน:** Guide-ready หลัง [#367](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40111516650) ผ่าน 50/50 jobs: มี Thai guide Tasks 00–15, sample app, Terraform foundation, release/attestation policy checks, healthy canary, regression gate/rollback, operations, cleanup และ evidence fields. CI เป็นการตรวจใน repository; ไม่มี GCP provisioning และ Cloud verification Not run.
 
 **ขอบเขตเมื่อจบ:** ใช้งาน flow หลักได้ มีผลตรวจตาม requirement หลักฐาน fault/recovery หรือ operational scenario ที่กำหนด และบันทึกผลการเปลี่ยนแปลง ไม่จบเพียงสร้าง resource สำเร็จ
 

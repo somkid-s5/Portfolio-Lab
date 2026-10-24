@@ -17,7 +17,7 @@
 | 11 | [ระบบคำนวณราคาเสนอค่าขนส่งบน GKE](LAB-011-gke-quote-engine/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 12 | [ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้](LAB-012-cross-service-tracing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #330](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40097377975) |
 | 13 | [ระบบประมวลผลข้อมูลนำเข้าแบบขนาน](LAB-013-parallel-data-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) — 47/47 jobs ผ่าน |
-| 14 | [แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา](LAB-014-secure-app-delivery/README.md) | Design | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 14 | [แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา](LAB-014-secure-app-delivery/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #367](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40111516650) |
 | 15 | ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud | Planned | Not run | — |
 | 16 | ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud | Planned | Not run | — |
 | 17 | ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้ | Planned | Not run | — |
@@ -384,3 +384,5 @@ Lab 14 / Design checkpoint (2026-10-24): เพิ่ม [README](LAB-014-secure
 
 
 Lab 14 / Design checkpoint closed (2026-10-24): [CI #346](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40105778148) ผ่าน 48/48 jobs หลังแยก GitHub main push → pinned Cloud Build trigger ออกจาก WIF release workflow. ปิด role matrix เพิ่ม Cloud Deploy `lab014-renderer` และ `lab014-deployer`, releaser `actAs` เฉพาะ execution identities ที่เกี่ยวข้อง และ Binary Authorization attestor delegation SA อ่าน occurrences บน note. ยังไม่มี App, Terraform, Task Guide หรือ GCP resources; Cloud verification Not run. ขั้นถัดไป: Build Materials และ offline CI contracts.
+
+Lab 14 / Guide-ready checkpoint (2026-10-24): [#367](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40111516650) ผ่านครบ 50/50 jobs บน commit `8fd825f93c795ec0453b92cdf3b6141c798e5fde`. Jobs `lab014-app`, `lab014-infra`, `lab014-design` ผ่านทั้งหมด: API/probe/release contracts และ non-root image; Terraform fmt/init/validate และ infrastructure trust contracts; diagram accessibility/icon provenance/scope/routes และ render. README Tasks 00–15 มี setup, deploy, staging/prod approval, untrusted-image negative test, healthy canary, regression/rollback, operations, Change Request record, cleanup และ Expected/Actual/Evidence. เป็น repository CI เท่านั้น; ไม่มีการสร้าง GCP resources และ Cloud verification Not run.
