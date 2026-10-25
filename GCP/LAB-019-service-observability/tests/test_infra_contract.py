@@ -37,6 +37,10 @@ class Lab019InfrastructureContracts(unittest.TestCase):
             "google_cloud_run_v2_service_iam_member.push_invokes_worker",
             "dead_letter_policy",
             "max_delivery_attempts = 5",
+            "dead-letter-events",
+            "google_pubsub_subscription.dead_letter_status",
+            "google_pubsub_subscription_iam_member.pubsub_agent_reads_dlq_status",
+            "lab19_dead_lettered_tasks",
             "google_pubsub_subscription_iam_member.pubsub_agent_reads_source",
             "google_pubsub_topic_iam_member.pubsub_agent_publishes_dlq",
         ):

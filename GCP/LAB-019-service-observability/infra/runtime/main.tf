@@ -97,7 +97,8 @@ locals {
   api_name         = "lab19-task-api"
   worker_name      = "lab19-task-worker"
   subscription     = "lab19-task-push"
-  dlq_subscription = "lab19-task-dlq-reader"
+  dlq_subscription        = "lab19-task-dlq-reader"
+  dlq_status_subscription = "lab19-task-dlq-status"
   db_instance      = "lab19-postgres"
   db_name          = "lab19"
   network_name     = "lab19-vpc"
@@ -369,6 +370,29 @@ resource "google_pubsub_subscription" "dead_letter_reader" {
   labels                     = { lab = "lab19" }
 }
 
+resource "google_pubsub_subscription" "dead_letter_status" {
+  name                       = local.dlq_status_subscription
+  project                    = var.project_id
+  topic                      = format("projects/%s/topics/lab19-tasks-dlq", var.project_id)
+  ack_deadline_seconds       = 30
+  message_retention_duration = "604800s"
+  labels                     = { lab = "lab19" }
+
+  push_config {
+    push_endpoint = format("%s/dead-letter-events", google_cloud_run_v2_service.worker.uri)
+
+    oidc_token {
+      service_account_email = local.push_sa
+      audience              = google_cloud_run_v2_service.worker.uri
+    }
+  }
+
+  depends_on = [
+    google_service_account_iam_member.pubsub_mints_push_token,
+    google_cloud_run_v2_service_iam_member.push_invokes_worker,
+  ]
+}
+
 resource "google_pubsub_topic_iam_member" "pubsub_agent_publishes_dlq" {
   project = var.project_id
   topic   = "lab19-tasks-dlq"
@@ -379,6 +403,13 @@ resource "google_pubsub_topic_iam_member" "pubsub_agent_publishes_dlq" {
 resource "google_pubsub_subscription_iam_member" "pubsub_agent_reads_source" {
   project      = var.project_id
   subscription = google_pubsub_subscription.task_push.name
+  role         = "roles/pubsub.subscriber"
+  member       = google_project_service_identity.pubsub.member
+}
+
+resource "google_pubsub_subscription_iam_member" "pubsub_agent_reads_dlq_status" {
+  project      = var.project_id
+  subscription = google_pubsub_subscription.dead_letter_status.name
   role         = "roles/pubsub.subscriber"
   member       = google_project_service_identity.pubsub.member
 }
@@ -458,6 +489,17 @@ resource "google_logging_metric" "worker_failures" {
     format("resource.labels.service_name=\"%s\"", local.worker_name),
     "jsonPayload.event=\"worker_task\"",
     "jsonPayload.outcome=\"retryable_error\"",
+  ])
+}
+
+resource "google_logging_metric" "dead_lettered_tasks" {
+  project = var.project_id
+  name    = "lab19_dead_lettered_tasks"
+  filter = join(" AND ", [
+    "resource.type=\"cloud_run_revision\"",
+    format("resource.labels.service_name=\"%s\"", local.worker_name),
+    "jsonPayload.event=\"task_dead_lettered\"",
+    "jsonPayload.outcome=\"marked_failed\"",
   ])
 }
 
@@ -627,6 +669,34 @@ resource "google_monitoring_alert_policy" "worker_failures" {
   depends_on = [google_logging_metric.worker_failures]
 }
 
+resource "google_monitoring_alert_policy" "dead_lettered_tasks" {
+  project               = var.project_id
+  display_name          = "Lab 19 · Tasks exhausted retries and entered DLQ"
+  combiner              = "OR"
+  notification_channels = [google_monitoring_notification_channel.email.name]
+  enabled               = true
+  user_labels           = { lab = "lab19", severity = "page" }
+
+  conditions {
+    display_name = "At least one task reached the dead-letter queue"
+    condition_threshold {
+      filter          = "metric.type=\\\"logging.googleapis.com/user/lab19_dead_lettered_tasks\\\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      duration        = "0s"
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_SUM"
+      }
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  depends_on = [google_logging_metric.dead_lettered_tasks]
+}
+
 resource "google_monitoring_alert_policy" "cloud_sql_cpu" {
   project               = var.project_id
   display_name          = "Lab 19 · Cloud SQL CPU saturation"
@@ -742,6 +812,22 @@ resource "google_monitoring_dashboard" "service" {
           }
         },
         {
+          title = "Tasks moved to the dead-letter queue"
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesFilter = {
+                  filter = "metric.type=\\\"logging.googleapis.com/user/lab19_dead_lettered_tasks\\\""
+                  aggregation = {
+                    alignmentPeriod  = "60s"
+                    perSeriesAligner = "ALIGN_SUM"
+                  }
+                }
+              }
+            }]
+          }
+        },
+        {
           title = "Cloud SQL CPU utilization"
           xyChart = {
             dataSets = [{
@@ -778,6 +864,10 @@ output "push_subscription" {
 
 output "dead_letter_subscription" {
   value = google_pubsub_subscription.dead_letter_reader.name
+}
+
+output "dead_letter_status_subscription" {
+  value = google_pubsub_subscription.dead_letter_status.name
 }
 
 output "availability_slo_name" {

@@ -76,6 +76,16 @@ class Lab019ApplicationTests(unittest.TestCase):
         self.assertEqual(task["status"], "SUCCEEDED")
         self.assertEqual(task["result"], {"line_count": 2, "total_cents": 3000})
 
+    def test_dead_letter_updates_task_status_and_manual_redrive_recovers(self):
+        task_id = self._create_task("ci-task-dead-letter")
+        marked_failed = self.worker.post("/dead-letter-events", json=self._push_envelope(task_id))
+        self.assertEqual(marked_failed.status_code, 204, marked_failed.text)
+        self.assertEqual(self.api.get("/tasks/" + task_id).json()["status"], "FAILED")
+
+        redriven = self.worker.post("/events", json=self._push_envelope(task_id))
+        self.assertEqual(redriven.status_code, 204, redriven.text)
+        self.assertEqual(self.api.get("/tasks/" + task_id).json()["status"], "SUCCEEDED")
+
     def test_retryable_worker_failure_can_be_retried(self):
         task_id = self._create_task("ci-task-0003")
         failed_worker = TestClient(

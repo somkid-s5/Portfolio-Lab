@@ -97,6 +97,36 @@ def create_worker_app(
         emit_event({"event": "worker_task", "task_id": task_id, "outcome": "succeeded"})
         return Response(status_code=204)
 
+    @app.post("/dead-letter-events", status_code=204)
+    async def receive_dead_letter(envelope: dict):
+        try:
+            encoded = envelope["message"]["data"]
+            payload = json.loads(base64.b64decode(encoded, validate=True).decode("utf-8"))
+            task_id = str(UUID(payload["task_id"]))
+        except (KeyError, ValueError, TypeError, UnicodeDecodeError, binascii.Error):
+            emit_event({"event": "dead_letter_poison", "outcome": "acknowledged"})
+            return Response(status_code=204)
+
+        engine = engine_factory()
+        with engine.begin() as connection:
+            updated = connection.execute(
+                text(
+                    """
+                    UPDATE lab19.tasks
+                    SET status = 'FAILED', result = NULL
+                    WHERE task_id = :task_id AND status != 'SUCCEEDED'
+                    RETURNING task_id
+                    """
+                ),
+                {"task_id": task_id},
+            ).first()
+        emit_event({
+            "event": "task_dead_lettered",
+            "task_id": task_id,
+            "outcome": "marked_failed" if updated else "already_succeeded_or_missing",
+        })
+        return Response(status_code=204)
+
     return app
 
 
