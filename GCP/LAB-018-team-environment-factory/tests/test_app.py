@@ -80,6 +80,9 @@ class StatusAppTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, 404)
 
     def test_unknown_route_log_does_not_echo_path_or_client_details(self):
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            urllib.request.urlopen(self.base + "/not-a-route", timeout=2)
+        self.assertEqual(raised.exception.code, 404)
         self.process.terminate()
         output, _ = self.process.communicate(timeout=3)
         self.assertNotIn("not-a-route", output)
