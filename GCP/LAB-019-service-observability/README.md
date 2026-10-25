@@ -1,6 +1,6 @@
 # Lab 19 — ระบบเฝ้าระวังและรับ Incident สำหรับทีมบริการ
 
-> **สถานะ:** Guide review pending — เพิ่ม Task Guide T00–T17; รอ CI ตรวจจาก PR นี้
+> **สถานะ:** Guide-ready — GitHub CI [#422](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40167519527) ผ่าน 76/76 repository jobs และ Lab 19 ผ่าน 5/5 checks
 > **Cloud verification:** Not run — ไม่มีการสร้าง GCP resources หรือผลทดสอบจริง  
 > **Diagram:** ใช้แนวทาง Diagram Design Personal Custom จาก ZIP ตาม [docs/diagram-style.md](../../docs/diagram-style.md)
 

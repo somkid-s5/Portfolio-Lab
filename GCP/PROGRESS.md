@@ -22,7 +22,7 @@
 | 16 | [ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud](LAB-016-legacy-migration/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #385](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40156391005) — 59/59 jobs ผ่าน |
 | 17 | [ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้](LAB-017-data-recovery/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 18 | [แพลตฟอร์มสร้าง Environment ให้ทีมใหม่](LAB-018-team-environment-factory/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #401](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40162370516) — 71/71 jobs; Lab 18 6/6 |
-| 19 | [ระบบเฝ้าระวังและรับ Incident สำหรับทีมบริการ](LAB-019-service-observability/README.md) | Brief + Design ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #403](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40163824288) — 73/73 jobs; Lab 19 2/2 |
+| 19 | [ระบบเฝ้าระวังและรับ Incident สำหรับทีมบริการ](LAB-019-service-observability/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #422](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40167519527) — 76/76 jobs; Lab 19 5/5 |
 | 20 | แพลตฟอร์มจองและสร้างรายงานแบบรับมอบงานได้ | Planned | Not run | — |
 
 Guide status: Planned → Brief → Design → Authoring → Review → Guide-ready
@@ -31,6 +31,6 @@ Cloud verification: Not run → In progress → Verified / Failed / Blocked (ต
 
 ## Current checkpoint
 
-Lab 19 / Brief + Design ready — [CI #403](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40163824288) ผ่านครบ 73/73 repository jobs; Lab 19 ผ่าน 2/2 checks (brief และ design/render) บน commit `92f65f9624c0fdd020bfb701790a5ca42fe1e37a`. กำหนด SRE solution เป็น authenticated Cloud Run Task API → Pub/Sub OIDC push → idempotent Cloud Run Worker → Cloud SQL PostgreSQL private IP ผ่าน Direct VPC egress/PSA; เพิ่ม SLI/SLO, error budget, burn-rate alerts, dashboard, uptime check, incident drill และ Change Request ลด noise. ใช้ Diagram Design Personal Custom จาก ZIP, icon set ชุดเดียวกับ Lab 18 พร้อม pinned provenance; render ที่ 1000px ผ่าน. ยังไม่มี Task Guide, GCP provisioning หรือผล Cloud; Cloud verification Not run. ขั้นถัดไป: Task design ก่อนเริ่ม authoring.
+Lab 19 / Guide-ready — [CI #422](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40167519527) ผ่านครบ 76/76 repository jobs; Lab 19 ผ่านครบ 5/5 (brief, guide, application integration, Terraform/infra, design/render) บน commit `2a3f9b40e3301df77bc045fd6bd2d82f2cf82428`. คู่มือ T00–T17 ครอบคลุม setup, deploy, verify, operation, fault/recovery, Change Request และ cleanup พร้อมช่อง Actual/Evidence; ใช้ Diagram Design Personal Custom จาก ZIP และ official-icon provenance. ไม่มีการสร้าง GCP resources; Cloud verification Not run.
 
-Lab 20 ยังคง Planned. Labs 01–18 Guide-ready.
+Lab 20 ยังคง Planned. Labs 01–19 Guide-ready.
