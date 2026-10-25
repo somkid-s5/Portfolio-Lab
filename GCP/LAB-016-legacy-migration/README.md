@@ -18,7 +18,7 @@ Client ใช้ HTTPS front door เดิมตลอด Lab: global external 
 
 ![Freeze, transfer, reconcile, cutover and backout sequence](assets/diagrams/migration-flow.svg)
 
-Diagram เป็นแบบออกแบบ ไม่ใช่ผล Cloud execution. ใช้สี ไอคอน การจัดกลุ่ม และแนวทางเดินเส้นตาม Diagram Design Personal Custom จาก ZIP ที่บันทึกเป็นมาตรฐานเดียวใน [docs/diagram-style.md](../../docs/diagram-style.md).
+Diagram เป็นแบบออกแบบ ไม่ใช่ผล Cloud execution. ออกแบบสี ไอคอน การจัดกลุ่ม และแนวทางเดินเส้นโดยอ้างอิงมาตรฐานภาพจาก ZIP ที่บันทึกไว้ใน [docs/diagram-style.md](../../docs/diagram-style.md) (เป็น style reference ไม่ใช่หลักฐานว่าได้เรียกใช้ Personal Custom Skill).
 
 ## Requirements และเกณฑ์รับงาน
 
