@@ -1,54 +1,55 @@
-# Diagram design alignment — 20 GCP Solution Labs
+# GCP Diagram Alignment Audit — 20 Solution Labs
 
-วันที่ตรวจ: 2026-10-25 · เป้าหมายภาพ: [Personal Custom Diagram Style](diagram-style.md)
+ตรวจเมื่อ 2026-10-25 · [มาตรฐานหลัก](diagram-style.md) · อ้างอิง `assets/diagrams/`
 
-## นิยามสถานะ
+## ความหมายของ "แนวทางเดียวกัน"
 
-- **Asset-ready:** มี SVG ที่แก้ไขได้และ Markdown ชี้ไปยัง `assets/diagrams/`; ไม่ได้แปลว่างานภาพใช้รูปแบบเดียวกัน
-- **Token-aligned (static):** พบชุดสีหลักของ Personal Custom ใน source SVG; ยังต้องเปิดภาพตรวจ layout
-- **Visual-reviewed:** คนตรวจภาพ Render จริงที่ความกว้างการอ่าน ยืนยัน routing, icon, labels, geometry, scopes และไม่หลอกเรื่อง Cloud resource placement
-- **Skill-rendered:** ยืนยันกระบวนการสร้าง/ปรับด้วย Diagram Design Personal Custom Skill ที่ **เรียกใช้ได้จริง** พร้อม source/verification ไม่ใช่แค่ comment
+- **Structural alignment:** ทุก Lab มีภาพหลัก `assets/diagrams/solution.svg` ที่แก้ไขได้ และ README เชื่อมด้วย relative path
+- **Design-system alignment:** ใช้แนวคิดเดียวกันในการแยก project/region/network, official service icons, typography, functional palette, connections และ failure/management paths (ไม่ได้บังคับว่าทุก Lab ต้องใช้สีครบทุกสี)
+- **Visual certification:** เปิดภาพที่ render จริง วัดความชัดของชื่อ, เส้นไม่ชน, icon/source, ความเที่ยงตรงของ scope และความหมายของ route ต้องผ่านการตรวจเชิงภาพเฉพาะ Lab
+- **Skill provenance:** เอกสารระบุเพียง reference จาก ZIP; การมี SVG/คำว่า "Diagram Design" ไม่ได้พิสูจน์ว่าได้เรียก Personal Custom Skill
 
-## ผลตรวจ Source SVG (static signature)
+## ผลตรวจ Source SVG (case-insensitive)
 
-ทุก Lab มี `solution.svg` พร้อม title, description และ aria label และไฟล์แสดงผลถูกเก็บใน `assets/diagrams/`. การตรวจ token เป็นเพียงการดูค่า literal `#F7FAFF`, `#2563EB`, `#0F766E` ใน SVG ไม่ใช่การตรวจภาพแสดงผล
+ตรวจ **ค่าสีใน SVG แบบไม่สนใจตัวพิมพ์เล็ก/ใหญ่**; ค่าที่ไม่ปรากฏอาจเป็นเพราะ topology ไม่จำเป็นต้องใช้สีบทบาทนั้น และห้ามตีความอัตโนมัติว่า "ไม่เป็นแนวเดียวกัน"
 
-| Lab | Personal Custom palette signatures ใน SVG | Visual review | Action |
-|---|---|---|---|
-| 01 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 02 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 03 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 04 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 05 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 06 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 07 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 08 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 09 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 10 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 11 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 12 | Partial (blue, teal) | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 13 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 14 | Not fully present | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 15 | Canvas + blue + teal | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 16 | Canvas + blue + teal | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 17 | Canvas + blue + teal | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 18 | Canvas + blue + teal | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 19 | Canvas + blue + teal | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
-| 20 | Canvas + blue + teal | Pending | ตรวจ Render, grouping, connector, icon provenance และปรับด้วย Skill เมื่อเรียกใช้ได้ |
+| Lab | App blue #2563EB | Network teal #0F766E | Paper #F7FAFF | Diagram review |
+|---|:---:|:---:|:---:|---|
+| 01 | ✓ | ✓ | — | Not visually certified |
+| 02 | ✓ | ✓ | — | Not visually certified |
+| 03 | ✓ | ✓ | — | Not visually certified |
+| 04 | ✓ | ✓ | — | Not visually certified |
+| 05 | ✓ | ✓ | — | Not visually certified |
+| 06 | ✓ | — | — | Not visually certified |
+| 07 | ✓ | ✓ | — | Not visually certified |
+| 08 | ✓ | ✓ | — | Not visually certified |
+| 09 | ✓ | ✓ | — | Not visually certified |
+| 10 | ✓ | ✓ | — | Not visually certified |
+| 11 | ✓ | ✓ | ✓ | Not visually certified |
+| 12 | ✓ | ✓ | — | Not visually certified |
+| 13 | — | — | — | Not visually certified |
+| 14 | ✓ | ✓ | — | Not visually certified |
+| 15 | ✓ | ✓ | ✓ | Not visually certified |
+| 16 | ✓ | ✓ | ✓ | Not visually certified |
+| 17 | ✓ | ✓ | ✓ | Not visually certified |
+| 18 | ✓ | ✓ | ✓ | Not visually certified |
+| 19 | ✓ | ✓ | ✓ | Not visually certified |
+| 20 | ✓ | ✓ | ✓ | Not visually certified |
 
-## ข้อพบจากโครงสร้าง
+**ข้อเท็จจริงที่สรุปได้จาก source:** 19/20 ภาพมีสีน้ำเงินหลัก, 18/20 มีสี teal, 7/20 ใช้สีพื้นกระดาษอ่อนตรง token; ทุกภาพมี accessible `title`/`desc` และ `role="img"`. White canvas ยังอยู่ภายใต้มาตรฐานที่ยอมรับ white/pale canvas. ไม่ควรใช้การไม่มีค่าสีเพียงอย่างเดียวตัดสินคุณภาพของ Diagram
 
-- **01–11, 13–14:** มี source SVG และหลักฐานบางส่วน แต่ไม่ใช้ palette ครบตาม literal tokens ของแนวทางปัจจุบัน จึง **ยังอ้างไม่ได้** ว่ามี visual style เหมือน Lab 15–20
-- **12:** มีบางสีตรง standard แต่ canvas signature ยังต่าง จึงยังต้องตรวจด้วยสายตา
-- **15–20:** source พบ palette หลักตรง guide แต่ยังไม่มีบันทึก human visual review ที่ยืนยันว่าองค์ประกอบและเส้นถูกต้องในทุกภาพ
-- เดิม 01–08 ฝัง PNG preview เป็นหลัก ขณะที่ Lab หลังใช้ inline SVG; ตอนนี้ Markdown อ้างภาพใน `assets/diagrams/` สม่ำเสมอแล้ว แต่ยังมีความต่างเรื่อง output format ตามต้นฉบับ
-- ไม่พบไฟล์ `diagram-design.zip` ใน tracked Git Tree; provenance อ้างอิง ZIP ส่วนตัว แต่ **ยังพิสูจน์ไม่ได้** ว่า Skill ถูกเรียกใช้สร้างทุกภาพจริง
+**จุดแตกต่างที่ต้องตรวจภาพจริง:** Lab 13 ใช้ palette นอกชุดเป็นส่วนใหญ่; Lab 06 ไม่ปรากฏ teal exact token แต่การเป็น Diagram ที่ไม่ใช้ network teal อาจเหมาะกับ topology; Lab 01–08 ใช้ PNG Preview ใน README เป็นหลัก ในขณะที่ Lab ถัดไปนิยมแสดง SVG; 01–08 ไม่จำเป็นต้อง redraw หาก layout ชัดเจนอยู่แล้ว. รูปแบบ font-size, label spacing, icon size และ connection geometry อาจยังไม่สม่ำเสมอ
 
-## ขั้นตอน Review ที่ต้องทำกับไฟล์ภาพจริง
+## สถานะและเกณฑ์ปิดงาน
 
-1. ใช้ Diagram Design Personal Custom Skill ตัวเดียวกันเปิดหรือปรับ SVG ของ Lab 01–20 ตาม [style](diagram-style.md); **ไม่ปรับโครงสร้าง Cloud เพื่อให้ดูสวยแต่ผิดเทคนิค**
-2. Render แต่ละ Diagram ที่ 900–1000 px พร้อมตรวจ icon source, labels/line crossing, layout และ GCP scope ด้วยสายตา
-3. Sync SVG/PNG/HTML publication กับ compatibility mirror; ตรวจด้วย `python scripts/check-diagram-mirrors.py`
-4. บันทึก Reviewer, วันที่, ภาพ preview, สิ่งที่เปลี่ยน และสถานะ Visual-reviewed ราย Lab ก่อนกล่าวว่า Design Consistency ผ่าน
+| เกณฑ์ | ผล |
+|---|---|
+| Architecture SVG แก้ไขได้ในที่เดียวกันครบ 20 Lab | **ผ่าน 20/20** |
+| Relative diagram links ของ README ทุก Lab ชี้เป้าจริง | **ผ่าน 20/20** |
+| Compatibility asset mirrors ตรงกับ canonical files | **ผ่าน 60/60** ณ revision ที่ตรวจ |
+| Architecture semantics/diagram rendering inspected manually at 1000 px | **ยังไม่มีหลักฐานตรวจภาพครบ 20 Lab** |
+| Personal Custom Diagram Design Skill invocation verified | **ตรวจยืนยันไม่ได้ในสภาพแวดล้อม Cloud นี้** |
 
-> สถานะปัจจุบัน: **20/20 Asset-ready; 0/20 certified Visual-reviewed**. นี่ไม่ใช่คำตัดสินว่า Diagram ทุกภาพมีปัญหา แต่เป็นการแยกการมีไฟล์ออกจากการตรวจสายตาแบบมืออาชีพ
+เมื่อ Skill พร้อมใช้งาน ให้ review ภาพจริง 20 ภาพที่ความกว้าง ~1000px ทีละ Lab: (1) จัด GCP project/region/VPC ตรงจริง, (2) official icons/labels อ่านชัด, (3) route endpoints และ crossings ถูกต้อง, (4) ไม่มี clipping/พื้นที่เสียเปล่า, (5) ที่มาของ asset แสดงชัด, (6) แก้ `assets/diagrams/` และ sync legacy mirror ตรงกัน; บันทึก Reviewer/วันที่/ผลเฉพาะภาพ
+
+**คำตัดสินตอนนี้:** ยืนยันได้ว่าใช้ **มาตรฐานโครงสร้างไฟล์ร่วมกันแล้ว** และการใช้ palette หลักส่วนมากสอดคล้องกัน; **ยังยืนยันไม่ได้ว่าทุกภาพผ่านการรับรอง Visual Quality และ Architecture Accuracy**. ห้ามเปลี่ยนเป็น Visual-reviewed เพียงเพราะ CI ผ่าน

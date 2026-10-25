@@ -1,6 +1,9 @@
 """Firestore transaction adapter for the daily report state machine."""
 from datetime import datetime, timezone
+from time import sleep
 import re
+
+from google.api_core.exceptions import Aborted
 
 from google.cloud import firestore
 
@@ -37,7 +40,21 @@ class FirestoreLedger:
                 transaction.set(ref, updated)
             return result
 
-        return run(self.client.transaction(max_attempts=5))
+        # Firestore retries single transactions on ABORTED; the emulator can also
+        # exhaust that retry budget during a two-writer contention test. Retry
+        # only the documented transient contention (never application errors).
+        # Each attempt starts a *new* transaction and re-reads the ledger, so
+        # the loser observes the committed claim and returns "busy".
+        for attempt in range(3):
+            try:
+                return run(self.client.transaction(max_attempts=5))
+            except (Aborted, ValueError) as exc:
+                underlying = exc.__cause__ if isinstance(exc, ValueError) else exc
+                if not isinstance(underlying, Aborted):
+                    raise
+                if attempt == 2:
+                    raise
+                sleep(0.05 * (2 ** attempt))
 
     def claim(self, *, business_date, execution, task_attempt, source_object,
               source_generation, operator_backfill=False):
