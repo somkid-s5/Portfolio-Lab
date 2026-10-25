@@ -374,7 +374,7 @@ gcloud run jobs execute lab20-prod-migrate --project="$PROJECT_ID" --region="$RE
 
 ### Task T16 — Change Request CR-20-01: เพิ่มช่องทางรับจอง
 
-ทีม Support ต้องสร้างการจองผ่าน `booking_source` (portal หรือ support_desk) โดยยังรักษา request contract เดิม: หากไม่ส่ง field นี้ ให้ default เป็น portal. เพิ่ม schema แบบ additive **ก่อน** เปลี่ยน Application image. ใช้ Project สำหรับ Lab เท่านั้น; Stage/Prod คือสอง environment ใน **Project เดียวกัน** และใช้ Cloud SQL instance ร่วมกัน
+CR นี้เพิ่ม **ป้ายช่องทางการจอง** `booking_source` (portal หรือ support_desk) สำหรับผู้ใช้ที่ยืนยันตัวตนแล้ว โดยยังรักษา request contract เดิม: หากไม่ส่ง field นี้ ให้ default เป็น portal. ค่า `support_desk` ในตัวอย่างนี้เป็น metadata ที่ผู้เรียก API ส่งเอง **ยังไม่มีการตรวจ Support role, delegation หรือการจองแทนผู้ใช้อื่น**; ห้ามอ้างว่าเป็นระบบ Support impersonation ที่ปลอดภัย. หากจะใช้จริงต้องออกแบบ RBAC, actor/delegate audit และ backend-enforced authorization เป็น Change Request ใหม่. เพิ่ม schema แบบ additive **ก่อน** เปลี่ยน Application image. ใช้ Project สำหรับ Lab เท่านั้น; Stage/Prod คือสอง environment ใน **Project เดียวกัน** และใช้ Cloud SQL instance ร่วมกัน
 
 **16.1 ตรวจ Patch ในพื้นที่ชั่วคราวก่อนเปลี่ยน source จริง** — เริ่มจาก Lab Root (`GCP/LAB-020-reservation-handoff`). `test_release.py` คัดลอก baseline ไปยัง disposable directory แล้ว apply patch ของตัวเอง; ดังนั้น **ต้องรันก่อน `git apply` กับ working tree** มิฉะนั้นจะเป็น double-apply
 
@@ -384,8 +384,8 @@ export LAB_DIR="$(pwd)"
 export REPO_ROOT="$(git rev-parse --show-toplevel)"
 git -C "$REPO_ROOT" switch -c cr20-01-booking-source
 python -m unittest discover -s tests -p 'test_release.py' -v
-git apply --check change-requests/CR-20-01-booking-source.patch
-git apply change-requests/CR-20-01-booking-source.patch
+git -C "$REPO_ROOT" apply --directory=GCP/LAB-020-reservation-handoff --check GCP/LAB-020-reservation-handoff/change-requests/CR-20-01-booking-source.patch
+git -C "$REPO_ROOT" apply --directory=GCP/LAB-020-reservation-handoff GCP/LAB-020-reservation-handoff/change-requests/CR-20-01-booking-source.patch
 git status --short
 ~~~
 

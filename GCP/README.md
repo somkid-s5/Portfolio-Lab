@@ -53,4 +53,4 @@
 - **Cloud-verified:** ต้องลงมือสร้าง/ทดสอบ/กู้คืน/cleanup บน GCP และเก็บผล Actual กับหลักฐานจริง
 - **Portfolio-ready:** ต้องมี Case Study จากการลงมือ พร้อม Architecture, Decision/Trade-off, Failure/Recovery, Cost และหลักฐานที่ตรวจย้อนกลับได้
 
-มาตรฐานร่วม: [PLAN.md](../PLAN.md) · [Diagram Style](../docs/diagram-style.md) · [Roadmap](ROADMAP.md) · [Progress](PROGRESS.md) · [ACE Coverage](ACE-COVERAGE.md)
+มาตรฐานร่วม: [PLAN.md](../PLAN.md) · [Diagram Style](../docs/diagram-style.md) · [Diagram Audit](../docs/diagram-audit.md) · [Roadmap](ROADMAP.md) · [Progress](PROGRESS.md) · [ACE Coverage](ACE-COVERAGE.md)

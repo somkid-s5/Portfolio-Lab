@@ -436,7 +436,7 @@
 |---|---|---|
 | Linux/service/process, VM, LB, health, availability | 01, 05 | 02, 15, 16 |
 | Private networking, DNS, NAT, routing, firewalls | 02, 15 | 04, 05, 10, 11 |
-| Public edge, TLS, caching, CDN | 03, 10 | 20 |
+| Public edge, TLS, caching, CDN | 03, 10 | 20 ฝึก IAP/private application access แทน CDN; ไม่ใช่ CDN host |
 | IAM, runtime identity, secrets, audit | 02, 04, 14, 18 | ใช้ตามความจำเป็นในทุกระบบ |
 | Containers และ serverless | 04, 06–09 | 14, 20 |
 | Database, connections, transactions, failover | 04, 05, 07 | 16, 17, 20 |
