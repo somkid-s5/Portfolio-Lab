@@ -13,7 +13,8 @@ class Lab019BriefTests(unittest.TestCase):
 
     def test_title_status_and_roadmap_match(self):
         self.assertIn("# Lab 19 — ระบบเฝ้าระวังและรับ Incident สำหรับทีมบริการ", self.readme)
-        self.assertIn("Brief + Design draft", self.readme)
+        self.assertIn("Brief + Design ready", self.readme)
+        self.assertIn("CI #403", self.readme)
         self.assertIn("Cloud verification:** Not run", self.readme)
 
     def test_requirements_are_numbered_and_cover_the_solution(self):
