@@ -54,7 +54,7 @@ class Lab016DesignTests(unittest.TestCase):
   self.assertIn("ก่อน target รับ writes",FLOW); self.assertIn("หลัง target รับ writes",FLOW)
  def test_readme_embeds_design_and_does_not_claim_cloud_pass(self):
   readme=(ROOT/"README.md").read_text(encoding="utf-8")
-  self.assertIn("assets/solution.svg",readme); self.assertIn("assets/migration-flow.svg",readme)
+  self.assertIn("assets/diagrams/solution.svg",readme); self.assertIn("assets/diagrams/migration-flow.svg",readme)
   self.assertIn("Cloud verification:** Not run",readme)
   self.assertNotRegex(readme.lower(),r"cloud[- ]verified\s*[:=]\s*pass")
 if __name__=="__main__": unittest.main()
