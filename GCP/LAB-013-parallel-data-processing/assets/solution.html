@@ -3,35 +3,35 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lab 13 — ระบบนำเข้าข้อมูลแบบขนาน</title>
-<style>body{margin:0;padding:24px;background:#f5f7fa;color:#243247;font:16px/1.55 Arial,"Noto Sans Thai",sans-serif}main{max-width:1200px;margin:auto;background:#fff;padding:20px;border-radius:16px;box-shadow:0 3px 16px #182b4018}h1{font-size:1.4rem;margin:0 0 8px}p{margin:0 0 16px;color:#526173}figure{margin:0}svg{display:block;width:100%;height:auto}figcaption{font-size:.9rem;color:#526173;margin-top:8px}@media print{body{padding:0;background:#fff}main{box-shadow:none;padding:0}}</style>
+<style>body{margin:0;padding:24px;background:#F7FAFF;color:#1F2937;font:16px/1.55 Arial,"Noto Sans Thai",sans-serif}main{max-width:1200px;margin:auto;background:#fff;padding:20px;border-radius:16px;box-shadow:none}h1{font-size:1.4rem;margin:0 0 8px}p{margin:0 0 16px;color:#526173}figure{margin:0}svg{display:block;width:100%;height:auto}figcaption{font-size:.9rem;color:#526173;margin-top:8px}@media print{body{padding:0;background:#fff}main{box-shadow:none;padding:0}}</style>
 </head>
 <body><main><h1>Lab 13 — ระบบนำเข้าข้อมูลแบบขนาน</h1><p>Lab 13 solution diagram — มีคู่มือ Tasks 00–19 แล้ว; Cloud verification: Not run</p><figure><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1500" height="940" viewBox="0 0 1500 940" role="img" aria-labelledby="title desc">
 <title id="title">Lab 13 — ระบบนำเข้าข้อมูลแบบขนานบน Google Cloud</title>
 <desc id="desc">Cloud Build สร้าง worker image และส่งเข้า Artifact Registry; Cloud Batch จัดงานให้ VM workers ใน private subnet อ่านไฟล์นำเข้าจาก Cloud Storage ประมวลผลแบบจำกัด concurrency และเขียนผลราย attempt ไปยัง output bucket ก่อน operator ตรวจสอบและ publish completion manifest; worker ส่ง logs ไป Cloud Logging.</desc>
 <defs>
- <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#4285f4"/></marker>
- <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#118b83"/></marker>
- <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#8e4ec6"/></marker>
+ <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#2563EB"/></marker>
+ <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#0F766E"/></marker>
+ <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#7C3AED"/></marker>
  <style>
-  text{font-family:Arial,'Noto Sans Thai',sans-serif;fill:#243247}
-  .title{font-size:26px;font-weight:700}.subtitle{font-size:15px;fill:#5f6b7a}
-  .boundary{fill:none;stroke:#26364a;stroke-width:2}.region{fill:#f8fbff;stroke:#1684c7;stroke-width:2;stroke-dasharray:9 6}
-  .vpc{fill:#fff;stroke:#27883b;stroke-width:2}.subnet{fill:#eef5ff;stroke:#3982c5;stroke-width:2}
-  .panel{fill:#eef9f5;stroke:#8bbfb0;stroke-width:1.4}.service{font-size:16px;font-weight:600}.small{font-size:13px;fill:#34455a}.tiny{font-size:11px;fill:#4a5b70}
-  .label{font-size:15px;font-weight:700}.edge{fill:none;stroke:#4285f4;stroke-width:2.6;marker-end:url(#arrow-blue);stroke-linecap:round;stroke-linejoin:round}
-  .data{fill:none;stroke:#118b83;stroke-width:2.8;marker-end:url(#arrow-teal);stroke-linecap:round;stroke-linejoin:round}
-  .control{fill:none;stroke:#8e4ec6;stroke-width:2.4;stroke-dasharray:8 6;marker-end:url(#arrow-purple);stroke-linecap:round;stroke-linejoin:round}
+  text{font-family:Arial,'Noto Sans Thai',sans-serif;fill:#1F2937}
+  .title{font-size:26px;font-weight:700}.subtitle{font-size:15px;fill:#526174}
+  .boundary{fill:none;stroke:#1F2937;stroke-width:2}.region{fill:#F7FAFF;stroke:#2563EB;stroke-width:2;stroke-dasharray:9 6}
+  .vpc{fill:#fff;stroke:#0F766E;stroke-width:2}.subnet{fill:#EFF6FF;stroke:#2563EB;stroke-width:2}
+  .panel{fill:#F0FDFA;stroke:#0F766E;stroke-width:1.4}.service{font-size:16px;font-weight:600}.small{font-size:13px;fill:#334155}.tiny{font-size:11px;fill:#475569}
+  .label{font-size:15px;font-weight:700}.edge{fill:none;stroke:#2563EB;stroke-width:2.6;marker-end:url(#arrow-blue);stroke-linecap:round;stroke-linejoin:round}
+  .data{fill:none;stroke:#0F766E;stroke-width:2.8;marker-end:url(#arrow-teal);stroke-linecap:round;stroke-linejoin:round}
+  .control{fill:none;stroke:#7C3AED;stroke-width:2.4;stroke-dasharray:8 6;marker-end:url(#arrow-purple);stroke-linecap:round;stroke-linejoin:round}
  </style>
 </defs>
-<rect width="1500" height="940" fill="#fff"/>
+<rect width="1500" height="940" fill="#F7FAFF"/>
 <text class="title" x="48" y="44">Lab 13 — ระบบนำเข้าข้อมูลแบบขนาน</text>
 <text class="subtitle" x="48" y="72">แยก shard → ประมวลผลพร้อมกันแบบมีขอบเขต → ตรวจผลรวม → publish เฉพาะเมื่อครบ</text>
 
 <rect class="boundary" x="44" y="116" width="1412" height="774" rx="10"/>
-<rect x="44" y="116" width="266" height="42" rx="8" fill="#26364a"/>
+<rect x="44" y="116" width="266" height="42" rx="8" fill="#1F2937"/>
 <text x="62" y="144" fill="#fff" font-size="17" font-weight="700">Google Cloud project</text>
 <rect class="region" x="78" y="202" width="1344" height="590" rx="10"/>
-<rect x="78" y="202" width="232" height="38" rx="7" fill="#1684c7"/>
+<rect x="78" y="202" width="232" height="38" rx="7" fill="#2563EB"/>
 <text x="96" y="228" fill="#fff" font-size="16" font-weight="700">Region: asia-southeast1</text>
 
 <rect class="panel" x="125" y="272" width="310" height="132" rx="12"/>
@@ -49,23 +49,23 @@
 <text class="tiny" x="435" y="308">push digest</text>
 
 
-<circle cx="790" cy="91" r="23" fill="#f5effa" stroke="#8e4ec6" stroke-width="2"/>
-<circle cx="790" cy="84" r="5" fill="#8e4ec6"/>
-<path d="M780 102 Q790 91 800 102" fill="none" stroke="#8e4ec6" stroke-width="3" stroke-linecap="round"/>
+<circle cx="790" cy="91" r="23" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+<circle cx="790" cy="84" r="5" fill="#7C3AED"/>
+<path d="M780 102 Q790 91 800 102" fill="none" stroke="#7C3AED" stroke-width="3" stroke-linecap="round"/>
 <text class="service" x="824" y="87">Operator / Cloud Shell</text>
 <text class="tiny" x="824" y="106">gcloud CLI • user identity, no key</text>
 <path class="control" d="M790 116 V276"/>
 <text class="tiny" x="802" y="190">submit / inspect</text>
 
 <rect class="vpc" x="454" y="444" width="653" height="312" rx="12"/>
-<rect x="454" y="444" width="345" height="40" rx="8" fill="#27883b"/>
+<rect x="454" y="444" width="345" height="40" rx="8" fill="#0F766E"/>
 <text x="472" y="470" fill="#fff" font-size="16" font-weight="700">VPC — private worker network</text>
 <rect class="subnet" x="480" y="499" width="600" height="230" rx="10"/>
-<rect x="480" y="499" width="246" height="36" rx="7" fill="#3982c5"/>
+<rect x="480" y="499" width="246" height="36" rx="7" fill="#2563EB"/>
 <text x="497" y="523" fill="#fff" font-size="15" font-weight="700">Private subnet</text>
 <text class="tiny" x="748" y="522">no external IP • Private Google Access</text>
 
-<rect x="655" y="548" width="345" height="151" rx="12" fill="#fff" stroke="#e28b2d" stroke-width="2" stroke-dasharray="8 5"/>
+<rect x="655" y="548" width="345" height="151" rx="12" fill="#fff" stroke="#C2410C" stroke-width="2" stroke-dasharray="8 5"/>
 <text class="label" x="674" y="573">Batch task group</text>
 <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNhZWNiZmE7fS5jbHMtMntmaWxsOiM2NjlkZjY7fS5jbHMtM3tmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfQ29tcHV0ZUVuZ2luZV9Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48cmVjdCBjbGFzcz0iY2xzLTEiIHg9IjkiIHk9IjkiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiLz48cmVjdCBjbGFzcz0iY2xzLTIiIHg9IjExIiB5PSIyIiB3aWR0aD0iMiIgaGVpZ2h0PSI0Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSI3IiB5PSIyIiB3aWR0aD0iMiIgaGVpZ2h0PSI0Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIxNSIgeT0iMiIgd2lkdGg9IjIiIGhlaWdodD0iNCIvPjxyZWN0IGNsYXNzPSJjbHMtMyIgeD0iMTEiIHk9IjE4IiB3aWR0aD0iMiIgaGVpZ2h0PSI0Ii8+PHJlY3QgY2xhc3M9ImNscy0zIiB4PSI3IiB5PSIxOCIgd2lkdGg9IjIiIGhlaWdodD0iNCIvPjxyZWN0IGNsYXNzPSJjbHMtMyIgeD0iMTUiIHk9IjE4IiB3aWR0aD0iMiIgaGVpZ2h0PSI0Ii8+PHJlY3QgY2xhc3M9ImNscy0zIiB4PSIxOSIgeT0iMTAiIHdpZHRoPSIyIiBoZWlnaHQ9IjQiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDggMzIpIHJvdGF0ZSgtOTApIi8+PHJlY3QgY2xhc3M9ImNscy0zIiB4PSIxOSIgeT0iMTQiIHdpZHRoPSIyIiBoZWlnaHQ9IjQiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQgMzYpIHJvdGF0ZSgtOTApIi8+PHJlY3QgY2xhc3M9ImNscy0zIiB4PSIxOSIgeT0iNiIgd2lkdGg9IjIiIGhlaWdodD0iNCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTIgMjgpIHJvdGF0ZSgtOTApIi8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIzIiB5PSIxMCIgd2lkdGg9IjIiIGhlaWdodD0iNCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTggMTYpIHJvdGF0ZSgtOTApIi8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIzIiB5PSIxNCIgd2lkdGg9IjIiIGhlaWdodD0iNCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTEyIDIwKSByb3RhdGUoLTkwKSIvPjxyZWN0IGNsYXNzPSJjbHMtMiIgeD0iMyIgeT0iNiIgd2lkdGg9IjIiIGhlaWdodD0iNCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTQgMTIpIHJvdGF0ZSgtOTApIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNSw1VjE5SDE5VjVaTTE3LDE3SDdWN0gxN1oiLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iOSAxNSAxNSAxNSAxMiAxMiA5IDE1Ii8+PHBvbHlnb24gY2xhc3M9ImNscy0zIiBwb2ludHM9IjEyIDEyIDE1IDE1IDE1IDkgMTIgMTIiLz48L2c+PC9zdmc+" x="681" y="586" width="49" height="45" preserveAspectRatio="xMidYMid meet"/>
 <text class="small" x="741" y="603">worker task 0 … N−1</text>
@@ -101,10 +101,10 @@
 
 
 <path class="data" d="M1234 663 V690"/>
-<rect x="1167" y="690" width="225" height="72" rx="10" fill="#f5effa" stroke="#ad83cd" stroke-width="1.5"/>
+<rect x="1167" y="690" width="225" height="72" rx="10" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.5"/>
 <text class="small" x="1183" y="718">Completion gate</text>
 <text class="tiny" x="1183" y="741">reconcile → publish manifest</text>
-<rect x="101" y="697" width="310" height="68" rx="10" fill="#fff8e9" stroke="#d9ab53"/>
+<rect x="101" y="697" width="310" height="68" rx="10" fill="#FFF7ED" stroke="#C2410C"/>
 <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM2NjlkZjY7fS5jbHMtMSwuY2xzLTJ7ZmlsbC1ydWxlOmV2ZW5vZGQ7fS5jbHMtMntmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfSUFNX0NvbG9yPC90aXRsZT48ZyBkYXRhLW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxnID48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMiwyLDMuNzksNS40MnY1LjYzYzAsNS4wNiwzLjUsOS44LDguMjEsMTEsNC43MS0xLjE1LDguMjEtNS44OSw4LjIxLTEwLjk1VjUuNDJabTAsMy43OWEyLjYzLDIuNjMsMCwxLDEtMS44Ni43N0EyLjYzLDIuNjMsMCwwLDEsMTIsNS43OVptNC4xMSwxMS4xNUE4LjY0LDguNjQsMCwwLDEsMTIsMTkuODdhOC42NCw4LjY0LDAsMCwxLTQuMTEtMi45M1YxNC42OWMwLTEuNjcsMi43NC0yLjUyLDQuMTEtMi41MnM0LjExLjg1LDQuMTEsMi41MnYyLjI1WiIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTEyLDJWNS43OWEyLjYzLDIuNjMsMCwxLDEsMCw1LjI2djEuMTJjMS4zNywwLDQuMTEuODUsNC4xMSwyLjUydjIuMjVBOC42NCw4LjY0LDAsMCwxLDEyLDE5Ljg3VjIyYzQuNzEtMS4xNSw4LjIxLTUuODksOC4yMS0xMC45NVY1LjQyWiIvPjwvZz48L2c+PC9zdmc+" x="118" y="705" width="34" height="34" preserveAspectRatio="xMidYMid meet"/>
 <text class="small" x="162" y="723" font-weight="700">Identity boundary</text>
 <text class="tiny" x="162" y="746">custom workload SA • scoped bucket roles • no keys</text>

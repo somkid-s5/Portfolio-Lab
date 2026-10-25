@@ -27,7 +27,7 @@
 | 10 | ✓ | ✓ | — | Not visually certified |
 | 11 | ✓ | ✓ | ✓ | Not visually certified |
 | 12 | ✓ | ✓ | — | Not visually certified |
-| 13 | — | — | — | Not visually certified |
+| 13 | ✓ | ✓ | ✓ | Not visually certified |
 | 14 | ✓ | ✓ | — | Not visually certified |
 | 15 | ✓ | ✓ | ✓ | Not visually certified |
 | 16 | ✓ | ✓ | ✓ | Not visually certified |
@@ -36,9 +36,9 @@
 | 19 | ✓ | ✓ | ✓ | Not visually certified |
 | 20 | ✓ | ✓ | ✓ | Not visually certified |
 
-**ข้อเท็จจริงที่สรุปได้จาก source:** 19/20 ภาพมีสีน้ำเงินหลัก, 18/20 มีสี teal, 7/20 ใช้สีพื้นกระดาษอ่อนตรง token; ทุกภาพมี accessible `title`/`desc` และ `role="img"`. White canvas ยังอยู่ภายใต้มาตรฐานที่ยอมรับ white/pale canvas. ไม่ควรใช้การไม่มีค่าสีเพียงอย่างเดียวตัดสินคุณภาพของ Diagram
+**ข้อเท็จจริงที่สรุปได้จาก source:** 20/20 ภาพมีสีน้ำเงินหลัก, 19/20 มีสี teal, 8/20 ใช้สีพื้นกระดาษอ่อนตรง token; ทุกภาพมี accessible `title`/`desc` และ `role="img"`. White canvas ยังอยู่ภายใต้มาตรฐานที่ยอมรับ white/pale canvas. ไม่ควรใช้การไม่มีค่าสีเพียงอย่างเดียวตัดสินคุณภาพของ Diagram
 
-**จุดแตกต่างที่ต้องตรวจภาพจริง:** Lab 13 ใช้ palette นอกชุดเป็นส่วนใหญ่; Lab 06 ไม่ปรากฏ teal exact token แต่การเป็น Diagram ที่ไม่ใช้ network teal อาจเหมาะกับ topology; Lab 01–08 ใช้ PNG Preview ใน README เป็นหลัก ในขณะที่ Lab ถัดไปนิยมแสดง SVG; 01–08 ไม่จำเป็นต้อง redraw หาก layout ชัดเจนอยู่แล้ว. รูปแบบ font-size, label spacing, icon size และ connection geometry อาจยังไม่สม่ำเสมอ
+**จุดแตกต่างที่ต้องตรวจภาพจริง:** Lab 13 ปรับ semantic palette ใน SVG/HTML ให้ตรงสีหลักด้วยการแก้ Source โดยตรง (รักษา provider icons และ route geometry เดิมไว้; **ไม่ได้ใช้ Personal Custom Skill และยังไม่ผ่าน Visual Review**); Lab 06 ไม่ปรากฏ teal exact token แต่การเป็น Diagram ที่ไม่ใช้ network teal อาจเหมาะกับ topology; Lab 01–08 ใช้ PNG Preview ใน README เป็นหลัก ในขณะที่ Lab ถัดไปนิยมแสดง SVG; 01–08 ไม่จำเป็นต้อง redraw หาก layout ชัดเจนอยู่แล้ว. รูปแบบ font-size, label spacing, icon size และ connection geometry อาจยังไม่สม่ำเสมอ
 
 ## สถานะและเกณฑ์ปิดงาน
 
