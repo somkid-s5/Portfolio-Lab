@@ -239,6 +239,14 @@ class Lab020ApplicationTests(unittest.TestCase):
         self.assertEqual(self.worker.post("/events/reports", json=bad_data).status_code, 400)
         unknown = {"message": {"data": base64.b64encode(b'{"schema_version":2}').decode("ascii")}}
         self.assertEqual(self.worker.post("/events/reports", json=unknown).status_code, 400)
+        invalid_date = {
+            "message": {
+                "data": base64.b64encode(
+                    b'{"schema_version":1,"report_id":"0123456789abcdef0123456789abcdef","report_date":"2026-99-99"}'
+                ).decode("ascii")
+            }
+        }
+        self.assertEqual(self.worker.post("/events/reports", json=invalid_date).status_code, 400)
 
 
 if __name__ == "__main__":
