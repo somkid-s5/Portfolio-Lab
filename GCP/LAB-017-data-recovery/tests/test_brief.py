@@ -35,8 +35,9 @@ class Lab017BriefTests(unittest.TestCase):
         ):
             self.assertIn(phrase, self.readme)
 
-    def test_diagram_standard_is_the_zip_personal_custom(self):
-        self.assertIn("Diagram Design Personal Custom จาก ZIP", self.readme)
+    def test_diagram_style_is_a_reference_not_unverified_skill_claim(self):
+        self.assertIn("อ้างอิงมาตรฐานสี ไอคอน", self.readme)
+        self.assertIn("ยังไม่มีหลักฐานว่าได้เรียกใช้ Personal Custom Skill", self.readme)
         self.assertIn("docs/diagram-style.md", self.readme)
         self.assertEqual(self.provenance["style"], "Diagram Design — Personal Custom from the user's diagram-design.zip")
         self.assertEqual(self.provenance["cloud_verification"], "not-run")
