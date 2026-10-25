@@ -94,18 +94,18 @@ locals {
     var.project_id,
     var.image_digest,
   )
-  api_name       = "lab19-task-api"
-  worker_name    = "lab19-task-worker"
-  subscription   = "lab19-task-push"
+  api_name         = "lab19-task-api"
+  worker_name      = "lab19-task-worker"
+  subscription     = "lab19-task-push"
   dlq_subscription = "lab19-task-dlq-reader"
-  db_instance    = "lab19-postgres"
-  db_name        = "lab19"
-  network_name   = "lab19-vpc"
-  subnet_name    = "lab19-run-egress"
-  api_sa         = format("lab19-api@%s.iam.gserviceaccount.com", var.project_id)
-  worker_sa      = format("lab19-worker@%s.iam.gserviceaccount.com", var.project_id)
-  push_sa        = format("lab19-push@%s.iam.gserviceaccount.com", var.project_id)
-  monitor_metric = "logging.googleapis.com/user/lab19_eligible_requests"
+  db_instance      = "lab19-postgres"
+  db_name          = "lab19"
+  network_name     = "lab19-vpc"
+  subnet_name      = "lab19-run-egress"
+  api_sa           = format("lab19-api@%s.iam.gserviceaccount.com", var.project_id)
+  worker_sa        = format("lab19-worker@%s.iam.gserviceaccount.com", var.project_id)
+  push_sa          = format("lab19-push@%s.iam.gserviceaccount.com", var.project_id)
+  monitor_metric   = "logging.googleapis.com/user/lab19_eligible_requests"
 }
 
 data "google_project" "current" {
@@ -138,12 +138,12 @@ resource "google_sql_user" "worker" {
 }
 
 resource "google_cloud_run_v2_service" "api" {
-  name                = local.api_name
-  location            = var.region
-  project             = var.project_id
-  ingress             = "INGRESS_TRAFFIC_ALL"
+  name                 = local.api_name
+  location             = var.region
+  project              = var.project_id
+  ingress              = "INGRESS_TRAFFIC_ALL"
   invoker_iam_disabled = false
-  deletion_protection = false
+  deletion_protection  = false
 
   template {
     service_account                  = local.api_sa
@@ -408,9 +408,9 @@ resource "google_logging_metric" "eligible_requests" {
   ])
 
   metric_descriptor {
-    metric_kind = "DELTA"
-    value_type  = "INT64"
-    unit        = "1"
+    metric_kind  = "DELTA"
+    value_type   = "INT64"
+    unit         = "1"
     display_name = "Lab 19 eligible API request outcomes"
 
     labels {
@@ -436,9 +436,9 @@ resource "google_logging_metric" "request_duration" {
   ])
 
   metric_descriptor {
-    metric_kind = "DELTA"
-    value_type  = "DISTRIBUTION"
-    unit        = "ms"
+    metric_kind  = "DELTA"
+    value_type   = "DISTRIBUTION"
+    unit         = "ms"
     display_name = "Lab 19 eligible API request duration"
   }
 
@@ -485,7 +485,7 @@ resource "google_monitoring_slo" "availability" {
 
   request_based_sli {
     good_total_ratio {
-      good_service_filter = "metric.type = \"logging.googleapis.com/user/lab19_eligible_requests\" AND metric.label.outcome = \"good\""
+      good_service_filter  = "metric.type = \"logging.googleapis.com/user/lab19_eligible_requests\" AND metric.label.outcome = \"good\""
       total_service_filter = "metric.type = \"logging.googleapis.com/user/lab19_eligible_requests\""
     }
   }
@@ -659,10 +659,10 @@ resource "google_monitoring_alert_policy" "cloud_sql_cpu" {
 }
 
 resource "google_monitoring_uptime_check_config" "api_health" {
-  project      = var.project_id
-  display_name = "Lab 19 · Authenticated Task API health"
-  timeout      = "10s"
-  period       = "60s"
+  project          = var.project_id
+  display_name     = "Lab 19 · Authenticated Task API health"
+  timeout          = "10s"
+  period           = "60s"
   selected_regions = ["ASIA_PACIFIC"]
 
   http_check {
@@ -687,7 +687,7 @@ resource "google_monitoring_uptime_check_config" "api_health" {
 }
 
 resource "google_monitoring_dashboard" "service" {
-  project        = var.project_id
+  project = var.project_id
   dashboard_json = jsonencode({
     displayName = "Lab 19 · Service SLO and operations"
     gridLayout = {
