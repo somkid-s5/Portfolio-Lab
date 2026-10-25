@@ -6,7 +6,7 @@
  <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#0F766E"/></marker>
  <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#7C3AED"/></marker>
  <style>
-  text{font-family:Arial,'Noto Sans Thai',sans-serif;fill:#1F2937}
+  text{font-family:Arial,'Noto Sans Thai',sans-serif}
   .title{font-size:26px;font-weight:700}.subtitle{font-size:15px;fill:#526174}
   .boundary{fill:none;stroke:#1F2937;stroke-width:2}.region{fill:#F7FAFF;stroke:#2563EB;stroke-width:2;stroke-dasharray:9 6}
   .vpc{fill:#fff;stroke:#0F766E;stroke-width:2}.subnet{fill:#EFF6FF;stroke:#2563EB;stroke-width:2}
