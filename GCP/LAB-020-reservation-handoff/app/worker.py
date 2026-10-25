@@ -48,6 +48,8 @@ def create_app(engine=None, storage=None):
             payload = json.loads(raw)
         except Exception:
             return jsonify(error="invalid_pubsub_data"), 400
+        if not isinstance(payload, dict):
+            return jsonify(error="invalid_report_message"), 400
         if payload.get("schema_version") != 1:
             return jsonify(error="unsupported_schema_version"), 400
         report_id = payload.get("report_id")

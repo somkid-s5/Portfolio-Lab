@@ -56,7 +56,7 @@ class Lab020DesignTests(unittest.TestCase):
         self.assertGreaterEqual(len(paths), 14)
         for path in paths:
             self.assertRegex(path, r"^[M0-9 .HV-]+$")
-        self.assertIn("IAP is a labeled access gate", " ".join(self.provenance["generic_fallbacks"]))
+        self.assertIn("IAP is a labeled generic access gate", " ".join(self.provenance["generic_fallbacks"]))
         route_data = dict(re.findall(r'<path id="(route-[^"]+)"[^>]* d="([^"]+)"', self.svg))
         for route, path in route_data.items():
             current = [float(value) for value in re.match(r"M(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)", path).groups()]

@@ -176,14 +176,38 @@ resource "google_cloud_run_v2_service" "api" {
       image = local.image
       ports { container_port = 8080 }
       resources { limits = { cpu = "1", memory = "512Mi" } }
-      env { name = "ENVIRONMENT", value = var.environment }
-      env { name = "GOOGLE_CLOUD_PROJECT", value = var.project_id }
-      env { name = "INSTANCE_CONNECTION_NAME", value = data.google_sql_database_instance.primary.connection_name }
-      env { name = "DB_NAME", value = local.db_name }
-      env { name = "DB_IAM_USER", value = local.api_db_user }
-      env { name = "REPORT_BUCKET", value = google_storage_bucket.reports.name }
-      env { name = "REPORT_TOPIC", value = google_pubsub_topic.reports.name }
-      env { name = "IAP_AUDIENCE", value = local.iap_audience }
+      env {
+        name = "ENVIRONMENT"
+        value = var.environment
+      }
+      env {
+        name = "GOOGLE_CLOUD_PROJECT"
+        value = var.project_id
+      }
+      env {
+        name = "INSTANCE_CONNECTION_NAME"
+        value = data.google_sql_database_instance.primary.connection_name
+      }
+      env {
+        name = "DB_NAME"
+        value = local.db_name
+      }
+      env {
+        name = "DB_IAM_USER"
+        value = local.api_db_user
+      }
+      env {
+        name = "REPORT_BUCKET"
+        value = google_storage_bucket.reports.name
+      }
+      env {
+        name = "REPORT_TOPIC"
+        value = google_pubsub_topic.reports.name
+      }
+      env {
+        name = "IAP_AUDIENCE"
+        value = local.iap_audience
+      }
     }
     vpc_access {
       network_interfaces {
@@ -218,12 +242,30 @@ resource "google_cloud_run_v2_service" "worker" {
       args = ["--bind", ":8080", "--workers", "1", "--threads", "2", "--timeout", "55", "app.worker:app"]
       ports { container_port = 8080 }
       resources { limits = { cpu = "1", memory = "512Mi" } }
-      env { name = "ENVIRONMENT", value = var.environment }
-      env { name = "INSTANCE_CONNECTION_NAME", value = data.google_sql_database_instance.primary.connection_name }
-      env { name = "DB_NAME", value = local.db_name }
-      env { name = "DB_IAM_USER", value = local.worker_db_user }
-      env { name = "REPORT_BUCKET", value = google_storage_bucket.reports.name }
-      env { name = "WORKER_FAULT_MODE", value = var.worker_fault_mode }
+      env {
+        name = "ENVIRONMENT"
+        value = var.environment
+      }
+      env {
+        name = "INSTANCE_CONNECTION_NAME"
+        value = data.google_sql_database_instance.primary.connection_name
+      }
+      env {
+        name = "DB_NAME"
+        value = local.db_name
+      }
+      env {
+        name = "DB_IAM_USER"
+        value = local.worker_db_user
+      }
+      env {
+        name = "REPORT_BUCKET"
+        value = google_storage_bucket.reports.name
+      }
+      env {
+        name = "WORKER_FAULT_MODE"
+        value = var.worker_fault_mode
+      }
     }
     vpc_access {
       network_interfaces {
@@ -253,14 +295,38 @@ resource "google_cloud_run_v2_job" "migrate" {
         image = local.migration_image
         command = ["python"]
         args = ["-m", "app.migrate"]
-        env { name = "ENVIRONMENT", value = var.environment }
-        env { name = "INSTANCE_CONNECTION_NAME", value = data.google_sql_database_instance.primary.connection_name }
-        env { name = "DB_NAME", value = local.db_name }
-        env { name = "DB_IAM_USER", value = trimsuffix(local.migrator_sa, ".gserviceaccount.com") }
-        env { name = "DB_API_ROLE", value = "lab20-${var.environment}_api" }
-        env { name = "DB_API_USER", value = local.api_db_user }
-        env { name = "DB_WORKER_ROLE", value = "lab20-${var.environment}_worker" }
-        env { name = "DB_WORKER_USER", value = local.worker_db_user }
+        env {
+          name = "ENVIRONMENT"
+          value = var.environment
+        }
+        env {
+          name = "INSTANCE_CONNECTION_NAME"
+          value = data.google_sql_database_instance.primary.connection_name
+        }
+        env {
+          name = "DB_NAME"
+          value = local.db_name
+        }
+        env {
+          name = "DB_IAM_USER"
+          value = trimsuffix(local.migrator_sa, ".gserviceaccount.com")
+        }
+        env {
+          name = "DB_API_ROLE"
+          value = "lab20-${var.environment}_api"
+        }
+        env {
+          name = "DB_API_USER"
+          value = local.api_db_user
+        }
+        env {
+          name = "DB_WORKER_ROLE"
+          value = "lab20-${var.environment}_worker"
+        }
+        env {
+          name = "DB_WORKER_USER"
+          value = local.worker_db_user
+        }
       }
       vpc_access {
         network_interfaces {
