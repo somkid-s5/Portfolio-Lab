@@ -17,14 +17,14 @@ Date: 2026-10-25 · Scope: docs and source; **no provisioned GCP resources**
 | Guide narrative | คำสั่งและลำดับส่วนใหญ่ถูกตรวจจาก Source / References | ผู้เรียนทำทุกคำสั่งด้วย GCP จริง |
 | Terraform | `fmt`/`validate` ผ่านบน CI ตาม Job ที่กำหนด | Provider API/quotas/cost/runtime end-to-end |
 | App | Tests บางส่วนกับ emulators/disposable DB | Deployed GCP network/IAM/Cloud SQL behavior |
-| Visual | SVG, structure, palette and basic source geometry | Human 1000px view review / Personal Skill run |
+| Visual | SVG, structure, palette and manually inspected image renders 20/20 | Personal Custom Skill invocation / Cloud-runtime architecture proof |
 | Case Study | Template และ Evidence fields | Actual evidence, measured incidents, cleanup |
 
 **Quality gate:** จะให้สถานะ Portfolio Case Study สำเร็จราย Lab ได้ต่อเมื่อมี actual Cloud deploy + operational drill + evidence + cleanup จริงเท่านั้น. การรับ Guide-ready หรือ Merge PR คือการเผยแพร่คู่มือ ไม่ใช่การรับรอง Cloud-runtime
 
 ## Priority issues remaining outside static scope
 
-1. **Diagram visual sign-off:** ต้องเรียก Diagram Design Personal Custom Skill จริง (ปัจจุบันไม่ปรากฏใน connected skills), เปิด/ตรวจ Render และแก้จาก source; ดู audit
+1. **Diagram Skill provenance:** ตรวจภาพจริงและแก้ layout ที่พบแล้ว แต่ Personal Custom Skill ไม่ callable ใน connected skills; ห้ามอ้างว่าได้ใช้ Skill
 2. **Cloud execution:** ยังไม่ได้ดำเนินการตาม policy ไม่สร้างทรัพยากร/ค่าใช้จ่ายโดยไม่อนุญาต
 3. **Full semantic line-by-line review:** 20 Labs มีเอกสารหลายหมื่นบรรทัด; การตรวจหมวดและ spot-check ไม่เท่ากับการ validate ทุก claim บน Cloud; review กับ official docs ก่อนรันแต่ละ Lab
 
@@ -38,3 +38,14 @@ Date: 2026-10-25 · Scope: docs and source; **no provisioned GCP resources**
 - ตรวจคำสั่งและ identity boundary บางส่วนของ Lab 14/20 กับ Terraform, README และ Google Cloud documentation; **ยังไม่ใช่ full semantic validation ทุกบรรทัดหรือ runtime proof**
 
 **Merge gate / pending:** คง PR #1 เป็น Draft จนกว่าจะตรวจภาพ Render ของ Lab 09–20 และแก้ visual differences ที่ตรวจพบ (พร้อมทำ visual sign-off ของ Lab 01–08), ตรวจ cloud release trigger/cost side effects ของ Lab 14 และมีผู้ทบทวนความถูกต้องของ critical instructions ก่อนอนุมัติ Merge. ไม่จำเป็นต้องรัน GCP จริงเพื่อ Merge คู่มือ แต่ห้ามเรียกผลนั้นว่า Cloud-verified.
+
+## Final publication quality gate — 2026-10-25
+
+ข้อความ Merge gate ข้างบนเป็นบันทึกสถานะก่อนตรวจภาพรอบสุดท้าย; ผลล่าสุดเป็นดังนี้:
+
+- เปิดภาพ Render ของ Lab 01–20 ที่ความกว้างเอกสารจริงครบแล้ว; แก้ปัญหา label contrast, region overlap และ title layering ใน Lab 11/13/15/16/20 พร้อมไฟล์ SVG editable และ HTML/mirrors (ดู `docs/diagram-audit.md`)
+- ตรวจ relative Markdown links ใน README ทั้ง 20 และไฟล์สารบัญหลัก ไม่พบ target file ที่ขาดตามรายการไฟล์ใน PR (ไม่ใช่การตรวจทุก anchor และ external URL)
+- ปรับคู่มือให้ใช้ branch `main` หลังเผยแพร่; ทดสอบไม่ให้ Lab17/20 บังคับข้อความที่อ้างว่าใช้ Personal Custom Skill ทั้งที่ไม่มีหลักฐาน
+- CI #457 สำเร็จหลังปรับไฟล์ Diagram และคู่มือ; ผล CI หลัง commit เอกสารนี้อาจมีเลข run เพิ่ม จึงตรวจ status จาก GitHub ก่อนรวม PR
+- Lab14 release workflow ถูก gate ให้ทำงานเฉพาะ repository variable `LAB014_RELEASE_ENABLED=true` โดยค่าเริ่มต้นไม่รัน Release; ส่วน Cloud Build trigger ที่สร้างในบัญชี GCP จริงยังเป็นสิ่งที่ GitHub ไม่สามารถตรวจ/ปิดแทนได้
+- **เกณฑ์การเผยแพร่:** Guide-ready ให้เริ่มทำ Lab ด้วยตนเองได้ แต่ไม่มีการ provision GCP, ไม่มีหลักฐาน Live Cloud Deploy และไม่อ้างว่าได้ invoke Personal Custom Diagram Skill; ทุก Case Study ต้องใช้ Actual/Evidence จากการลงมือทำจริง
