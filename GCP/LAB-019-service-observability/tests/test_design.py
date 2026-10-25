@@ -34,9 +34,10 @@ class Lab019DesignTests(unittest.TestCase):
         self.assertIn("Direct VPC egress", self.svg)
         self.assertIn("Private Services Access", self.svg)
         self.assertIn("Cloud SQL", self.svg)
+        self.assertIn("Schema Migrator", self.svg)
 
     def test_request_routes_and_separate_auth_telemetry_paths_exist(self):
-        for route in ("route-client-api", "route-api-pubsub", "route-pubsub-worker",
+        for route in ("route-client-api", "route-api-pubsub", "route-pubsub-worker", "route-migrator-vpc",
                       "route-api-vpc", "route-worker-vpc", "route-vpc-sql",
                       "route-monitoring-probe", "route-alert-oncall"):
             self.assertIn(f'id="{route}"', self.svg)

@@ -60,7 +60,7 @@ Solution ใช้ Cloud Run Task API, Pub/Sub push subscription, Cloud Run Work
 |---|---|
 | แยก API และ Worker เป็น Cloud Run คนละ service | ปรับ IAM, concurrency, scaling และ fault injection แยกกัน; เพิ่มจำนวน revision ได้จำกัดตาม budget |
 | ใช้ Pub/Sub push + OIDC ไป Worker | แสดง identity ระหว่าง service และ retry; handler ต้อง idempotent เพราะ delivery ซ้ำได้ |
-| ใช้ Cloud SQL PostgreSQL private IP ผ่าน Direct VPC egress + PSA | พิสูจน์ private connectivity; เพิ่ม VPC, subnet และ allocated PSA range ที่จำเป็น |
+| ใช้ Cloud SQL PostgreSQL private IP ผ่าน Direct VPC egress + PSA พร้อม automatic IAM database authentication | Connector จัดการ TLS และ short-lived token; API/Worker มี IAM database users คนละบัญชี; migration Job แยกจาก runtime และได้รับสิทธิ์ฐานข้อมูลสูงเท่าที่ต้องใช้เฉพาะงาน schema |
 | ใช้ log-based counter/distribution metrics สร้าง SLI แบบมี business exclusions | native request metrics ยังใช้ดู platform; structured business event ทำให้ expected 4xx และ health check ไม่ปะปนกับ eligible requests; log-based metric มี processing delay ที่ต้องระบุใน troubleshooting |
 | ใช้ SLO targets 99.5% availability และ 95% latency < 1,000 ms บน 7 วัน | เป็น training objectives สำหรับฝึก error budget; ไม่ใช่ผลวัดจริงหรือคำรับรอง production |
 | ใช้ burn rates 10×/1h และ 2×/24h | เรียนรู้ fast/slow response; ผู้เรียนต้องตรวจหน้าต่างและ notification delay ก่อนสรุปผล |
@@ -104,10 +104,10 @@ Cloud SQL, serverless egress, log ingestion/retention, uptime checks และ n
 |---|---|
 | T00 — ตรวจสิทธิ์ งบ และข้อจำกัด | เลือก Lab project ที่อนุญาต, ตรวจ billing/quotas/APIs/region/role และบันทึกขอบเขตค่าใช้จ่ายก่อนสร้าง resource |
 | T01 — เตรียม Cloud Shell และค่า Lab | checkout branch/commit ที่กำหนด, ตั้งตัวแปรโดยไม่ใส่ secret ใน history, ตรวจ gcloud/Terraform version และเปิดเฉพาะ APIs ที่ต้องใช้ |
-| T02 — สร้าง Foundation แบบ private | Terraform สร้าง VPC/subnet, PSA range, Cloud SQL private IP, Pub/Sub topic/subscription/DLQ, Artifact Registry และ IAM identities; ตรวจ plan/outputs ก่อน apply |
+| T02 — สร้าง Foundation แบบ private | Terraform สร้าง VPC/subnet, PSA range, Cloud SQL private IP/IAM auth, Pub/Sub topics, Artifact Registry, service accounts และ migrator DB user; ตรวจ plan/outputs ก่อน apply |
 | T03 — Build และ Publish application images | รัน app/unit checks, build API/Worker/migrator จาก source ที่ pin, push ไป Artifact Registry และบันทึก image digest |
-| T04 — สร้าง schema ด้วย migrator identity | รัน Cloud Run Job แบบ one-off ผ่าน private egress, สร้าง PostgreSQL schema/roles/seed data และตรวจ migration result; API runtime ไม่มีสิทธิ์ DDL |
-| T05 — Deploy Worker และ authenticated push | Deploy Worker แบบ IAM-authenticated; ตั้ง Pub/Sub push OIDC service account, audience, invoker binding และ retry/DLQ behavior |
+| T04 — สร้าง schema ด้วย migrator identity | รัน Cloud Run Job แบบ one-off ผ่าน Direct VPC egress; สร้าง schema, idempotency table และ custom DB roles; ตรวจ migration log ก่อนสร้าง API/Worker DB users |
+| T05 — Deploy Worker และ authenticated push | Runtime Terraform สร้าง Worker, API/Worker IAM DB users ที่มี custom database roles, Pub/Sub push OIDC subscription, DLQ, SLI/SLO, alerts, dashboard และ uptime check หลัง migrator สำเร็จ |
 | T06 — Deploy Task API และ private DB access | Deploy API แบบ IAM-authenticated, จำกัด max instances/concurrency, ตั้ง Direct VPC egress และสิทธิ์ publish/read เท่าที่ต้องใช้ |
 | T07 — พิสูจน์ transaction และ security boundaries | POST/GET task, duplicate key/delivery, worker status, anonymous denial, push token denial/acceptance และ Cloud SQL no-public-IP |
 | T08 — สร้าง structured logs และ SLI metrics | ตรวจ JSON events; สร้าง total/bad counters และ latency distribution จาก eligible business requests; ตรวจ exclusions สำหรับ health/expected 4xx |
@@ -133,7 +133,7 @@ Cloud SQL, serverless egress, log ingestion/retention, uptime checks และ n
 
 ## ไฟล์ใน Lab
 
-- `assets/solution.svg` — source Diagram แบบแก้ไขได้ ใช้แนวทางและ icon set เดียวกับ Lab 18
+- `assets/solution.svg` — source Diagram แบบแก้ไขได้ ใช้ ZIP Diagram Design และ icon set เดียวกับ Lab 18; แสดง one-off Schema Migrator
 - `assets/solution.html` — preview ที่ฝัง SVG ไว้ในไฟล์เดียว
 - `assets/diagram-provenance.json` — source commit และ attribution ของ style/icons
 - `assets/icons/` — official Google Cloud service icons ที่ pin ไว้
@@ -154,6 +154,8 @@ Cloud SQL, serverless egress, log ingestion/retention, uptime checks และ n
 - [Pub/Sub delivery failures and DLQ](https://docs.cloud.google.com/pubsub/docs/handling-failures)
 - [Cloud Run to Cloud SQL for PostgreSQL](https://docs.cloud.google.com/sql/docs/postgres/connect-run)
 - [Cloud Run Direct VPC egress](https://docs.cloud.google.com/run/docs/configuring/vpc-direct-vpc)
+- [Cloud SQL automatic IAM database authentication](https://docs.cloud.google.com/sql/docs/postgres/iam-authentication)
+- [Cloud SQL Python Connector](https://docs.cloud.google.com/sql/docs/postgres/connect-connectors)
 - [Official Google Cloud icons](https://cloud.google.com/icons)
 - [Terraform Google provider — Monitoring SLO](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_slo)
 

@@ -18,7 +18,8 @@
     "The Monitoring uptime check uses a distinct orange OIDC path to the IAM-authenticated API; the API and Worker never grant allUsers.",
     "Run service signals are grouped by destination: structured logs/log-based SLI metrics, sampled traces, and Monitoring SLO/dashboard/alerts. Sampling is labelled; the diagram does not imply trace completeness.",
     "Orthogonal routes use short gutters, arrows terminate at destinations, and no route traverses an unrelated resource card.",
-    "API and Worker telemetry paths meet at a visible junction because both share the same Observability destinations."
+    "API and Worker telemetry paths meet at a visible junction because both share the same Observability destinations.",
+    "The one-off Schema Migrator is placed in the regional service area outside the VPC boundary. Its private egress route enters the VPC subnet before reaching Cloud SQL through PSA; this separates the runtime migration job from the managed SQL scope."
   ],
   "icons": {
     "cloud_run.svg": {
