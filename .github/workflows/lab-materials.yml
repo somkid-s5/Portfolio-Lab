@@ -1776,3 +1776,29 @@ jobs:
           persist-credentials: false
       - name: Validate Lab 18 task sequence, evidence fields, links and Bash examples
         run: python3 -m unittest discover -s GCP/LAB-018-team-environment-factory/tests -p 'test_guide.py' -v
+
+  lab019-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 19 brief, SLI/SLO scope, requirements and references
+        run: python3 -m unittest discover -s GCP/LAB-019-service-observability/tests -p 'test_brief.py' -v
+
+  lab019-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 19 diagram accessibility, scopes, routes and icon provenance
+        run: python3 -m unittest discover -s GCP/LAB-019-service-observability/tests -p 'test_design.py' -v
+      - name: Render Lab 19 diagram at document width
+        run: |
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin
+          rsvg-convert --width 1000 --output /tmp/lab019-solution.png GCP/LAB-019-service-observability/assets/solution.svg
+          test -s /tmp/lab019-solution.png
