@@ -1,0 +1,4 @@
+project_id      = "replace-with-your-lab-project-id"
+region          = "asia-southeast1"
+db_tier         = "db-custom-1-3840"
+operator_member = "user:replace-with-your-account@example.com"

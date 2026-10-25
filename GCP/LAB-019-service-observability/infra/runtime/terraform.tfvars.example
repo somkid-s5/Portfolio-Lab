@@ -1,0 +1,9 @@
+project_id     = "replace-with-your-lab-project-id"
+region         = "asia-southeast1"
+image_digest   = "sha256:replace-with-the-64-character-image-digest"
+operator_member = "user:replace-with-your-account@example.com"
+alert_email    = "replace-with-your-alert-address@example.com"
+
+api_fault_mode    = "none"
+worker_fault_mode = "none"
+worker_delay_ms   = 0
