@@ -95,7 +95,7 @@ terraform version
 
 ### Task T00 — กำหนดขอบเขต Lab และบันทึก starting point
 
-ยืนยันว่าเลือก project ใหม่, Billing account ถูกต้อง และผู้ใช้ที่กำลังล็อกอินคือผู้ที่จะได้รับ IAP access. บันทึก project ID/region โดยไม่ใส่ข้อมูลบัญชี billing หรือ token ลง Repo. Diagram ใช้ Diagram Design Personal Custom จาก ZIP และ official Google Cloud service icons ตาม provenance.
+ยืนยันว่าเลือก project ใหม่, Billing account ถูกต้อง และผู้ใช้ที่กำลังล็อกอินคือผู้ที่จะได้รับ IAP access. บันทึก project ID/region โดยไม่ใส่ข้อมูลบัญชี billing หรือ token ลง Repo. Diagram อ้างอิง visual style จาก ZIP และชุดไอคอนบริการ Google Cloud ตาม provenance; การมี style reference ไม่เท่ากับยืนยันว่าได้เรียกใช้ Personal Custom Skill.
 
 **ผลที่คาดหวัง:** project แยกและ account ที่ถูกต้อง พร้อมมี Budget alert ก่อน provision.
 
