@@ -19,7 +19,8 @@
     "Application and recovery revisions are stacked in one service; recovery receives no traffic until the data gate passes.",
     "Database and object-recovery tasks are stacked vertically as parallel paths that converge at one validation gate.",
     "Connectors use orthogonal routes and avoid unrelated resource frames.",
-    "If integrity validation fails, the service remains in maintenance and the recovery candidate stays at 0% service traffic."
+    "If integrity validation fails, the service remains in maintenance and the recovery candidate stays at 0% service traffic.",
+    "Secret Manager is shown inside the project but outside the regional boundary; its DB password flow reaches the Cloud Run runtime."
   ],
   "icons": {
     "cloud_run.svg": {
@@ -41,6 +42,11 @@
       "path": "assets/icons/cloud_storage.svg",
       "git_blob_sha": "59db35d960aca1b2beb942f1d8a693722b350db0",
       "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_storage.svg"
+    },
+    "secret_manager.svg": {
+      "path": "assets/icons/secret_manager.svg",
+      "git_blob_sha": "1668a03267db8ec93c9d1d44b0f799bdab2c148c",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/secret_manager.svg"
     }
   }
 }

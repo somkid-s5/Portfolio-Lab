@@ -11,6 +11,8 @@ def exact_fixture_uri(baseline_path: str, bucket: str, record_ref: str) -> tuple
     with open(baseline_path, encoding="utf-8") as source:
         baseline = json.load(source)
     manifest = baseline["manifest"]
+    if baseline.get("bucket_name") != bucket:
+        raise ValueError("bucket does not match the saved baseline")
     if manifest["drill_id"] != DRILL_ID or baseline["drill_id"] != DRILL_ID:
         raise ValueError("baseline is not the Lab 17 fixed fixture set")
     record = next((r for r in manifest["database"]["records"] if r["record_ref"] == record_ref), None)

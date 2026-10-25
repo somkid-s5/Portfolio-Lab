@@ -68,14 +68,14 @@ resource "google_sql_database_instance" "primary" {
   deletion_protection_enabled = false
 
   settings {
-    tier                        = var.db_tier
-    edition                     = "ENTERPRISE"
-    availability_type           = "ZONAL"
-    disk_type                   = "PD_SSD"
-    disk_size                   = 20
-    disk_autoresize             = true
-    disk_autoresize_limit       = 100
-    user_labels                 = local.labels
+    tier                  = var.db_tier
+    edition               = "ENTERPRISE"
+    availability_type     = "ZONAL"
+    disk_type             = "PD_SSD"
+    disk_size             = 20
+    disk_autoresize       = true
+    disk_autoresize_limit = 100
+    user_labels           = local.labels
 
     backup_configuration {
       enabled                        = true
@@ -165,6 +165,16 @@ resource "google_storage_bucket_iam_member" "runtime_read" {
 
 resource "google_secret_manager_secret" "db_password" {
   secret_id = "lab017-db-password"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.enabled]
+}
+
+resource "google_secret_manager_secret" "db_admin_password" {
+  secret_id = "lab017-db-admin-password"
 
   replication {
     auto {}

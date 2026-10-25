@@ -14,3 +14,7 @@ CREATE TABLE IF NOT EXISTS public.records (
 );
 CREATE INDEX IF NOT EXISTS records_drill_id_record_ref_idx
     ON public.records (drill_id, record_ref);
+
+GRANT USAGE ON SCHEMA public TO records_app;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.records TO records_app;
+GRANT USAGE, SELECT ON SEQUENCE public.records_id_seq TO records_app;

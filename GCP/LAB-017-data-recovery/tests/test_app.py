@@ -87,6 +87,24 @@ class RecordsHTTPTests(unittest.TestCase):
             "APPROVED": 1, "NEW": 2, "REJECTED": 1, "REVIEW": 1,
         })
 
+    def test_runtime_database_role_is_not_superuser_and_cannot_delete(self):
+        with psycopg.connect(
+            host=os.environ["DB_HOST"], dbname=os.environ["DB_NAME"],
+            user=os.environ["DB_USER"], password=os.environ["DB_PASSWORD"],
+        ) as conn:
+            superuser = conn.execute(
+                "SELECT rolsuper FROM pg_roles WHERE rolname = current_user"
+            ).fetchone()[0]
+            can_delete = conn.execute(
+                "SELECT has_table_privilege(current_user, 'public.records', 'DELETE')"
+            ).fetchone()[0]
+            can_update = conn.execute(
+                "SELECT has_table_privilege(current_user, 'public.records', 'UPDATE')"
+            ).fetchone()[0]
+        self.assertFalse(superuser)
+        self.assertFalse(can_delete)
+        self.assertTrue(can_update)
+
     def test_record_search_detail_and_attachment(self):
         code, body = self.request(f"/v1/records?drill_id={DRILL_ID}")
         self.assertEqual((code, body["database"]["count"]), (200, 5))

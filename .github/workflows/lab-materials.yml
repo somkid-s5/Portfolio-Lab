@@ -1588,19 +1588,20 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_DB: lab017_ci
-          POSTGRES_USER: lab017
+          POSTGRES_USER: lab017_admin
           POSTGRES_PASSWORD: disposable-lab017-ci
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U lab017 -d lab017_ci"
+          --health-cmd "pg_isready -U lab017_admin -d lab017_ci"
           --health-interval 5s --health-timeout 3s --health-retries 10
     env:
-      PG_DSN: postgresql://lab017:disposable-lab017-ci@127.0.0.1:5432/lab017_ci
+      PG_DSN: postgresql://lab017_admin:disposable-lab017-ci@127.0.0.1:5432/lab017_ci
+      CI_APP_DB_PASSWORD: disposable-records-app-ci
       DB_HOST: 127.0.0.1
       DB_NAME: lab017_ci
-      DB_USER: lab017
-      DB_PASSWORD: disposable-lab017-ci
+      DB_USER: records_app
+      DB_PASSWORD: disposable-records-app-ci
       STORAGE_BACKEND: memory
       STORAGE_BUCKET: lab017-ci-bucket
     steps:
@@ -1651,4 +1652,16 @@ jobs:
         with:
           persist-credentials: false
       - name: Check Lab 17 operator tools and IAM-safe fault path
-        run: python3 -m unittest discover -s GCP/LAB-017-data-recovery/tests -p 'test_ops_contract.py' -v
+        run: |
+          bash -n GCP/LAB-017-data-recovery/scripts/prepare_db_users.sh
+          python3 -m unittest discover -s GCP/LAB-017-data-recovery/tests -p 'test_ops_contract.py' -v
+
+  lab017-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate Lab 17 task order, evidence fields, local links and Bash syntax
+        run: python3 -m unittest discover -s GCP/LAB-017-data-recovery/tests -p 'test_guide.py' -v

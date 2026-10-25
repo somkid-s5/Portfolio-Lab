@@ -41,7 +41,13 @@ class Lab017InfraContracts(unittest.TestCase):
         self.assertIn('"roles/storage.objectViewer"', MAIN)
         self.assertNotIn('"roles/storage.objectAdmin"', MAIN)
         self.assertNotIn('"roles/storage.objectUser"', MAIN)
+        schema = (ROOT / "app" / "schema.sql").read_text(encoding="utf-8")
+        self.assertIn("GRANT SELECT, INSERT, UPDATE ON TABLE public.records TO records_app", schema)
+        self.assertNotIn("GRANT DELETE", schema)
         self.assertIn('"roles/secretmanager.secretAccessor"', MAIN)
+        self.assertIn('resource "google_secret_manager_secret" "db_admin_password"', MAIN)
+        self.assertNotIn("google_secret_manager_secret_version", MAIN)
+        self.assertIn('resource "google_secret_manager_secret_iam_member" "runtime_reads_db_password"', MAIN)
 
 
 if __name__ == "__main__":

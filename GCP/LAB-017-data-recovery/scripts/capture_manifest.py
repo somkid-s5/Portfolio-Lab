@@ -10,17 +10,17 @@ from urllib.request import Request, urlopen
 DRILL_ID = "LAB017-DRILL-01"
 
 
-def identity_token(service_url: str) -> str:
+def identity_token(audience: str) -> str:
     result = subprocess.run(
-        ["gcloud", "auth", "print-identity-token", f"--audiences={service_url}"],
+        ["gcloud", "auth", "print-identity-token", f"--audiences={audience}"],
         check=True, capture_output=True, text=True,
     )
     return result.stdout.strip()
 
 
-def fetch_manifest(service_url: str, drill_id: str) -> dict:
+def fetch_manifest(service_url: str, drill_id: str, bucket_name: str, audience: str | None = None) -> dict:
     base = service_url.rstrip("/")
-    token = identity_token(base)
+    token = identity_token((audience or base).rstrip("/"))
     req = Request(
         f"{base}/ops/manifest?drill_id={drill_id}",
         headers={"Authorization": f"Bearer {token}"},
@@ -35,8 +35,9 @@ def fetch_manifest(service_url: str, drill_id: str) -> dict:
     if not manifest.get("integrity_pass"):
         raise SystemExit("baseline integrity check failed; do not start the recovery drill")
     return {
-        "captured_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "captured_at_utc": datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
         "service_url": base,
+        "bucket_name": bucket_name,
         "drill_id": drill_id,
         "manifest": manifest,
     }
@@ -47,8 +48,10 @@ def main() -> None:
     parser.add_argument("--service-url", required=True)
     parser.add_argument("--output", default="lab017-baseline.json")
     parser.add_argument("--drill-id", default=DRILL_ID)
+    parser.add_argument("--bucket", required=True)
+    parser.add_argument("--audience", help="base Cloud Run service URL; use this when --service-url is a tagged revision URL")
     args = parser.parse_args()
-    baseline = fetch_manifest(args.service_url, args.drill_id)
+    baseline = fetch_manifest(args.service_url, args.drill_id, args.bucket, args.audience)
     with open(args.output, "w", encoding="utf-8") as output:
         json.dump(baseline, output, ensure_ascii=False, indent=2)
         output.write("\n")

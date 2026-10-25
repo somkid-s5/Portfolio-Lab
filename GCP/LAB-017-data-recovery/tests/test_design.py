@@ -59,11 +59,12 @@ class Lab017DesignTests(unittest.TestCase):
             "run-egress-subnet", "sql-primary", "sql-recovery", "attachment-bucket",
             "soft-delete-policy", "active-to-primary", "recovery-to-clone",
             "pitr-to-clone", "run-to-bucket", "candidate-revision",
+            "secret-manager", "secret-to-run", "secret-manager", "icon-secret-manager", "secret-to-run",
         ):
             self.assertIn(item, ids)
         for color in ("#F7FAFF", "#EFF6FF", "#F0FDFA", "#FFF7ED", "#F5F3FF", "#F1F5F9", "#F0FDF4"):
             self.assertIn(color, SOLUTION)
-        for path_id in ("active-to-primary", "recovery-to-clone", "pitr-to-clone", "run-to-bucket"):
+        for path_id in ("active-to-primary", "recovery-to-clone", "pitr-to-clone", "run-to-bucket", "secret-to-run"):
             node = next(n for n in root.iter() if n.attrib.get("id") == path_id)
             self.assertNotRegex(node.attrib.get("d", ""), r"[CQST]")
 
@@ -79,6 +80,9 @@ class Lab017DesignTests(unittest.TestCase):
             self.assertIn(item, ids)
         self.assertIn("5-minute RPO and 30-minute RTO are exercise targets", FLOW)
         self.assertIn("new live copy; new generation", FLOW)
+        self.assertIn("else: keep service in maintenance", FLOW)
+        secret_icon = next(n for n in ET.fromstring(SOLUTION).iter() if n.attrib.get("id") == "icon-secret-manager")
+        self.assertLess(int(secret_icon.attrib["y"]), 188, "Secret Manager is global and outside the region boundary.")
 
 
 if __name__ == "__main__":

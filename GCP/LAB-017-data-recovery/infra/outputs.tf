@@ -34,6 +34,10 @@ output "secret_id" {
   value = google_secret_manager_secret.db_password.secret_id
 }
 
+output "admin_secret_id" {
+  value = google_secret_manager_secret.db_admin_password.secret_id
+}
+
 output "artifact_repository" {
   value = google_artifact_registry_repository.app.repository_id
 }

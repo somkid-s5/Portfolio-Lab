@@ -16,9 +16,9 @@ FIXTURES = [
 ]
 
 
-def identity_token(service_url: str) -> str:
+def identity_token(audience: str) -> str:
     result = subprocess.run(
-        ["gcloud", "auth", "print-identity-token", f"--audiences={service_url}"],
+        ["gcloud", "auth", "print-identity-token", f"--audiences={audience}"],
         check=True, capture_output=True, text=True,
     )
     return result.stdout.strip()
@@ -48,8 +48,9 @@ def post_record(service_url: str, token: str, fixture: tuple) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Create the five fixed synthetic Lab 17 records.")
     parser.add_argument("--service-url", required=True)
+    parser.add_argument("--audience", help="service URL used as the ID-token audience; defaults to --service-url")
     args = parser.parse_args()
-    token = identity_token(args.service_url.rstrip("/"))
+    token = identity_token((args.audience or args.service_url).rstrip("/"))
     for fixture in FIXTURES:
         print(json.dumps(post_record(args.service_url, token, fixture), ensure_ascii=False))
     print(f"seeded_drill_id={DRILL_ID} fixture_count={len(FIXTURES)}")

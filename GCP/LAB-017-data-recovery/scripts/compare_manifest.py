@@ -6,7 +6,7 @@ from pathlib import Path
 
 FIELDS = (
     "id", "record_ref", "title", "status", "amount_cents", "state",
-    "attachment_key", "attachment_sha256", "attachment_bytes",
+    "attachment_key", "attachment_sha256", "attachment_bytes", "created_at",
 )
 
 
