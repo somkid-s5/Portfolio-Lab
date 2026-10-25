@@ -449,7 +449,7 @@ gcloud storage rm --all-versions "gs://lab20-$PROJECT_ID-prod-reports/**"
 gcloud artifacts docker images list "$REGION-docker.pkg.dev/$PROJECT_ID/lab20-apps/reservation-handoff" --include-tags
 ~~~
 
-ลบ image digests ที่ Lab สร้างด้วยตนเอง/ตรวจรายการก่อนทุกครั้ง:
+ลบ Runtime ทั้งสอง Environment ก่อน จากนั้นลบเฉพาะ Image ของ Lab ที่ตรวจแล้ว **ขณะที่ Artifact Registry ยังอยู่** แล้วจึงลบ Foundation ซึ่งเป็นเจ้าของ Repository และ Cloud SQL:
 
 ~~~bash
 # ใช้ digest ที่ deploy ล่าสุด; ถ้าไม่ได้ทำ CR ใช้ baseline (ตรวจ plan/state จริงก่อน destroy)
@@ -459,12 +459,13 @@ terraform -chdir=infra/runtime workspace select prod
 terraform -chdir=infra/runtime destroy -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="environment=prod" -var="image_digest=$CLEANUP_IMAGE_DIGEST" -var="migration_image_digest=$CLEANUP_IMAGE_DIGEST" -var="operator_member=$OPERATOR_MEMBER" -var="iap_enabled=true"
 terraform -chdir=infra/runtime workspace select stage
 terraform -chdir=infra/runtime destroy -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="environment=stage" -var="image_digest=$CLEANUP_IMAGE_DIGEST" -var="migration_image_digest=$CLEANUP_IMAGE_DIGEST" -var="operator_member=$OPERATOR_MEMBER" -var="iap_enabled=true"
-terraform -chdir=infra/foundation destroy -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="operator_member=$OPERATOR_MEMBER"
-# เมื่อ Cloud Run/Jobs ไม่อ้าง images แล้ว จึงลบ digests หลังตรวจชื่อและ scope อีกครั้ง
+# เมื่อ Cloud Run/Jobs ไม่อ้าง images แล้ว ให้ลบเฉพาะ digest ของ Lab ก่อน Foundation จะลบ Artifact Registry repository
 [[ "$BASELINE_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] && gcloud artifacts docker images delete "$REGION-docker.pkg.dev/$PROJECT_ID/lab20-apps/reservation-handoff@$BASELINE_IMAGE_DIGEST" --delete-tags
 if [[ -n "${CR_IMAGE_DIGEST:-}" && "$CR_IMAGE_DIGEST" != "$BASELINE_IMAGE_DIGEST" ]]; then
   gcloud artifacts docker images delete "$REGION-docker.pkg.dev/$PROJECT_ID/lab20-apps/reservation-handoff@$CR_IMAGE_DIGEST" --delete-tags
 fi
+# หลัง Runtime ว่างและ images ถูกลบแล้ว จึง destroy Foundation (รวม shared Cloud SQL และ Artifact Registry)
+terraform -chdir=infra/foundation destroy -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="operator_member=$OPERATOR_MEMBER"
 ~~~
 
 Review each destroy plan carefully; ตรวจ resource ownership กับรายการจาก Terraform state ก่อนลบ และอย่าสมมติว่าทำ CR ครบทุกขั้น. Foundation destroy removes the shared SQL instance and networks after both Runtime workspaces are empty. After confirming the exact bucket name, run gcloud storage rm --recursive "gs://$STATE_BUCKET/"; this deletes the bucket and every object generation. Do this last because it permanently removes remote Terraform state. State bucket ต้องเป็นขั้นตอนสุดท้าย เพราะการลบจะลบ remote state อย่างถาวร. หาก resource คงเหลือ ให้ตรวจ Terraform state และ Console ก่อน; อย่า issue broad project-wide deletes.
