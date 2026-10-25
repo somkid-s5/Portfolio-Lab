@@ -64,3 +64,22 @@ Render at the intended document width, typically 900–1000 px, and inspect the 
 Account for transparent SVG viewBox padding so arrow tips meet visible glyph geometry; avoid floating tips, glyph overlap or endpoints beside unrelated labels. Trim empty top margins and unused panel space without crowding scope labels, then re-render and inspect again. A preview must show the final saved source.
 
 Describe the system itself in lab artifacts. Do not include conversation history or commentary about future portfolio plans.
+
+## Repository asset contract (Lab 01–20)
+
+Every solution Lab publishes its **editable architecture diagram** in `GCP/LAB-NNN-*/assets/diagrams/` and links that location **relatively** from its README:
+
+- `assets/diagrams/solution.svg`: primary architecture plate, accessible title/description and truthful scope
+- `assets/diagrams/*-flow.svg`, `operations.svg` or `recovery.svg`: secondary technical views only when useful
+- `assets/diagrams/*-preview.png`: optional rendered preview from the corresponding SVG
+- `assets/diagrams/solution.html`: optional standalone offline preview; not a substitute for SVG
+
+Existing paths in `assets/` remain **temporary compatibility mirrors** for old scripts/renderers/tests. They contain the same bytes as the corresponding published assets. Future changes must update the `assets/diagrams/` publication and mirror the old path until migration is complete. Run `python scripts/check-diagram-mirrors.py` from repository root to detect drift and broken local links; this check is not a visual QA substitute. Do not delete the compatibility paths while tests/render scripts still refer to them.
+
+The requested Diagram Design Personal Custom Skill must be used when **creating or visually redesigning** diagrams if it is available in the execution environment. Styling rules or a provenance string alone **do not prove the Skill ran**. When unavailable, keep the existing editable SVG and record the limitation; do not claim the diagrams were redrawn with the Skill. `diagram-design.zip` is an external visual reference in the user's environment and is not version-controlled in this repository.
+
+## Visual consistency acceptance gate
+
+Use the same layout tokens, provider-icon geometry/provenance and semantics across all 20 Lab architectures while respecting differences in system topologies. Before marking each diagram `Visual-reviewed`, open its **actual rendered image** at ~1000 px reading width and confirm: (1) correct GCP project/region/VPC scope, (2) all significant flows/routes and labels readable, (3) no connector crossings through icons/text, (4) no clipping or tiny type, (5) no misleading network containment, and (6) no decoration misrepresenting service operation. An automated color test alone is insufficient.
+
+See [the 20-Lab diagram alignment audit](diagram-audit.md). The audit is intentionally **not** marked visually complete solely because SVGs exist or CI renders successfully.
