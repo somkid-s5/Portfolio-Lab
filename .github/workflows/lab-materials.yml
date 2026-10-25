@@ -1665,3 +1665,40 @@ jobs:
           persist-credentials: false
       - name: Validate Lab 17 task order, evidence fields, local links and Bash syntax
         run: python3 -m unittest discover -s GCP/LAB-017-data-recovery/tests -p 'test_guide.py' -v
+
+  lab018-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate Lab 18 environment factory brief and access boundary
+        run: python3 -m unittest discover -s GCP/LAB-018-team-environment-factory/tests -p 'test_brief.py' -v
+
+  lab018-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Lab 18 Personal Custom diagram, hierarchy, routes and icon provenance
+        run: python3 -m unittest discover -s GCP/LAB-018-team-environment-factory/tests -p 'test_design.py' -v
+      - name: Install SVG renderer and Thai font
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin fonts-noto-core
+      - name: Render Lab 18 architecture at guide width
+        run: |
+          mkdir -p lab018-diagram-preview
+          rsvg-convert --width 1440 GCP/LAB-018-team-environment-factory/assets/solution.svg -o lab018-diagram-preview/solution.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab018-design-preview
+          path: |
+            lab018-diagram-preview/*.png
+            GCP/LAB-018-team-environment-factory/README.md
+            GCP/LAB-018-team-environment-factory/assets/**
+          if-no-files-found: error
+          retention-days: 14

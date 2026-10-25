@@ -21,7 +21,7 @@
 | 15 | [ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud](LAB-015-branch-private-connectivity/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #40116050598](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40116050598) |
 | 16 | [ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud](LAB-016-legacy-migration/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #385](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40156391005) — 59/59 jobs ผ่าน |
 | 17 | [ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้](LAB-017-data-recovery/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
-| 18 | แพลตฟอร์มสร้าง Environment ให้ทีมใหม่ | Planned | Not run | — |
+| 18 | [แพลตฟอร์มสร้าง Environment ให้ทีมใหม่](LAB-018-team-environment-factory/README.md) | Brief/Design in progress | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 19 | ระบบเฝ้าระวังและรับ Incident สำหรับทีมบริการ | Planned | Not run | — |
 | 20 | แพลตฟอร์มจองและสร้างรายงานแบบรับมอบงานได้ | Planned | Not run | — |
 
@@ -401,3 +401,6 @@ Lab 16 / Guide-ready checkpoint (2026-10-25): [CI #385](https://github.com/somki
 
 
 Lab 17 / Guide-ready checkpoint (2026-10-25): Brief/Design baseline ผ่าน CI #388; final repository CI #394 (https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40159116021) ผ่าน 65/65 jobs และ Lab 17 ผ่าน 6/6 jobs (brief, guide, app, Terraform/infra, ops, design/render) บน commit `20b7baf84b528bcba5187afcdd51a37359406594`. คู่มือ README Tasks 00–19 ครอบคลุมตรวจงบ/สิทธิ์, Terraform plan/apply, DB users/Secret Manager, Cloud Run IAM + Direct VPC, baseline, bounded SQL/object fault, PITR clone, soft-delete generation restore, manifest gate, zero-traffic candidate, traffic promotion, วัด RPO/RTO, troubleshooting, cleanup และ case study. ZIP Personal Custom diagram style ใช้สม่ำเสมอ พร้อม official Secret Manager icon/source provenance. CI ตรวจ code/docs/config โดยไม่ provision GCP; Cloud verification Not run และไม่มีผล cloud PASS ที่สร้างขึ้นเอง. ขั้นถัดไป Lab 18 Brief.
+
+
+Lab 18 / Brief + Design checkpoint (2026-10-25): กำหนด solution เป็น environment factory ที่สร้าง Dev/Staging แยก Project ใต้ Folder เดิม พร้อม GCS remote state/versioning/lock, labels, per-project alert-only budgets, IAM groups/runtime identities, authenticated Cloud Run sample และ project-level log sinks ไป regional central log bucket. เพิ่มข้อกำหนดสำคัญจากเอกสาร Google Cloud: Project Creator ได้ Owner อัตโนมัติ จึงแยก seeder/create กับ factory identity และต้องถอน Owner หลัง handoff ก่อนเริ่มงานประจำ. Organization/Folder/Org Policy/Billing Account ไม่ถูกสร้างหรือแก้; Change Request dataops ต้องผ่าน region allowlist และ contractor read-only. Brief + design/static tests/render job รอ CI. ไม่มี GCP provisioning; Cloud verification Not run. ขั้นถัดไป: ปิด CI brief/design แล้วเริ่ม App/Terraform/build materials.
