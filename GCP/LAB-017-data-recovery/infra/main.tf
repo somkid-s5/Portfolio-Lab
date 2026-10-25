@@ -61,10 +61,10 @@ resource "google_service_networking_connection" "private_services" {
 }
 
 resource "google_sql_database_instance" "primary" {
-  name                        = "lab017-primary"
-  region                      = var.region
-  database_version            = "POSTGRES_16"
-  deletion_protection         = false
+  name                = "lab017-primary"
+  region              = var.region
+  database_version    = "POSTGRES_16"
+  deletion_protection = false
 
   settings {
     tier                  = var.db_tier
