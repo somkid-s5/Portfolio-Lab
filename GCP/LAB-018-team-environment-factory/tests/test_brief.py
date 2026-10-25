@@ -26,7 +26,7 @@ class Lab018BriefTests(unittest.TestCase):
 
     def test_project_creator_owner_handoff_is_explicit(self):
         self.assertIn("roles/resourcemanager.projectCreator", self.readme)
-        self.assertIn("Project Creator เป็น Owner", self.readme)
+        self.assertIn("Google Cloud สร้าง roles/owner ให้ principal ที่สร้าง Project โดยอัตโนมัติ", self.readme)
         self.assertIn("ถอน Owner", self.readme)
         self.assertIn("ไม่มี roles/owner หรือ roles/editor", self.readme)
 
@@ -37,7 +37,7 @@ class Lab018BriefTests(unittest.TestCase):
         self.assertIn("Cloud verification:** Not run", self.readme)
 
     def test_required_design_constraints_and_sources_exist(self):
-        for phrase in ("asia-southeast1", "asia-east1", "GCS lock",
+        for phrase in ("asia-southeast1", "asia-east1", "GCS backend", "state locking",
                        "roles/logging.logWriter", "roles/logging.bucketWriter", "bucket ไม่มี IAM policy ราย bucket", "Project ID", "project ส่วนตัว"):
             self.assertIn(phrase, self.readme)
         for url in (

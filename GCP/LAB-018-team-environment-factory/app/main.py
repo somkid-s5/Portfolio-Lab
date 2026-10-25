@@ -13,8 +13,8 @@ class StatusHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path not in ("/", "/healthz"):
-            self._write_json(404, {"error": "not_found"})
             self._log("other", 404)
+            self._write_json(404, {"error": "not_found"})
             return
         environment = os.environ.get("ENVIRONMENT", "local")
         body = {

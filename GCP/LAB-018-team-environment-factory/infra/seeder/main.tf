@@ -31,13 +31,13 @@ variable "allow_project_delete" {
 }
 
 locals {
-  profile       = jsondecode(file("${path.module}/../../config/environments.json"))
-  allowed       = try(local.profile.allowed_regions, [])
-  environment   = try(local.profile.environments[var.environment], {})
-  project_id    = try(local.environment.project_id, "")
-  project_name  = try(local.environment.project_name, "")
-  region        = try(local.environment.region, "")
-  labels        = merge(try(local.profile.labels, {}), try(local.environment.labels, {}))
+  profile      = jsondecode(file("${path.module}/../../config/environments.json"))
+  allowed      = try(local.profile.allowed_regions, [])
+  environment  = try(local.profile.environments[var.environment], {})
+  project_id   = try(local.environment.project_id, "")
+  project_name = try(local.environment.project_name, "")
+  region       = try(local.environment.region, "")
+  labels       = merge(try(local.profile.labels, {}), try(local.environment.labels, {}))
 }
 
 resource "terraform_data" "profile_gate" {

@@ -73,7 +73,7 @@ Cloud Logging log bucket ไม่มี IAM allow policy ของตัวเ�
 
 ## Cost boundary
 
-Cloud Run ตั้ง min instances เป็น 0 และ max เป็น 2; Artifact Registry เก็บ image จนลบ; Cloud Logging มี ingestion/retention cost และ egress อาจมีค่าใช้จ่าย Project budget แจ้งเตือนตาม threshold เท่านั้น ไม่หยุดการใช้เงินจริง ตรวจ billing currency/เจ้าของงบก่อน apply และ cleanup Environment หลังเก็บหลักฐาน อย่าใช้ budget alert แทนการอนุมัติงบ
+Cloud Run ตั้ง min instances เป็น 0 และ max เป็น 2; Artifact Registry เก็บ image จนลบ; Cloud Logging มี ingestion/retention cost และ egress อาจมีค่าใช้จ่าย Project budget เป็น alert-only ไม่ได้จำกัดค่าใช้จ่ายโดยอัตโนมัติ และไม่หยุดการใช้เงินจริง ตรวจ billing currency/เจ้าของงบก่อน apply และ cleanup Environment หลังเก็บหลักฐาน อย่าใช้ budget alert แทนการอนุมัติงบ
 
 ## Solution diagram
 

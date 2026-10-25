@@ -9,15 +9,15 @@ terraform {
 }
 
 locals {
-  profile     = jsondecode(file("${path.module}/../../config/environments.json"))
-  allowed     = try(local.profile.allowed_regions, [])
-  environment = try(local.profile.environments[var.environment], {})
-  project_id  = try(local.environment.project_id, "")
-  region      = try(local.environment.region, "")
-  labels      = merge(try(local.profile.labels, {}), try(local.environment.labels, {}))
-  team_group  = try(local.environment.team_group, "")
+  profile          = jsondecode(file("${path.module}/../../config/environments.json"))
+  allowed          = try(local.profile.allowed_regions, [])
+  environment      = try(local.profile.environments[var.environment], {})
+  project_id       = try(local.environment.project_id, "")
+  region           = try(local.environment.region, "")
+  labels           = merge(try(local.profile.labels, {}), try(local.environment.labels, {}))
+  team_group       = try(local.environment.team_group, "")
   contractor_group = try(local.environment.contractor_group, null)
-  budget      = try(local.environment.budget, {})
+  budget           = try(local.environment.budget, {})
 }
 
 provider "google" {
