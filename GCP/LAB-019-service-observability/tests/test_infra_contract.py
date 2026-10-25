@@ -43,7 +43,7 @@ class Lab019InfrastructureContracts(unittest.TestCase):
             "google_pubsub_subscription.dead_letter_status",
             'resource "google_pubsub_subscription_iam_member" "pubsub_agent_reads_dlq_status"',
             "lab19_dead_lettered_tasks",
-            "google_pubsub_subscription_iam_member.pubsub_agent_reads_source",
+            'resource "google_pubsub_subscription_iam_member" "pubsub_agent_reads_source"',
             "google_pubsub_topic_iam_member.pubsub_agent_publishes_dlq",
         ):
             self.assertIn(expected, RUNTIME)
