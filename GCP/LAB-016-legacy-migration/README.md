@@ -1,6 +1,6 @@
 # Lab 16 — ย้ายระบบ Orders จาก VM ไป Cloud Run และ Cloud SQL
 
-> **สถานะคู่มือ:** Review — ขั้นตอนและไฟล์ประกอบพร้อมตรวจใน CI  
+> **สถานะคู่มือ:** Guide-ready — [CI #385](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40156391005) ผ่าน 59/59 repository jobs  
 > **Cloud verification:** Not run — ยังไม่มีผลจากการสร้างหรือทดสอบทรัพยากรจริง  
 > **ข้อมูล:** ใช้ข้อมูลจำลองเท่านั้น ห้ามใช้ข้อมูลลูกค้า รหัสผ่านจริง หรือ private key จริง
 
@@ -18,7 +18,7 @@ Client ใช้ HTTPS front door เดิมตลอด Lab: global external 
 
 ![Freeze, transfer, reconcile, cutover and backout sequence](assets/migration-flow.svg)
 
-Diagram เป็นแบบออกแบบ ไม่ใช่ผล Cloud execution. รูปแบบ สี และไอคอนยึด Diagram Design Personal Custom ZIP ที่ใช้เป็นมาตรฐานของ Lab นี้
+Diagram เป็นแบบออกแบบ ไม่ใช่ผล Cloud execution. ใช้สี ไอคอน การจัดกลุ่ม และแนวทางเดินเส้นตาม Diagram Design Personal Custom จาก ZIP ที่บันทึกเป็นมาตรฐานเดียวใน [docs/diagram-style.md](../../../docs/diagram-style.md).
 
 ## Requirements และเกณฑ์รับงาน
 

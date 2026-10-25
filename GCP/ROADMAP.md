@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–15 Guide-ready; Lab 16 Brief in progress; Lab 17–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–16 Guide-ready; Lab 17–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -335,7 +335,7 @@
 
 ### 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud
 
-**สถานะ:** Design in progress. ปิด Brief แล้ว; มี Architecture และ migration-flow diagrams ใน Lab README; ยังไม่มี Tasks หรือ Cloud execution; Cloud verification Not run.
+**สถานะ:** Guide-ready หลัง [CI #385](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40156391005) ผ่าน 59/59 repository jobs; Lab 16 ผ่านครบ 5/5 jobs (brief, guide, app, infra, design/render). ไม่มี GCP provisioning; Cloud verification Not run.
 
 **โจทย์:** ทีมต้องย้ายระบบจัดการคำสั่งซื้อจาก VM ที่ดูแล PostgreSQL เองไป Cloud Run และ Cloud SQL โดยควบคุม write freeze, ตรวจความครบถ้วนของข้อมูล และสลับ traffic ผ่าน front door เดิมได้อย่างมีแผน backout
 
@@ -501,7 +501,7 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 
 Lab 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud — Guide-ready หลัง [CI #40116589150](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40116589150) ผ่าน 54/54 repository jobs; ไม่มี GCP provisioning และ Cloud verification ยัง Not run.
 
-Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud — อยู่ในขั้น Brief. ขั้นถัดไปปิด requirements/assumptions แล้วทำ Design และ Diagram ตาม [แนวทางไดอะแกรม](../docs/diagram-style.md) ก่อนออกแบบ Tasks.
+Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud — Guide-ready หลัง [CI #385](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40156391005) ผ่าน 59/59 repository jobs; ไม่มี GCP provisioning และ Cloud verification ยัง Not run. ขั้นถัดไปเริ่ม Lab 17 จาก Brief ตามลำดับ.
 
 ตัวอย่างรูปแบบการอ่าน: [Lab Test 2](../test/lab-test-2/README.md) ใช้เป็น reference ด้านการอ่าน ไม่ใช่ผลการทำ GCP Lab
 

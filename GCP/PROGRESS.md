@@ -19,7 +19,7 @@
 | 13 | [ระบบประมวลผลข้อมูลนำเข้าแบบขนาน](LAB-013-parallel-data-processing/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #342](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40103276327) — 47/47 jobs ผ่าน |
 | 14 | [แพลตฟอร์มส่งมอบ App สำหรับทีมพัฒนา](LAB-014-secure-app-delivery/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #367](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40111516650) |
 | 15 | [ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud](LAB-015-branch-private-connectivity/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #40116050598](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40116050598) |
-| 16 | [ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud](LAB-016-legacy-migration/README.md) | Brief in progress | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
+| 16 | [ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud](LAB-016-legacy-migration/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #385](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40156391005) — 59/59 jobs ผ่าน |
 | 17 | ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้ | Planned | Not run | — |
 | 18 | แพลตฟอร์มสร้าง Environment ให้ทีมใหม่ | Planned | Not run | — |
 | 19 | ระบบเฝ้าระวังและรับ Incident สำหรับทีมบริการ | Planned | Not run | — |
@@ -395,3 +395,6 @@ Lab 16 / Brief checkpoint (2026-10-25): เพิ่ม README ระบุ scen
 
 
 Lab 16 / Design: ยึด Diagram Design ZIP (Personal Custom) เป็นมาตรฐานเดียวของ Repo และเพิ่ม architecture + migration/cutover diagrams พร้อม pinned official GCP icons, palette/scope/flow decisions และ test/render CI job. ปิด Brief และกำหนด baseline controlled write-freeze + pg_dump/restore; DMS คงเป็น cost/access-gated Change Request. ยังไม่มี Cloud provisioning; Cloud verification Not run.
+
+
+Lab 16 / Guide-ready checkpoint (2026-10-25): [CI #385](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40156391005) ผ่านครบ 59/59 repository jobs บน commit `a4250cd884047255dd04fb1b73c2f3fdc4e7c6ea`; Lab 16 ผ่าน 5/5 jobs ได้แก่ brief, guide, app, infra และ design/render. README Tasks 00–13 ครอบคลุม source inventory, target deployment, HTTPS backend switching, controlled write-freeze, export/restore/reconciliation, cutover/backout boundary, fault recovery, bounded probe, DMS Change Request และ cleanup. Diagram ใช้ Diagram Design Personal Custom จาก ZIP ตาม docs/diagram-style.md. เป็นผล repository CI เท่านั้น: ไม่มี GCP provisioning และ Cloud verification Not run. ขั้นถัดไป: เริ่ม Lab 17 จาก Brief.
