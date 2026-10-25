@@ -11,6 +11,7 @@
 - [Progress — Guide-ready แยกจาก Cloud Verification](GCP/PROGRESS.md)
 - [PLAN — Definition of Done และข้อจำกัด](PLAN.md)
 - [Diagram Design — Visual Standard](docs/diagram-style.md)
+- [Quality Acceptance — ขอบเขตการตรวจรับ](docs/quality-acceptance.md)
 - [Diagram Alignment Audit — รูปแบบภาพเหมือนกันจริงหรือยัง](docs/diagram-audit.md)
 
 **สถานะ:** README/โค้ดประกอบสำหรับ Lab 01–20 อยู่ใน Branch ของ [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) ระดับ Guide-ready เท่านั้น; **ยังไม่มีหลักฐานว่า Deploy และ Cloud Verify จริง** และไม่ได้สร้างเว็บไซต์ Portfolio

@@ -4,7 +4,7 @@ Date: 2026-10-25 · Scope: docs and source; **no provisioned GCP resources**
 
 ## สิ่งที่ตรวจและแก้
 
-- **โครงสร้าง:** README 20 เรื่องเปิดอ่านได้ครบ, แยก Lab เป็น solution مستقل, มี Quick Navigation ที่ GCP/README.md, PLAN/ROADMAP/PROGRESS แยกบทบาท; การนำทางและลิงก์ Diagram ใช้ relative paths
+- **โครงสร้าง:** README 20 เรื่องเปิดอ่านได้ครบ, แยก Lab ให้เป็น Solution แบบอิสระ, มี Quick Navigation ที่ GCP/README.md, PLAN/ROADMAP/PROGRESS แยกบทบาท; การนำทางและลิงก์ Diagram ใช้ relative paths
 - **รูปแบบเนื้อหา:** README ทั้ง 20 มี Task flow, Expected, Actual/Evidence, Change Request, Cleanup, แหล่งอ้างอิงทางการ (ตรวจระดับเอกสาร); สถานะ Guide-ready/Cloud verification ถูกแยก
 - **Lab 20 runnable instructions:** Cloud Build config ต้องส่ง repository root, Change Request patch ใช้ --directory และทดสอบ disposable ก่อน apply, migrate schema ก่อน release digest, cleanup image/repo ตาม dependency order, และระบุว่า support_desk ยังไม่ใช่ impersonation authorization
 - **ACE coverage:** ตรวจแนว Exam Guide Google v4.0 ตามวันตรวจ ไม่ตีความว่า Lab ครบ = ผ่านทุก objective

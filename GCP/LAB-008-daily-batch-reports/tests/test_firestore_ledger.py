@@ -7,6 +7,8 @@ import threading
 import unittest
 import uuid
 from pathlib import Path
+from unittest.mock import Mock, patch
+from google.api_core.exceptions import Aborted
 
 from google.auth.credentials import AnonymousCredentials
 from google.cloud import firestore
@@ -69,6 +71,33 @@ class FirestoreLedgerTests(unittest.TestCase):
         self.assertEqual(self.ledger.record_report(DAY, new, report=report)["status"],
                          "report_written")
         self.assertEqual(self.ledger.read(DAY)["owner_execution"], "exec-b")
+
+    def test_transient_emulator_contention_is_retried_not_hidden(self):
+        from app import ledger as adapter
+        failure = ValueError("Failed to commit transaction in 5 attempts.")
+        failure.__cause__ = Aborted("Transaction lock timeout.")
+        client = Mock()
+        client.transaction.side_effect = [object(), object()]
+        fake_run = Mock(side_effect=[failure, ("record", "busy", None)])
+        with patch.object(adapter.firestore, "transactional", return_value=fake_run):
+            with patch.object(adapter, "sleep") as backoff:
+                result = FirestoreLedger(client).claim(
+                    business_date=DAY, execution="exec-b", task_attempt=0,
+                    source_object=SOURCE, source_generation="123")
+        self.assertEqual(result, ("record", "busy", None))
+        self.assertEqual(client.transaction.call_count, 2)
+        backoff.assert_called_once()
+
+    def test_non_contention_value_error_remains_visible(self):
+        from app import ledger as adapter
+        client = Mock()
+        fake_run = Mock(side_effect=ValueError("invalid business state"))
+        with patch.object(adapter.firestore, "transactional", return_value=fake_run):
+            with self.assertRaisesRegex(ValueError, "invalid business state"):
+                FirestoreLedger(client).claim(
+                    business_date=DAY, execution="exec-a", task_attempt=0,
+                    source_object=SOURCE, source_generation="123")
+        self.assertEqual(client.transaction.call_count, 1)
 
     def test_missing_source_can_be_recovered_after_upload(self):
         item, disposition = self.ledger.mark_missing_input(DAY)
