@@ -73,8 +73,8 @@ class Lab11DesignTests(unittest.TestCase):
             path = target.split("#", 1)[0].split(" ", 1)[0]
             if path:
                 self.assertTrue((ROOT / path).resolve().is_file(), target)
-        self.assertIn("assets/solution.svg", README)
-        self.assertIn("assets/solution.html", README)
+        self.assertIn("assets/diagrams/solution.svg", README)
+        self.assertIn("assets/diagrams/solution.html", README)
 
 
 
