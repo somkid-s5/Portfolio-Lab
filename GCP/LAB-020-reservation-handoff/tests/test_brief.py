@@ -28,8 +28,9 @@ class Lab020BriefTests(unittest.TestCase):
     def test_design_change_request_and_collection_alignment(self):
         for phrase in ("## Architecture และการตัดสินใจ", "## Change Request",
                        "## คู่มือทำ Solution Lab", "## Portfolio case-study summary",
-                       "Diagram Design Personal Custom จาก ZIP", "official icons"):
+                       "อ้างอิง visual style จาก ZIP", "ชุดไอคอนบริการ Google Cloud"):
             self.assertIn(phrase, self.readme)
+        self.assertIn("การมี style reference ไม่เท่ากับยืนยันว่าได้เรียกใช้ Personal Custom Skill", self.readme)
         self.assertIn("CR-20-01", self.readme)
         self.assertIn("migration_image_digest", self.readme)
         self.assertIn("same digest", self.readme)

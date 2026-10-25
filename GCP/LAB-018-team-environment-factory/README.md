@@ -136,7 +136,7 @@ Project creation ต้องมี resourcemanager.projects.create; การ l
 ทำงานใน Cloud Shell หรือเครื่องที่ติดตั้ง gcloud, Terraform, Docker และ Python แล้ว clone branch งานจาก GitHub
 
 ```bash
-git clone --branch docs/gcp-solution-labs https://github.com/somkid-s5/Portfolio-Lab.git
+git clone --branch main https://github.com/somkid-s5/Portfolio-Lab.git
 cd Portfolio-Lab/GCP/LAB-018-team-environment-factory
 gcloud auth list
 gcloud auth application-default print-access-token >/dev/null

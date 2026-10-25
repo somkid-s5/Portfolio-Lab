@@ -237,7 +237,7 @@ gcloud config set project "$PROJECT_ID"
 gcloud auth list --filter=status:ACTIVE --format='value(account)'
 gcloud config get-value project
 export CHECKOUT_PARENT="$(mktemp -d "$HOME/lab005-work-XXXXXX")"
-git clone --branch docs/gcp-solution-labs --single-branch   https://github.com/somkid-s5/Portfolio-Lab.git "$CHECKOUT_PARENT/Portfolio-Lab"
+git clone --branch main --single-branch   https://github.com/somkid-s5/Portfolio-Lab.git "$CHECKOUT_PARENT/Portfolio-Lab"
 export REPO_DIR="$CHECKOUT_PARENT/Portfolio-Lab"
 export LAB_DIR="$REPO_DIR/GCP/LAB-005-three-tier-orders"
 cd "$LAB_DIR"

@@ -151,7 +151,7 @@ TLS certificate ที่ self-signed ใช้เฉพาะ lab endpoint แ�
     REGION="asia-southeast1"
     gcloud config set project "$PROJECT_ID"
     gcloud projects describe "$PROJECT_ID" --format='value(projectId,projectNumber)'
-    git clone --branch docs/gcp-solution-labs https://github.com/somkid-s5/Portfolio-Lab.git
+    git clone --branch main https://github.com/somkid-s5/Portfolio-Lab.git
     cd Portfolio-Lab/GCP/LAB-011-gke-quote-engine
     terraform version
     gcloud version
@@ -168,7 +168,7 @@ TLS certificate ที่ self-signed ใช้เฉพาะ lab endpoint แ�
 
 อย่า commit terraform.tfvars, state, plan, API token หรือ private key.
 
-**สิ่งที่คาดว่าจะเห็น (Expected):** gcloud ชี้ไป project ที่ตั้งใจ, branch เป็น docs/gcp-solution-labs, tools พร้อมใช้ และ terraform.tfvars มีเพียง project ID, region, IAM member กับ allow_destroy=false.
+**สิ่งที่คาดว่าจะเห็น (Expected):** gcloud ชี้ไป project ที่ตั้งใจ, branch เป็น main, tools พร้อมใช้ และ terraform.tfvars มีเพียง project ID, region, IAM member กับ allow_destroy=false.
 
 **ผลจริงที่ฉันบันทึก:** project alias ที่ปกปิดได้ / active account type / tool versions / UTC: [กรอกหลังตรวจ]
 

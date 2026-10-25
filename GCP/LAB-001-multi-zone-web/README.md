@@ -214,7 +214,7 @@ Project ที่คำสั่งแสดงต้องตรงกับ se
 6. ดึงไฟล์จาก GitHub ใน Cloud Shell โดยไม่ต้องอัปโหลดจากเครื่องส่วนตัว:
 
 ```bash
-git clone --branch docs/gcp-solution-labs --single-branch https://github.com/somkid-s5/Portfolio-Lab.git ~/portfolio-lab-source
+git clone --branch main --single-branch https://github.com/somkid-s5/Portfolio-Lab.git ~/portfolio-lab-source
 export SOURCE_COMMIT="$(git -C ~/portfolio-lab-source rev-parse HEAD)"
 printf 'Source commit: %s\n' "$SOURCE_COMMIT"
 cp ~/portfolio-lab-source/GCP/LAB-001-multi-zone-web/scripts/probe.py ~/lab001/probe.py

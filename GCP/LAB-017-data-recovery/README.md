@@ -107,7 +107,7 @@ export DRILL_ID="LAB017-DRILL-01"
 
 1. ใน Cloud Shell clone branch ที่มี Lab 17:
    ```bash
-   git clone --branch docs/gcp-solution-labs https://github.com/somkid-s5/Portfolio-Lab.git
+   git clone --branch main https://github.com/somkid-s5/Portfolio-Lab.git
    cd Portfolio-Lab/GCP/LAB-017-data-recovery
    ```
 2. ตรวจไฟล์คู่มือ, `app/schema.sql`, `infra/` และ `scripts/`. อ่าน `infra/terraform.tfvars.example`; อย่าใส่ secret ลงไฟล์นี้.

@@ -206,7 +206,7 @@ Cloud Shell มี Docker และ gcloud CLI; หากคำสั่ง dock
 1. Clone branch ของ Lab และเข้าโฟลเดอร์ solution:
 
 ```bash
-git clone --branch docs/gcp-solution-labs https://github.com/somkid-s5/Portfolio-Lab.git
+git clone --branch main https://github.com/somkid-s5/Portfolio-Lab.git
 cd Portfolio-Lab/GCP/LAB-009-partner-webhook-delivery
 ```
 

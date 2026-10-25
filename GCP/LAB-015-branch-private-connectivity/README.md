@@ -119,7 +119,7 @@ gcloud config set project "$PROJECT_ID"
 ดึง Repo branch ที่มี Lab นี้ หากยังไม่มี checkout:
 
 ~~~bash
-git clone --branch docs/gcp-solution-labs https://github.com/somkid-s5/Portfolio-Lab.git
+git clone --branch main https://github.com/somkid-s5/Portfolio-Lab.git
 cd Portfolio-Lab/GCP/LAB-015-branch-private-connectivity
 ~~~
 

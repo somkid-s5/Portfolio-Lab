@@ -33,4 +33,4 @@ Cloud verification: Not run → In progress → Verified / Failed / Blocked (ต
 
 GCP Labs 01–20 / Guide-ready — [CI #432](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40172755055) ผ่านครบ 81/81 repository checks บน commit `1ee472f226dbbed7ad0dfe157f93d49320cf2fb8`; Lab 20 ผ่านครบ 5/5 (brief, guide, app, Terraform/infra, design/render). คู่มือ Lab 20 T00–T17 ครอบคลุม setup, deploy, verify, operation, fault/recovery, Change Request และ cleanup พร้อมช่อง Actual/Evidence; ใช้ ZIP Diagram Design เป็น visual reference หลัก และมี official-icon provenance. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
 
-PR #1 ยังคง Draft และเปิดไว้สำหรับ review.
+คู่มือระดับ Guide-ready เผยแพร่บน `main` ผ่าน [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1). การลงมือ Deploy/ทดสอบ GCP จริงและเก็บ Actual/Evidence เป็นขั้นของผู้เรียน ไม่ใช่ผลที่ผ่าน CI.

@@ -92,7 +92,7 @@ Tasks 00–19 ด้านล่างพาผู้เรียนตั้ง
 
 ## วิธีใช้ Lab นี้
 
-อ่าน Expected เป็นเกณฑ์ตรวจ ไม่ใช่ผลที่เกิดขึ้นแล้ว. ทำทีละ Task และบันทึก Actual หลังรันจริงในช่องของ Task เดียวกัน. ใช้ Cloud Shell ที่มี repository branch docs/gcp-solution-labs; ไม่ต้องพึ่งเครื่องผู้เรียนที่เปิดทิ้งไว้.
+อ่าน Expected เป็นเกณฑ์ตรวจ ไม่ใช่ผลที่เกิดขึ้นแล้ว. ทำทีละ Task และบันทึก Actual หลังรันจริงในช่องของ Task เดียวกัน. ใช้ Cloud Shell ที่มี repository branch main; ไม่ต้องพึ่งเครื่องผู้เรียนที่เปิดทิ้งไว้.
 
 สภาพแวดล้อมใช้ข้อมูลสังเคราะห์เท่านั้น: SKU-001/SKU-002, checkout ID สุ่ม และ Payment mock ที่ไม่ติดต่อผู้ให้บริการเงินจริง. ไม่ใช้ customer PII, บัตรชำระเงินจริง หรือข้อมูล production.
 
@@ -168,7 +168,7 @@ Kubernetes NetworkPolicy ใน Lab นี้กำหนดเฉพาะ ingr
 
 **คำสั่ง Bash:**
 
-    git clone --branch docs/gcp-solution-labs https://github.com/somkid-s5/Portfolio-Lab.git
+    git clone --branch main https://github.com/somkid-s5/Portfolio-Lab.git
     cd Portfolio-Lab/GCP/LAB-012-cross-service-tracing
     git status --short
     export PROJECT_ID="ใส่-project-id-เฉพาะของ-lab"
@@ -178,7 +178,7 @@ Kubernetes NetworkPolicy ใน Lab นี้กำหนดเฉพาะ ingr
     mkdir -p "$LAB012_WORKDIR"
     chmod 700 "$LAB012_WORKDIR"
 
-ถ้ามี clone เดิม ให้เข้า directory นั้นและใช้ git pull --ff-only origin docs/gcp-solution-labs หลังตรวจงานก่อน. ตั้ง PROJECT_ID ให้ตรง Task 01.
+ถ้ามี clone เดิม ให้เข้า directory นั้นและใช้ git pull --ff-only origin main หลังตรวจงานก่อน. ตั้ง PROJECT_ID ให้ตรง Task 01.
 
 **สิ่งที่คาดว่าจะเห็น (Expected):** branch/commit ถูกต้อง, working tree สะอาดก่อนเริ่ม และ private directory อยู่นอก repository.
 

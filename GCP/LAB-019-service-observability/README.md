@@ -143,12 +143,12 @@ Cloud SQL, Cloud Run, Cloud Build, Pub/Sub, Cloud Logging และ Monitoring �
 2. Clone branch นี้ หรือ fast-forward working copy เดิม:
 ```bash
 if [ ! -d "$HOME/Portfolio-Lab/.git" ]; then
-  git clone --branch docs/gcp-solution-labs --depth 1 https://github.com/somkid-s5/Portfolio-Lab.git "$HOME/Portfolio-Lab"
+  git clone --branch main --depth 1 https://github.com/somkid-s5/Portfolio-Lab.git "$HOME/Portfolio-Lab"
 fi
 cd "$HOME/Portfolio-Lab"
-git fetch origin docs/gcp-solution-labs
-git checkout docs/gcp-solution-labs
-git pull --ff-only origin docs/gcp-solution-labs
+git fetch origin main
+git checkout main
+git pull --ff-only origin main
 
 export LAB19_DIR="$HOME/Portfolio-Lab/GCP/LAB-019-service-observability"
 export PROJECT_ID="replace-with-your-lab-project-id"
@@ -164,7 +164,7 @@ terraform version
 python3 --version
 git -C "$HOME/Portfolio-Lab" rev-parse --short HEAD
 ```
-3. แทน Project ID และตรวจ active identity ว่ามีสิทธิ์ตาม T00; HEAD ต้องเป็น commit ของ branch docs/gcp-solution-labs.
+3. แทน Project ID และตรวจ active identity ว่ามีสิทธิ์ตาม T00; HEAD ต้องเป็น commit ของ branch main.
 4. ใช้ Cloud Shell เดิมเพื่อเก็บ local Terraform state/working files จน Cleanup; คำสั่งต่อไปใช้ LAB19_DIR.
 
 **Checkpoint:** gcloud config get-value project ได้ Lab project; Terraform >= 1.9.8, < 2.0; region เป็น asia-southeast1.

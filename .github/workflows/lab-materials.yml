@@ -1983,6 +1983,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Install pinned Thai font
+        run: bash scripts/install-ci-thai-font.sh
       - name: Install SVG renderer
         run: |
           timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update -qq

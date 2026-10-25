@@ -101,7 +101,7 @@ Terraform ให้บาง role ระดับ project เพราะ Cloud 
 - Cloud Build, Artifact Registry storage, Cloud Run, Cloud Logging, Cloud Deploy และ Cloud KMS อาจมีค่าใช้จ่าย. ตรวจราคาและ quota ปัจจุบันของ region ก่อนลงมือ; ใน Lab จำกัด build timeout 15 นาที, Cloud Run max instances 2 และ probes มีขอบเขต
 - ตั้ง budget alert ได้ แต่ให้ตรวจการใช้งานจริงและลบ resource ที่ไม่ใช้ด้วย; อย่าถือว่า alert เป็นวงเงินตัดค่าใช้จ่าย
 - ไม่ใช้ production/customer traffic, ไม่เปิด unauthenticated access, ไม่ใช้ load test ยิงไม่จำกัด และไม่ใช้ breakglass เพื่อทำให้ acceptance test ผ่าน
-- PR #1 ใน repository เป็น Draft และไม่ได้ถูกรวมโดยคู่มือนี้. เริ่มขั้นที่สร้าง resource หรือ release ได้เมื่อผู้ใช้ review และนำ Lab materials ไปไว้บน `main` เองแล้วเท่านั้น; ห้ามคาดหวังว่า branch ของ PR จะ trigger trusted release
+- คู่มือนี้ใช้จาก branch `main` หลังตรวจและ merge Lab materials แล้ว. ก่อนเริ่มขั้นสร้าง resource หรือ release ต้องตรวจว่า workflow, app และ infra ที่จะทดสอบอยู่บน `main`, เลือก disposable project และเปิด release opt-in เฉพาะเมื่อพร้อมจริง; ไม่ควรเรียก trusted release จาก review branch
 - Cloud Build trigger บน GCP อาจทำงานเมื่อมี commit เข้า main ตาม path ที่ตั้งไว้; GitHub Release workflow ถูกปิดไว้โดยค่าเริ่มต้นและจะทำงานร่วมกันได้เฉพาะเมื่อกำหนด repository variable `LAB014_RELEASE_ENABLED=true` หลังสร้าง project/policy/pipeline/GitHub variables ครบแล้ว. ตั้งค่านี้เฉพาะช่วงทดลอง Lab และปิดกลับเป็น `false` ก่อน cleanup; workflow รอ build ของ SHA เดียวกันและหยุดเมื่อหา build ที่ตรงกันไม่ได้. การปิด GitHub workflow **ไม่ได้ปิด Cloud Build trigger ใน GCP**: ตรวจ/Disable trigger ใน Cloud Console ด้วยก่อน merge หรือ cleanup หากไม่ต้องการการ build ที่มีค่าใช้จ่าย.
 
 ## เตรียม Cloud Shell

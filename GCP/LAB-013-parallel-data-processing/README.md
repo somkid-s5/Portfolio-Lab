@@ -120,14 +120,14 @@ Clone branch ที่กำลัง review โดยตรง แล้วก�
 
 **คำสั่ง Bash:**
 
-    git clone --depth 1 --branch docs/gcp-solution-labs https://github.com/somkid-s5/Portfolio-Lab.git
+    git clone --depth 1 --branch main https://github.com/somkid-s5/Portfolio-Lab.git
     cd Portfolio-Lab
     export LAB_DIR="$PWD/GCP/LAB-013-parallel-data-processing"
     test -f "$LAB_DIR/README.md"
     cd "$LAB_DIR"
     git rev-parse --short HEAD
 
-สิ่งที่คาดว่าจะเห็น (Expected): README, app, infra, tools และ tests อยู่ใต้ LAB_DIR; commit เป็น branch docs/gcp-solution-labs
+สิ่งที่คาดว่าจะเห็น (Expected): README, app, infra, tools และ tests อยู่ใต้ LAB_DIR; commit เป็น branch main
 
 **ผลจริงที่ฉันบันทึก:** Commit SHA __________ · วันที่ clone __________ · Branch __________
 

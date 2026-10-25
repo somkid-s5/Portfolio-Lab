@@ -85,7 +85,7 @@ export PROJECT_ID='เปลี่ยนเป็น-project-id-จริง'
 export REGION='asia-southeast1'
 gcloud config set project "$PROJECT_ID"
 gcloud projects describe "$PROJECT_ID" --format='value(projectId)'
-git clone --branch docs/gcp-solution-labs https://github.com/somkid-s5/Portfolio-Lab.git portfolio-booking
+git clone --branch main https://github.com/somkid-s5/Portfolio-Lab.git portfolio-booking
 cd portfolio-booking
 export LAB_ROOT="$PWD/GCP/LAB-004-serverless-booking"
 git rev-parse HEAD

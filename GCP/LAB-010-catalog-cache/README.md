@@ -177,7 +177,7 @@ gcloud config set project "$PROJECT_ID"
 gcloud config set run/region "$REGION"
 gcloud auth application-default print-access-token >/dev/null
 
-git clone --single-branch --branch docs/gcp-solution-labs \
+git clone --single-branch --branch main \
   https://github.com/somkid-s5/Portfolio-Lab.git
 cd Portfolio-Lab/GCP/LAB-010-catalog-cache
 cp infra/terraform.tfvars.example infra/terraform.tfvars

@@ -626,7 +626,7 @@ Tasks ต่อไปนี้สร้างระบบจริงใน **Pr
 3. เปิด Cloud Shell จากปุ่ม terminal ของ Console แล้ว clone branch นี้ (ถ้ามีอยู่แล้วให้เข้า directory เดิม):
 
 ~~~bash
-git clone --branch docs/gcp-solution-labs --single-branch https://github.com/somkid-s5/Portfolio-Lab.git "$HOME/Portfolio-Lab"
+git clone --branch main --single-branch https://github.com/somkid-s5/Portfolio-Lab.git "$HOME/Portfolio-Lab"
 cd "$HOME/Portfolio-Lab/GCP/LAB-007-queued-order-processing"
 export PROJECT_ID="ใส่-project-id-ของ-sandbox"
 export REGION="asia-southeast1"

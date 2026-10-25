@@ -92,7 +92,7 @@ printf 'RUN_ID=%s\nREGION=%s\nZONE=%s\n' "$RUN_ID" "$REGION" "$ZONE"
 Clone branch นี้จาก Cloud Shell, ตรวจ plan ว่ามีเฉพาะ Lab resources และ Apply หลัง budget gate ผ่านเท่านั้น
 
 ~~~bash
-git clone --depth 1 --branch docs/gcp-solution-labs --single-branch https://github.com/somkid-s5/Portfolio-Lab.git "$LAB_WORK/Portfolio-Lab"
+git clone --depth 1 --branch main --single-branch https://github.com/somkid-s5/Portfolio-Lab.git "$LAB_WORK/Portfolio-Lab"
 LAB_ROOT="$LAB_WORK/Portfolio-Lab/GCP/LAB-016-legacy-migration"
 cd "$LAB_ROOT/infra"
 export TF_VAR_project_id="$PROJECT_ID"

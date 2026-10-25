@@ -80,7 +80,7 @@ GitHub CI ตรวจ source/contract เท่านั้น ไม่สร�
 4. Clone branch ที่มี Lab 20 และเข้า directory
 
 ~~~bash
-git clone --branch docs/gcp-solution-labs https://github.com/somkid-s5/Portfolio-Lab.git
+git clone --branch main https://github.com/somkid-s5/Portfolio-Lab.git
 cd Portfolio-Lab/GCP/LAB-020-reservation-handoff
 gcloud auth list
 gcloud config get-value account

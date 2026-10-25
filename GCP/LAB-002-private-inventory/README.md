@@ -131,7 +131,7 @@ gcloud config set project "$PROJECT_ID"
 gcloud config get-value project
 gcloud auth list --filter=status:ACTIVE
 gcloud services enable compute.googleapis.com iap.googleapis.com dns.googleapis.com
-git clone --branch docs/gcp-solution-labs --single-branch https://github.com/somkid-s5/Portfolio-Lab.git ~/portfolio-lab-002-source
+git clone --branch main --single-branch https://github.com/somkid-s5/Portfolio-Lab.git ~/portfolio-lab-002-source
 export LAB_DIR="$HOME/portfolio-lab-002-source/GCP/LAB-002-private-inventory"
 git -C ~/portfolio-lab-002-source rev-parse HEAD
 cd "$LAB_DIR"

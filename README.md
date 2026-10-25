@@ -14,7 +14,7 @@
 - [Quality Acceptance — ขอบเขตการตรวจรับ](docs/quality-acceptance.md)
 - [Diagram Alignment Audit — รูปแบบภาพเหมือนกันจริงหรือยัง](docs/diagram-audit.md)
 
-**สถานะ:** README/โค้ดประกอบสำหรับ Lab 01–20 อยู่ใน Branch ของ [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) ระดับ Guide-ready เท่านั้น; **ยังไม่มีหลักฐานว่า Deploy และ Cloud Verify จริง** และไม่ได้สร้างเว็บไซต์ Portfolio
+**สถานะ:** คู่มือและโค้ดประกอบสำหรับ Lab 01–20 เผยแพร่บน `main` ระดับ **Guide-ready** (ประวัติการตรวจรับ: [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1)); **ยังไม่มีหลักฐานว่า Deploy และ Cloud Verify จริง** และไม่ได้สร้างเว็บไซต์ Portfolio. เริ่มลงมือจาก [GCP/README.md](GCP/README.md) ได้ทันทีโดยใช้ Project Sandbox และตรวจค่าใช้จ่ายก่อนสร้างทรัพยากร
 
 > ทุก Lab ต้องมีโจทย์ที่ตรวจได้, Diagram อธิบายระบบ, Build/Deploy/Test/Operate/Troubleshoot/Change Request/Cleanup, และช่องบันทึก Expected/Actual/Evidence โดยไม่อ้างว่า CI ผ่านเท่ากับรันบน GCP ผ่าน
 

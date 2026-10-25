@@ -185,7 +185,7 @@ gcloud billing projects describe "$PROJECT_ID" --format="value(billingEnabled,bi
 ใน Cloud Shell ใช้ branch ที่แนบกับ PR นี้ แล้วเข้า directory ของ Lab08. ถ้า repo ถูก clone ไว้แล้ว ให้ตรวจ git status ก่อนและเก็บงานเดิมของตนเอง; อย่าทับไฟล์ที่แก้ไว้.
 
 ~~~bash
-git clone --branch docs/gcp-solution-labs https://github.com/somkid-s5/Portfolio-Lab.git
+git clone --branch main https://github.com/somkid-s5/Portfolio-Lab.git
 cd Portfolio-Lab/GCP/LAB-008-daily-batch-reports
 git status --short
 python3 -m unittest discover -s tests -p 'test_domain.py' -v
