@@ -51,7 +51,7 @@
 | สิ่งที่ต้องมี | เหตุผล / ขอบเขต |
 |---|---|
 | Organization และ team Folder ที่มีอยู่แล้ว | Solution สร้าง Projects ใต้ parent ที่มีอยู่ ไม่สร้างหรือแก้ hierarchy |
-| สิทธิ์ Project Creator บน Folder ที่กำหนด | ใช้สร้าง environment projects ได้เฉพาะตำแหน่งนี้ |
+| สิทธิ์ `roles/resourcemanager.projectCreator` บน Folder ที่กำหนด | ใช้สร้าง environment projects ได้เฉพาะตำแหน่งนี้; Google Cloud ให้ seeder เป็น Owner ของ Project ใหม่โดยอัตโนมัติ จึงต้องทำ controlled handoff |
 | Billing Account ที่เชื่อมได้ พร้อม Billing Account User และ Billing Account Costs Manager ตามงานที่ทำ | ใช้ผูก billing และจัดการ project-scoped budgets |
 | Foundation Project ที่อนุมัติแล้ว | เก็บ remote state และ central log buckets |
 | Google Groups สำหรับ dev/stage และ platform operators | factory ผูกสิทธิ์ให้กลุ่มที่มีอยู่ ไม่สร้าง/แก้สมาชิกกลุ่ม |
@@ -66,6 +66,7 @@ Google Cloud ให้ Project Creator เป็น Owner ของ Project ท�
 | หัวข้อ | การตัดสินใจ |
 |---|---|
 | Environment boundary | หนึ่ง Project ต่อหนึ่ง Environment: commerce-dev และ commerce-stg |
+| Region | Baseline ใช้ `asia-southeast1` สำหรับ Cloud Run และ central log bucket; region อื่นต้องผ่าน allowlist และ data-location review ก่อน |
 | Resource hierarchy | ใช้ Organization/Folder เดิมเป็น parent; ไม่สร้าง Folder, ไม่แก้ Organization Policy และไม่อ้างว่ามี org controls เพิ่ม |
 | Identity handoff | ใช้ project seeder เฉพาะ create/handoff; factory identity เป็น keyless และ impersonated สำหรับงานประจำ; ถอน default Owner หลังตรวจสิทธิ์ที่จำเป็น |
 | Terraform state | สร้าง GCS backend ใน Foundation Project ก่อน แล้ว migrate bootstrap state; เปิด Object Versioning, Uniform bucket-level access (UBLA) และ public access prevention; prefix แยก Environment และใช้ GCS lock |
