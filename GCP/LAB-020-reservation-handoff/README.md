@@ -36,9 +36,9 @@ GitHub CI ตรวจ source/contract เท่านั้น ไม่สร�
 
 ## Architecture และการตัดสินใจ
 
-![Diagram โซลูชัน Lab 20](assets/solution.svg)
+![Diagram โซลูชัน Lab 20](assets/diagrams/solution.svg)
 
-เปิด [SVG ต้นฉบับ](assets/solution.svg), [HTML preview](assets/solution.html) หรือดู [ที่มา style และ official icons](assets/diagram-provenance.json).
+เปิด [SVG ต้นฉบับ](assets/diagrams/solution.svg), [HTML preview](assets/diagrams/solution.html) หรือดู [ที่มา style และ official icons](assets/diagram-provenance.json).
 
 | ประเด็น | การตัดสินใจและผลแลกเปลี่ยน |
 |---|---|

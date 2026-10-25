@@ -38,9 +38,9 @@ Expected เป็นเกณฑ์ตรวจ ไม่ใช่ผลจร�
 
 ## Solution design
 
-![Architecture diagram: Microservices with cross-service tracing](assets/solution.svg)
+![Architecture diagram: Microservices with cross-service tracing](assets/diagrams/solution.svg)
 
-[เปิด Diagram แบบ standalone HTML](assets/solution.html) · [ดู SVG source](assets/solution.svg) · [ดู icon provenance](assets/diagram-provenance.json)
+[เปิด Diagram แบบ standalone HTML](assets/diagrams/solution.html) · [ดู SVG source](assets/diagrams/solution.svg) · [ดู icon provenance](assets/diagram-provenance.json)
 
 ### Request path
 

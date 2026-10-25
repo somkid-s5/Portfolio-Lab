@@ -12,9 +12,9 @@
 
 ## Solution
 
-![Records data protection and recovery architecture](assets/solution.svg)
+![Records data protection and recovery architecture](assets/diagrams/solution.svg)
 
-![Database and attachment recovery drill](assets/recovery-flow.svg)
+![Database and attachment recovery drill](assets/diagrams/recovery-flow.svg)
 
 ไดอะแกรมใช้ Diagram Design Personal Custom จาก ZIP เป็นมาตรฐานสี ไอคอน การจัดกลุ่ม scope และแนวเส้นตาม [diagram-style.md](../../docs/diagram-style.md); ไอคอนบริการ GCP อ้างอิง source และ attribution ที่บันทึกไว้ใน assets
 

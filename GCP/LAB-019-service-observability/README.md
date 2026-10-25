@@ -10,9 +10,9 @@
 
 Solution ใช้ Cloud Run Task API, Pub/Sub push subscription, Cloud Run Worker และ Cloud SQL for PostgreSQL ใน `asia-southeast1`; Cloud Logging เก็บ structured logs, Cloud Monitoring คำนวณ SLO และส่ง burn-rate alerts, Cloud Trace ใช้ดู sampled request traces. API และ Worker ต้องยืนยันตัวตนด้วย IAM; Worker push ใช้ OIDC; Cloud SQL รับ private IP ผ่าน Direct VPC egress และ Private Services Access (PSA).
 
-![Architecture ของ Lab 19](assets/solution.svg)
+![Architecture ของ Lab 19](assets/diagrams/solution.svg)
 
-[เปิด HTML preview](assets/solution.html) · [ดู provenance และที่มาของ icons](assets/diagram-provenance.json)
+[เปิด HTML preview](assets/diagrams/solution.html) · [ดู provenance และที่มาของ icons](assets/diagram-provenance.json)
 
 ## ขอบเขตของโจทย์
 

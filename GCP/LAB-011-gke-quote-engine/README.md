@@ -42,9 +42,9 @@ last_verified: null
 
 ## Solution design
 
-![Solution architecture: GKE Quote Engine](assets/solution.svg)
+![Solution architecture: GKE Quote Engine](assets/diagrams/solution.svg)
 
-[เปิด diagram แบบ standalone HTML](assets/solution.html) · [ดู SVG source](assets/solution.svg)
+[เปิด diagram แบบ standalone HTML](assets/diagrams/solution.html) · [ดู SVG source](assets/diagrams/solution.svg)
 
 ### Decisions
 

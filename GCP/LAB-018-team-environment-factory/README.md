@@ -77,7 +77,7 @@ Cloud Run ตั้ง min instances เป็น 0 และ max เป็น 2
 
 ## Solution diagram
 
-![Lab 18 environment factory architecture](assets/solution.svg)
+![Lab 18 environment factory architecture](assets/diagrams/solution.svg)
 
 ภาพนี้เป็น architecture ที่ออกแบบไว้ ไม่ใช่ผลจากการสร้าง GCP จริง ลูกศรแสดง Terraform/state flow และ log routing; dev/staging อยู่คนละ Project
 

@@ -39,9 +39,9 @@ R9 เป็นการสังเกตใน environment ของผู้�
 
 ## Solution diagram
 
-![แผนภาพระบบ Lab 13](assets/solution.svg)
+![แผนภาพระบบ Lab 13](assets/diagrams/solution.svg)
 
-[เปิด diagram แบบ standalone](assets/solution.html) · [ดูแหล่งที่มาของไอคอน](assets/diagram-provenance.json)
+[เปิด diagram แบบ standalone](assets/diagrams/solution.html) · [ดูแหล่งที่มาของไอคอน](assets/diagram-provenance.json)
 
 Cloud Batch เป็น control plane ที่จัด Compute Engine workers ใน subnet; Cloud Storage และ Cloud Logging เป็น Google APIs ที่เข้าถึงผ่าน Private Google Access. ไม่สร้าง VM ด้วยมือ และไม่กำหนด external IP ให้ worker
 

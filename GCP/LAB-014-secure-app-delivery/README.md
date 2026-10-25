@@ -40,9 +40,9 @@ App ใช้ข้อมูลสังเคราะห์ ไม่ต่อ
 
 ## Solution diagram
 
-![แผนภาพสถาปัตยกรรม Lab 14](assets/solution.svg)
+![แผนภาพสถาปัตยกรรม Lab 14](assets/diagrams/solution.svg)
 
-[เปิดแผนภาพ HTML แบบ standalone](assets/solution.html) · [ดูที่มาของไอคอนและ layout](assets/diagram-provenance.json)
+[เปิดแผนภาพ HTML แบบ standalone](assets/diagrams/solution.html) · [ดูที่มาของไอคอนและ layout](assets/diagram-provenance.json)
 
 GitHub PR checks ไม่มี Cloud credential. เมื่อ trusted commit เข้า main, Cloud Build trigger ใช้ builder identity สร้าง image; GitHub Actions ใช้ WIF แยก attestor กับ releaser; Cloud Deploy ใช้ execution identity ต่อหน้าที่ และ Cloud Run ใช้ runtime identity ที่ไม่มี permission เพิ่ม. Binary Authorization policy ใน Lab นี้เป็น **ระดับ project** ไม่ใช่เฉพาะ Cloud Run service สองตัว
 

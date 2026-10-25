@@ -12,11 +12,11 @@ Lab นี้ทำเป็น solution เดียวตั้งแต่ส
 
 ## Solution
 
-![Orders migration architecture](assets/solution.svg)
+![Orders migration architecture](assets/diagrams/solution.svg)
 
 Client ใช้ HTTPS front door เดิมตลอด Lab: global external Application Load Balancer → URL map → backend service ของ VM หรือ Cloud Run serverless NEG อย่างใดอย่างหนึ่ง ข้อมูล Cloud Run อยู่ใน Cloud SQL private IP ผ่าน Direct VPC egress และ Private Services Access; VM ไม่มี external IP
 
-![Freeze, transfer, reconcile, cutover and backout sequence](assets/migration-flow.svg)
+![Freeze, transfer, reconcile, cutover and backout sequence](assets/diagrams/migration-flow.svg)
 
 Diagram เป็นแบบออกแบบ ไม่ใช่ผล Cloud execution. ใช้สี ไอคอน การจัดกลุ่ม และแนวทางเดินเส้นตาม Diagram Design Personal Custom จาก ZIP ที่บันทึกเป็นมาตรฐานเดียวใน [docs/diagram-style.md](../../docs/diagram-style.md).
 

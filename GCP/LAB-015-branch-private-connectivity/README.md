@@ -34,9 +34,9 @@ VPC สาขาใน Lab นี้เป็น **เครือข่าย�
 
 ## Solution diagram
 
-![แผนภาพระบบเชื่อมสำนักงานสาขากับ Inventory API แบบ Private](assets/solution.svg)
+![แผนภาพระบบเชื่อมสำนักงานสาขากับ Inventory API แบบ Private](assets/diagrams/solution.svg)
 
-เปิด [Standalone Diagram HTML](assets/solution.html) ได้โดยไม่ต้องพึ่งเว็บภายนอก
+เปิด [Standalone Diagram HTML](assets/diagrams/solution.html) ได้โดยไม่ต้องพึ่งเว็บภายนอก
 
 ## องค์ประกอบและเหตุผลที่เลือก
 
