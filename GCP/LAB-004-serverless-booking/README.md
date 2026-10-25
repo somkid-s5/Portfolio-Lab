@@ -9,11 +9,11 @@ last_verified: null
 
 ทีมบริการต้องให้ผู้ใช้ดูช่วงเวลา จอง และยกเลิกการจองได้ผ่าน HTTPS เมื่อ Deploy revision ใหม่ข้อมูลต้องยังอยู่ และการเพิ่ม concurrency ต้องไม่ทำให้จองเกินจำนวนที่รับได้หรือเปิด DB connections จนเต็ม
 
-![เส้นทาง Booking ผ่าน Cloud Run และ Direct VPC ไปยัง Cloud SQL Private IP](assets/solution-preview.png)
+![เส้นทาง Booking ผ่าน Cloud Run และ Direct VPC ไปยัง Cloud SQL Private IP](assets/diagrams/solution-preview.png)
 
 ภาพแสดง request/data path โดย Cloud Run เป็น regional managed compute ไม่ได้อยู่ใน subnet เหมือน VM ส่วน PSA เป็นเส้นทางไปยังเครือข่ายของ managed service ไม่ใช่ workload subnet อีกชุดหนึ่ง สิทธิ์อ่าน Secret และขั้นตอนส่งมอบ image อยู่ใน Tasks 2–5
 
-[ภาพ SVG ที่แก้ไขได้](assets/solution.svg) · [ที่มาไอคอน](assets/attribution.json)
+[ภาพ SVG ที่แก้ไขได้](assets/diagrams/solution.svg) · [ที่มาไอคอน](assets/attribution.json)
 
 ## Requirements และ Acceptance
 
@@ -345,9 +345,9 @@ curl --max-time 15 --fail-with-body "$SERVICE_URL/healthz"
 
 ### Task 8 — หมุน Credential A → B และกำหนดจุดที่ถอยไม่ได้
 
-![ลำดับเตรียม ตรวจ สลับ และถอน DB login พร้อมขอบเขต rollback](assets/credential-rotation-preview.png)
+![ลำดับเตรียม ตรวจ สลับ และถอน DB login พร้อมขอบเขต rollback](assets/diagrams/credential-rotation-preview.png)
 
-[ภาพกระบวนการ SVG](assets/credential-rotation.svg)
+[ภาพกระบวนการ SVG](assets/diagrams/credential-rotation.svg)
 
 **ทำที่ไหน:** Cloud Shell กับ Browser; ทำหลัง T07 ผ่าน
 

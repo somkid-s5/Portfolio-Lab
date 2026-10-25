@@ -71,9 +71,9 @@ last_verified: null
 
 ## Design — architecture และ decisions ที่ปิดแล้ว
 
-![Topology ของ Partner Webhook Relay](assets/solution.svg)
+![Topology ของ Partner Webhook Relay](assets/diagrams/solution.svg)
 
-![State, retry และ recovery flow](assets/delivery-flow.svg)
+![State, retry และ recovery flow](assets/diagrams/delivery-flow.svg)
 
 ### Resource map และตำแหน่ง
 

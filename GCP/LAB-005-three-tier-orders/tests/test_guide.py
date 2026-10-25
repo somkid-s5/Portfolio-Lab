@@ -48,8 +48,8 @@ class GuideTests(unittest.TestCase):
         for number in range(1, 9):
             self.assertIn(f"| R{number} |", text)
         self.assertIn("cloud_verification: not-run", text)
-        self.assertIn("assets/solution-preview.png", text)
-        self.assertIn("assets/operations-preview.png", text)
+        self.assertIn("assets/diagrams/solution-preview.png", text)
+        self.assertIn("assets/diagrams/operations-preview.png", text)
 
 
 if __name__ == "__main__":

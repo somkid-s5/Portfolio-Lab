@@ -64,11 +64,11 @@ Private IP เป็นเพียงเส้นทางเครือข่
 
 แผนภาพแยกขอบเขต project, regional services, global endpoints, customer VPC และ managed Cloud SQL ตามตำแหน่งจริง Cloud Run เป็น regional service ที่ใช้ Direct VPC Egress ไม่ได้อยู่ภายใน subnet; Cloud SQL เป็น managed service ที่เชื่อมกับ VPC ด้วย PSA รายละเอียด request/retry/replay แสดงแยกใน event flow เพื่อให้อ่านเส้นทางหลักได้ชัด
 
-[เปิดภาพ topology PNG](assets/solution.png) · [ไฟล์ SVG สำหรับแก้ไข](assets/solution.svg) · [เปิดภาพ event-flow PNG](assets/event-flow.png) · [ไฟล์ SVG สำหรับแก้ไข](assets/event-flow.svg)
+[เปิดภาพ topology PNG](assets/diagrams/solution.png) · [ไฟล์ SVG สำหรับแก้ไข](assets/diagrams/solution.svg) · [เปิดภาพ event-flow PNG](assets/diagrams/event-flow.png) · [ไฟล์ SVG สำหรับแก้ไข](assets/diagrams/event-flow.svg)
 
-![Order Queue Desk architecture](assets/solution.svg)
+![Order Queue Desk architecture](assets/diagrams/solution.svg)
 
-![Order Queue Desk delivery, retry and recovery](assets/event-flow.svg)
+![Order Queue Desk delivery, retry and recovery](assets/diagrams/event-flow.svg)
 
 Secret Manager ในรูปเป็น global API resource ที่กำหนด replica แห่งเดียวใน asia-southeast1 ไม่ใช่ Regional Secret และไม่ได้จำกัดการเข้าถึงไว้เฉพาะ region นั้น; Pub/Sub กำหนด allowed message persistence region แต่ตัว topic/subscription ไม่ใช่ VM ใน subnet
 

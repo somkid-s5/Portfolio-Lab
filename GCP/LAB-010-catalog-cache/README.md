@@ -67,7 +67,7 @@ Test profile ที่ล็อก: 2,000 products, hot set 20 รายกา�
 
 ### Topology
 
-![Lab 10 solution topology](assets/solution.svg)
+![Lab 10 solution topology](assets/diagrams/solution.svg)
 
 เส้นทางสร้างและเผยแพร่ image แยกจาก request path: Cloud Shell ส่ง source ให้ Cloud Build → เก็บ image ใน Artifact Registry ตำแหน่ง asia-southeast1 → resolve SHA-256 digest แล้ว deploy digest เดียวกันให้ `catalog-public` และ `catalog-operator`. ใน Guide จะสร้าง repository ใน foundation ก่อน build; CI ตรวจ build โดยไม่ push/deploy. ค่าบริการ build และ image storage อยู่ใน cost gate.
 
@@ -92,7 +92,7 @@ Test profile ที่ล็อก: 2,000 products, hot set 20 รายกา�
 
 ### Cache request / failure flow
 
-![Lab 10 cache hit, miss, invalidation and fallback](assets/cache-flow.svg)
+![Lab 10 cache hit, miss, invalidation and fallback](assets/diagrams/cache-flow.svg)
 
 Service glyphs are embedded from the pinned Google Cloud icon collection; source commit, per-file hashes and the diagram-style attribution are recorded in `assets/diagram-provenance.json`.
 

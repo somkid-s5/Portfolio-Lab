@@ -7,11 +7,11 @@ last_verified: null
 ---
 # Lab 03 — เอกสารสาธารณะผ่าน CDN และ HTTPS ที่อัปเดตและย้อนเวอร์ชันได้
 
-![Public docs delivery](assets/solution-preview.png)
+![Public docs delivery](assets/diagrams/solution-preview.png)
 
 DNS ใช้ provider ที่คุณควบคุม ส่วน certificate เป็น Compute-managed SSL resource ไม่ใช่ Certificate Manager ระบบไม่มี VPC/subnet/VM และ Cloud CDN เป็น feature ของ backend bucket เส้นประคือ cache miss/fill จาก origin ซึ่งเป็น public read ตามขอบเขต Lab
 
-![Safe release and rollback](assets/release-flow-preview.png)
+![Safe release and rollback](assets/diagrams/release-flow-preview.png)
 
 อัปโหลด asset ก่อน index และใช้ generation fence ทุกครั้งที่เปลี่ยน root การ rollback ตรวจ remote bytes ก่อน ไม่ใช่เพียงคัดลอกไฟล์เก่าทับแล้วถือว่าสำเร็จ
 
@@ -547,4 +547,4 @@ dig +short A "$HOST"
 
 ## ขอบเขตการตรวจ
 
-ไม่มีการสร้าง GCP resources เปลี่ยน DNS หรืออ้างผล TLS/CDN จริงในขั้นจัดทำเอกสารนี้ CI ที่ใช้ localhost HTTP/fake publish runner พิสูจน์ได้เฉพาะ code/material contracts ไม่ใช่ Cloud-verified ทุกช่อง T00–T11 ยัง PENDING จนผู้เรียนลงมือจริง คู่มือระดับ Guide-ready: [CI 39816792474 / lab003](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39816792474) ผ่าน 18 tests ครอบคลุม release integrity/determinism, publish generation/order/partial resume, rollback, TTL change, real localhost HTTP probe, config, navigation, shell syntax และ SVG ตรวจภาพที่ 960px แล้ว เก็บ PNG คู่กับ [SVG ระบบ](assets/solution.svg) และ [SVG release flow](assets/release-flow.svg) การตรวจนี้ไม่ใช่ผล DNS/TLS/CDN บน GCP จริง
+ไม่มีการสร้าง GCP resources เปลี่ยน DNS หรืออ้างผล TLS/CDN จริงในขั้นจัดทำเอกสารนี้ CI ที่ใช้ localhost HTTP/fake publish runner พิสูจน์ได้เฉพาะ code/material contracts ไม่ใช่ Cloud-verified ทุกช่อง T00–T11 ยัง PENDING จนผู้เรียนลงมือจริง คู่มือระดับ Guide-ready: [CI 39816792474 / lab003](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39816792474) ผ่าน 18 tests ครอบคลุม release integrity/determinism, publish generation/order/partial resume, rollback, TTL change, real localhost HTTP probe, config, navigation, shell syntax และ SVG ตรวจภาพที่ 960px แล้ว เก็บ PNG คู่กับ [SVG ระบบ](assets/diagrams/solution.svg) และ [SVG release flow](assets/diagrams/release-flow.svg) การตรวจนี้ไม่ใช่ผล DNS/TLS/CDN บน GCP จริง

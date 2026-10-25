@@ -7,11 +7,11 @@ last_verified: null
 ---
 # Lab 06 — รับไฟล์ยอดขายและสร้างรายงานส่วนตัวแบบ Event-driven
 
-![สถาปัตยกรรม Sales File Desk: อัปโหลดตรงเข้า Storage และประมวลผลผ่าน Eventarc](assets/solution-preview.png)
+![สถาปัตยกรรม Sales File Desk: อัปโหลดตรงเข้า Storage และประมวลผลผ่าน Eventarc](assets/diagrams/solution-preview.png)
 
 Browser ขอสิทธิ์จาก Portal แล้วส่ง CSV ตรงเข้า private incoming bucket เมื่อไฟล์ finalized จึงมี event เรียก worker ส่วน Firestore เก็บ owner และสถานะงาน ไม่ส่งไฟล์ผ่าน Portal และไม่ใช้ VPC ใน Solution นี้ เส้นประแยกการ claim/publish สถานะออกจากเส้นทางไฟล์
 
-[SVG แก้ไขได้](assets/solution.svg) · [ที่มาไอคอนและผลตรวจภาพ](assets/diagram-provenance.json) ภาพเป็นการออกแบบ ไม่ใช่ผล deploy บน GCP
+[SVG แก้ไขได้](assets/diagrams/solution.svg) · [ที่มาไอคอนและผลตรวจภาพ](assets/diagram-provenance.json) ภาพเป็นการออกแบบ ไม่ใช่ผล deploy บน GCP
 
 ## สถานการณ์
 
@@ -180,9 +180,9 @@ Unknown/malformedevents: invalidenvelope400 เพื่อให้เห็น
 
 ### Output commit และการกู้ช่องว่างข้ามบริการ
 
-![ลำดับ claim ตรวจข้อมูล เขียนผล และ publish พร้อมการกู้ช่องว่าง output–metadata](assets/recovery-preview.png)
+![ลำดับ claim ตรวจข้อมูล เขียนผล และ publish พร้อมการกู้ช่องว่าง output–metadata](assets/diagrams/recovery-preview.png)
 
-[SVG การกู้คืน](assets/recovery.svg): หากผลเขียนแล้วแต่สถานะยังไม่สำเร็จ รอบถัดไปต้องตรวจและใช้ผลเดิม ไม่เขียนทับเพื่อให้ผ่าน
+[SVG การกู้คืน](assets/diagrams/recovery.svg): หากผลเขียนแล้วแต่สถานะยังไม่สำเร็จ รอบถัดไปต้องตรวจและใช้ผลเดิม ไม่เขียนทับเพื่อให้ผ่าน
 
 
 คำนวณ summary แบบ deterministic ใช้ integer, sortedSKU, canonicalUTF-8JSON ไม่มี currenttime/attempttoken ใน businessbytes Outputkey คือ results/{jobUUID}/{inputGeneration}/{processorVersion}/summary.json เขียน if_generation_match=0 พร้อม metadatainputSHA/processorversion ไม่ updateobject ที่มีอยู่

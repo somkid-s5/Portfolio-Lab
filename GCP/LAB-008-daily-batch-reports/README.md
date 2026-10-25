@@ -111,11 +111,11 @@ Cloud Logging เก็บ structured watchdog event; สร้าง log-based 
 
 แผนภาพ topology แยก project, regional resources, Pub/Sub global topic และ Logging/Monitoring สำหรับ watchdog; Cloud Run ไม่ได้ถูกวาดเป็นทรัพยากรใน VPC. ภาพ run/recovery แสดง schedule time, business date, ledger, retry และการ alert เมื่อรายงานยังไม่พร้อม.
 
-[PNG topology](assets/solution.png) · [SVG source](assets/solution.svg) · [PNG run/recovery flow](assets/run-flow.png) · [SVG source](assets/run-flow.svg) · [icon provenance](assets/diagram-provenance.json)
+[PNG topology](assets/diagrams/solution.png) · [SVG source](assets/diagrams/solution.svg) · [PNG run/recovery flow](assets/diagrams/run-flow.png) · [SVG source](assets/diagrams/run-flow.svg) · [icon provenance](assets/diagram-provenance.json)
 
-![Daily Sales Close topology](assets/solution.png)
+![Daily Sales Close topology](assets/diagrams/solution.png)
 
-![Daily Sales Close run and recovery flow](assets/run-flow.png)
+![Daily Sales Close run and recovery flow](assets/diagrams/run-flow.png)
 
 **ข้อจำกัดการยืนยัน:** Diagram เป็น design artifact; CI ต้องตรวจ official icon hashes และ render preview ที่ความกว้างเอกสารก่อนปิด Design.
 

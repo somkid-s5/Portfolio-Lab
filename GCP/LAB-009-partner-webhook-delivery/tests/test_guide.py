@@ -57,8 +57,8 @@ class Lab09GuideTests(unittest.TestCase):
 
     def test_guide_assets_and_private_terraform_files_are_present(self):
         for relative in (
-            "assets/solution.svg",
-            "assets/delivery-flow.svg",
+            "assets/diagrams/solution.svg",
+            "assets/diagrams/delivery-flow.svg",
             "infra/main.tf",
             "infra/variables.tf",
             "infra/terraform.tfvars.example",
@@ -66,8 +66,8 @@ class Lab09GuideTests(unittest.TestCase):
             "app/operator_cli.py",
         ):
             self.assertTrue((GUIDE.parent / relative).is_file(), relative)
-        self.assertIn("](assets/solution.svg)", self.text)
-        self.assertIn("](assets/delivery-flow.svg)", self.text)
+        self.assertIn("](assets/diagrams/solution.svg)", self.text)
+        self.assertIn("](assets/diagrams/delivery-flow.svg)", self.text)
         ignored = (GUIDE.parent / "infra" / ".gitignore").read_text(encoding="utf-8")
         self.assertIn("*.tfstate", ignored)
         self.assertIn("*.tfvars", ignored)

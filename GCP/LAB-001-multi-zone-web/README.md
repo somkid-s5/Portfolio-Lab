@@ -13,9 +13,9 @@ last_verified: null
 
 สร้างทางเข้าเว็บจุดเดียว กระจายคำขอไปยัง App สอง Zone แล้วพิสูจน์ว่าเมื่อหยุดหนึ่ง App ระบบยังรับงานผ่านอีกเครื่องได้
 
-![Solution: two-zone web application](assets/solution-preview.png)
+![Solution: two-zone web application](assets/diagrams/solution-preview.png)
 
-[เปิด Diagram แบบ SVG](assets/solution.svg)
+[เปิด Diagram แบบ SVG](assets/diagrams/solution.svg)
 
 | รูปแบบ | รายละเอียด |
 |---|---|
@@ -135,7 +135,7 @@ gcloud compute regions describe asia-southeast1 --project="$PROJECT_ID" --format
 |---|---|
 | [scripts/startup.sh](scripts/startup.sh) | วางทั้งไฟล์ใน Startup script ของ VM แต่ละเครื่อง ติดตั้ง App และ systemd service |
 | [scripts/probe.py](scripts/probe.py) | อัปโหลดเข้า Cloud Shell เพื่อส่ง HTTP requests และสร้างผล CSV/JSON |
-| [assets/solution.svg](assets/solution.svg) | ภาพระบบที่กำลังสร้าง |
+| [assets/solution.svg](assets/diagrams/solution.svg) | ภาพระบบที่กำลังสร้าง |
 | `assets/evidence/` | เก็บภาพและผลทดสอบจริงของคุณ |
 
 เอกสารนี้เป็นที่บันทึกหลัก เมื่อถึงหัวข้อ **บันทึกผล** ให้เติมข้อมูลในตำแหน่งนั้น และวางภาพ/Log ที่ชื่อสอดคล้องกับ Test ID ใน `assets/evidence/` ไม่ต้องแคปทุกคลิก
@@ -143,7 +143,7 @@ gcloud compute regions describe asia-southeast1 --project="$PROJECT_ID" --format
 ตัวอย่างการแนบภาพหลังบันทึกไฟล์จริงแล้ว:
 
 ```markdown
-![T04 — backend ทั้งสอง Healthy](assets/evidence/t04-backends-healthy.png)
+![T04 — backend ทั้งสอง Healthy](assets/diagrams/evidence/t04-backends-healthy.png)
 [T05 — ผล request distribution](assets/evidence/t05-baseline.json)
 ```
 
@@ -938,9 +938,9 @@ python3 probe.py --url "$LB_URL" --requests 300 --concurrency 10 --rate 10 \
 
 ภาพหลังเปลี่ยนด้านล่างเพิ่ม Zone a / group C / VM C โดยคง frontend และ subnet เดิม เป็นแบบที่ต้องสร้าง ไม่ใช่ภาพหลักฐานว่า Deploy แล้ว หากเปลี่ยนจากแบบให้ปรับ Diagram และอธิบายเหตุผล
 
-![หลังเพิ่ม backend C](assets/solution-after-change-preview.png)
+![หลังเพิ่ม backend C](assets/diagrams/solution-after-change-preview.png)
 
-[เปิด SVG หลังเปลี่ยน](assets/solution-after-change.svg)
+[เปิด SVG หลังเปลี่ยน](assets/diagrams/solution-after-change.svg)
 
 **ไปต่อ:** เมื่อจบ change/retest แล้วจึงสรุป Task 9 และ Cleanup ทั้งสามเครื่อง
 

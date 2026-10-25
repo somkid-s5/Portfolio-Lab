@@ -7,11 +7,11 @@ last_verified: null
 ---
 # Lab 02 — Inventory ภายในองค์กรที่ไม่เปิด App และ Database สู่อินเทอร์เน็ต
 
-![Private Inventory architecture](assets/solution-preview.png)
+![Private Inventory architecture](assets/diagrams/solution-preview.png)
 
 ภาพหลักแสดงเส้นทางใช้งานและฐานข้อมูล ส่วนภาพถัดไปแยก IAP/NAT ซึ่งไม่อยู่ในเส้นทางธุรกรรม App A/B วางแนวตั้งเพื่อให้ fan-out/fan-in สั้นและไม่อ้อมขอบภาพ ทั้งสองใช้ app subnet เดียวซึ่งเป็น regional
 
-![Management and outbound](assets/operations-preview.png)
+![Management and outbound](assets/diagrams/operations-preview.png)
 
 DNS เป็น private zone ที่ authorize VPC ไม่ใช่ VM DNS server; PostgreSQL ใช้ไอคอน Compute Engine เพราะติดตั้งบน VM ไม่ใช่ Cloud SQL เส้น App→DB เป็น TCP5432 และ firewall ไม่อนุญาต client→DB ส่วน health check HTTP8080 ตรวจ /healthz แยกจาก request ผู้ใช้
 
@@ -705,4 +705,4 @@ App สอง process, PostgreSQL 15, role/grants, idempotency/concurrent withdr
 - [PostgreSQL 15 locks](https://www.postgresql.org/docs/15/explicit-locking.html)
 - [Psycopg parameter binding and transactions](https://www.psycopg.org/docs/usage.html)
 
-สถานะ Guide-ready: [CI 39813493443](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39813493443) ผ่าน 15 tests รวม App/DB, secrets, Python materials, shell blocks, navigation และ SVG พร้อม render สองภาพ ตรวจที่ 960px และเก็บ PNG คู่กับ [SVG ระบบ](assets/solution.svg) / [SVG operations](assets/operations.svg) แล้ว การตรวจนี้ไม่ใช่ GCP Cloud-verified หรือ production readiness
+สถานะ Guide-ready: [CI 39813493443](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/39813493443) ผ่าน 15 tests รวม App/DB, secrets, Python materials, shell blocks, navigation และ SVG พร้อม render สองภาพ ตรวจที่ 960px และเก็บ PNG คู่กับ [SVG ระบบ](assets/diagrams/solution.svg) / [SVG operations](assets/diagrams/operations.svg) แล้ว การตรวจนี้ไม่ใช่ GCP Cloud-verified หรือ production readiness

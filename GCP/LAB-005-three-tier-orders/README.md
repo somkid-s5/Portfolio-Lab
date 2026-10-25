@@ -32,9 +32,9 @@ Optional extensions ที่ไม่ใช้แทน baseline: mTLS ระ�
 
 ## Architecture ที่เลือก
 
-![โครงสร้าง Orders สามชั้นและขอบเขตเครือข่าย](assets/solution-preview.png)
+![โครงสร้าง Orders สามชั้นและขอบเขตเครือข่าย](assets/diagrams/solution-preview.png)
 
-[เปิด SVG สำหรับขยายหรือแก้ไข](assets/solution.svg) · [แหล่งที่มาไอคอน](assets/diagram-sources.md)
+[เปิด SVG สำหรับขยายหรือแก้ไข](assets/diagrams/solution.svg) · [แหล่งที่มาไอคอน](assets/diagram-sources.md)
 
 ภาพนี้อธิบายการออกแบบ ไม่ใช่หลักฐานว่าทรัพยากรถูกสร้างหรือผ่านการทดสอบแล้ว
 
@@ -62,9 +62,9 @@ App user ใช้ hashed demo passwords, secure session/CSRF/ownership/role ม
 
 ## Operation scenarios
 
-![วงจร release การสังเกตอาการ และการกู้คืน](assets/operations-preview.png)
+![วงจร release การสังเกตอาการ และการกู้คืน](assets/diagrams/operations-preview.png)
 
-[เปิด operations SVG](assets/operations.svg)
+[เปิด operations SVG](assets/diagrams/operations.svg)
 
 1. Normal journey + unauthorized/cross-owner/role/network checks
 2. Concurrent orders บน API สอง process, duplicate delivery/key conflict, cancel replay และ reconciliation
