@@ -266,6 +266,17 @@ resource "google_service_account_iam_member" "operator_act_as_build" {
   member             = var.operator_member
 }
 
+resource "google_service_account_iam_member" "operator_act_as_runtime" {
+  for_each = {
+    api      = google_service_account.api.name
+    worker   = google_service_account.worker.name
+    migrator = google_service_account.migrator.name
+  }
+  service_account_id = each.value
+  role               = "roles/iam.serviceAccountUser"
+  member             = var.operator_member
+}
+
 resource "google_artifact_registry_repository_iam_member" "build_writer" {
   project    = var.project_id
   location   = var.region

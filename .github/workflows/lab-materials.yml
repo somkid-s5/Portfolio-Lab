@@ -1863,3 +1863,13 @@ jobs:
           done
       - name: Check private connectivity, IAM database roles, SLO, alerts, and cost guardrails
         run: python3 -m unittest discover -s GCP/LAB-019-service-observability/tests -p 'test_infra_contract.py' -v
+
+  lab019-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate Lab 19 task order, expected/evidence fields, links, and Bash examples
+        run: python3 -m unittest discover -s GCP/LAB-019-service-observability/tests -p 'test_guide.py' -v

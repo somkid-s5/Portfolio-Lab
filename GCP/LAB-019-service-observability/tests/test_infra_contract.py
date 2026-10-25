@@ -18,6 +18,7 @@ class Lab019InfrastructureContracts(unittest.TestCase):
             'database_roles = ["cloudsqlsuperuser"]',
             'ip_cidr_range            = "10.94.0.0/26"',
             'purpose       = "VPC_PEERING"',
+            '"operator_act_as_runtime"',
         ):
             self.assertIn(expected, FOUNDATION)
 
@@ -68,6 +69,16 @@ class Lab019InfrastructureContracts(unittest.TestCase):
         self.assertIn("alert_email", RUNTIME)
         self.assertTrue((ROOT / "infra" / ".gitignore").is_file())
         self.assertIn("*.tfvars", (ROOT / "infra" / ".gitignore").read_text(encoding="utf-8"))
+
+    def test_cr_baseline_alert_is_opt_in_and_uses_eligible_bad_metric(self):
+        runtime_vars = (ROOT / "infra" / "runtime" / "main.tf").read_text(encoding="utf-8")
+        example = (ROOT / "infra" / "runtime" / "terraform.tfvars.example").read_text(encoding="utf-8")
+        self.assertIn('variable "cr_baseline_single_5xx_enabled"', runtime_vars)
+        self.assertIn("default     = false", runtime_vars)
+        self.assertIn("count                 = var.cr_baseline_single_5xx_enabled ? 1 : 0", runtime_vars)
+        self.assertIn("metric.label.outcome", runtime_vars)
+        self.assertIn("google_logging_metric.eligible_requests", runtime_vars)
+        self.assertIn("cr_baseline_single_5xx_enabled = false", example)
 
     def test_custom_cloud_build_identity_uses_cloud_logging_only(self):
         build_config = (ROOT / "app" / "cloudbuild.yaml").read_text(encoding="utf-8")

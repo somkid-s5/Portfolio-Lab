@@ -7,3 +7,4 @@ alert_email    = "replace-with-your-alert-address@example.com"
 api_fault_mode    = "none"
 worker_fault_mode = "none"
 worker_delay_ms   = 0
+cr_baseline_single_5xx_enabled = false

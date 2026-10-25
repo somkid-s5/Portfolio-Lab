@@ -57,6 +57,12 @@ variable "alert_email" {
   }
 }
 
+variable "cr_baseline_single_5xx_enabled" {
+  description = "Temporary CR-19-01 demonstration: alert on any eligible 5xx; disable after the noisy baseline."
+  type        = bool
+  default     = false
+}
+
 variable "api_fault_mode" {
   description = "Temporary lab control: none, 5xx, or slow. Keep none outside fault drills."
   type        = string
@@ -88,25 +94,25 @@ variable "worker_delay_ms" {
 }
 
 locals {
-  image = format(
+  image                   = format(
     "%s-docker.pkg.dev/%s/lab19-apps/lab19-service@%s",
     var.region,
     var.project_id,
     var.image_digest,
   )
-  api_name         = "lab19-task-api"
-  worker_name      = "lab19-task-worker"
-  subscription     = "lab19-task-push"
+  api_name                = "lab19-task-api"
+  worker_name             = "lab19-task-worker"
+  subscription            = "lab19-task-push"
   dlq_subscription        = "lab19-task-dlq-reader"
   dlq_status_subscription = "lab19-task-dlq-status"
-  db_instance      = "lab19-postgres"
-  db_name          = "lab19"
-  network_name     = "lab19-vpc"
-  subnet_name      = "lab19-run-egress"
-  api_sa           = format("lab19-api@%s.iam.gserviceaccount.com", var.project_id)
-  worker_sa        = format("lab19-worker@%s.iam.gserviceaccount.com", var.project_id)
-  push_sa          = format("lab19-push@%s.iam.gserviceaccount.com", var.project_id)
-  monitor_metric   = "logging.googleapis.com/user/lab19_eligible_requests"
+  db_instance             = "lab19-postgres"
+  db_name                 = "lab19"
+  network_name            = "lab19-vpc"
+  subnet_name             = "lab19-run-egress"
+  api_sa                  = format("lab19-api@%s.iam.gserviceaccount.com", var.project_id)
+  worker_sa               = format("lab19-worker@%s.iam.gserviceaccount.com", var.project_id)
+  push_sa                 = format("lab19-push@%s.iam.gserviceaccount.com", var.project_id)
+  monitor_metric          = "logging.googleapis.com/user/lab19_eligible_requests"
 }
 
 data "google_project" "current" {
@@ -564,6 +570,42 @@ resource "google_monitoring_notification_channel" "email" {
   labels = {
     email_address = var.alert_email
   }
+}
+
+resource "google_monitoring_alert_policy" "cr_baseline_single_5xx" {
+  count                 = var.cr_baseline_single_5xx_enabled ? 1 : 0
+  project               = var.project_id
+  display_name          = "Lab 19 CR baseline · any eligible 5xx"
+  combiner              = "OR"
+  notification_channels = [google_monitoring_notification_channel.email.name]
+  enabled               = true
+  user_labels           = { lab = "lab19", change_request = "cr19_01" }
+
+  conditions {
+    display_name = "At least one eligible 5xx in the last minute"
+    condition_threshold {
+      filter          = "metric.type=\"logging.googleapis.com/user/lab19_eligible_requests\" AND metric.label.outcome=\"bad\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      duration        = "0s"
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_SUM"
+      }
+
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  documentation {
+    mime_type = "text/markdown"
+    content   = "Temporary noisy baseline for Change Request CR-19-01. Disable after the isolated-error comparison; do not leave enabled."
+  }
+
+  depends_on = [google_logging_metric.eligible_requests]
 }
 
 resource "google_monitoring_alert_policy" "availability_fast_burn" {
