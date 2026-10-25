@@ -379,6 +379,7 @@ resource "google_pubsub_topic_iam_member" "dead_letter_publisher" {
   role    = "roles/pubsub.publisher"
   member  = local.pubsub_agent
 }
+# Terraform infers this grant after the source subscription exists.
 resource "google_pubsub_subscription_iam_member" "dead_letter_subscriber" {
   project      = var.project_id
   subscription = google_pubsub_subscription.reports.name
@@ -426,8 +427,7 @@ resource "google_pubsub_subscription" "reports" {
   depends_on = [
     google_cloud_run_v2_service_iam_member.push_invoker,
     google_service_account_iam_member.pubsub_token_creator,
-    google_pubsub_topic_iam_member.dead_letter_publisher,
-    google_pubsub_subscription_iam_member.dead_letter_subscriber
+    google_pubsub_topic_iam_member.dead_letter_publisher
   ]
 }
 resource "google_cloud_run_v2_job_iam_member" "operator_migrator" {
