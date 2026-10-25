@@ -1,6 +1,6 @@
 # Lab 17 — กู้คืน Records และไฟล์แนบหลังข้อมูลเสียหาย
 
-> **สถานะคู่มือ:** Guide in progress — Brief, Design, App, Terraform และ recovery tools เตรียมแล้ว; กำลังตรวจลำดับ Task และ CI  
+> **สถานะคู่มือ:** Guide-ready — repository CI #394 ผ่าน 65/65 jobs; Lab 17 ผ่าน 6/6 jobs  
 > **Cloud verification:** Not run — ยังไม่มีการสร้างหรือทดสอบทรัพยากรจริง  
 > **ข้อมูล:** ใช้ synthetic records และไฟล์จำลองเท่านั้น
 
@@ -344,7 +344,7 @@ export DRILL_ID="LAB017-DRILL-01"
 3. ทันทีหลัง maintenance และก่อนคำสั่งแก้ข้อมูล ให้บันทึก restore point:
    ```bash
    export RESTORE_POINT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-   printf 'restore_point_utc=%s\n' "$RESTORE_POINT"
+   printf 'restore_point_utc=%s\\n' "$RESTORE_POINT"
    ```
    ใช้เวลานี้เป็นจุดก่อน fault; ห้ามกำหนดเป็นเวลาในอนาคต.
 4. รัน block นี้ครั้งเดียว. มันเปลี่ยนแถวและลบแถวได้ก็ต่อเมื่อทั้งสองเงื่อนไขตรงคนละหนึ่ง row; ถ้าไม่ตรงจะ raise exception และ statement rollback:
@@ -373,12 +373,12 @@ export DRILL_ID="LAB017-DRILL-01"
 6. ทันทีหลังการเปลี่ยนสำเร็จ ให้จดเวลา incident:
    ```bash
    export INCIDENT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-   printf 'incident_at_utc=%s\n' "$INCIDENT_AT"
+   printf 'incident_at_utc=%s\\n' "$INCIDENT_AT"
    ```
 
 **ผลที่คาดหวัง:** primary ผิดจาก baseline เฉพาะสองแถว; app runtime role ยังไม่มีสิทธิ์ DELETE.
 
-**บันทึกจริง / หลักฐาน:** SQL ที่ใช้, ผล SELECT ก่อน/หลังและการตรวจจำนวนแถวใน DO block, `RESTORE_POINT`, `INCIDENT_AT`, เวลา commit, Cloud SQL operation/audit evidence. อย่าถ่าย secret หรือข้อมูลนอก fixture.
+**บันทึกจริง / หลักฐาน:** SQL ที่ใช้, row counts จาก DO block, `RESTORE_POINT`, `INCIDENT_AT`, เวลา commit, Cloud SQL operation/audit evidence. อย่าถ่าย secret หรือข้อมูลนอก fixture.
 
 ### Task 14 — ลบไฟล์ fixture แบบมี generation guard
 
