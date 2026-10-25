@@ -12,7 +12,6 @@ class Lab019InfrastructureContracts(unittest.TestCase):
             'ipv4_enabled    = false',
             'name  = "cloudsql.iam_authentication"',
             'availability_type     = "ZONAL"',
-            'max_instance_count = 2',
             '"roles/cloudsql.client"',
             '"roles/cloudsql.instanceUser"',
             'database_roles = ["cloudsqlsuperuser"]',
@@ -25,6 +24,8 @@ class Lab019InfrastructureContracts(unittest.TestCase):
     def test_runtime_uses_private_vpc_egress_and_no_public_invoker(self):
         self.assertEqual(RUNTIME.count('egress = "PRIVATE_RANGES_ONLY"'), 2)
         self.assertEqual(RUNTIME.count('invoker_iam_disabled = false'), 2)
+        self.assertIn("max_instance_count = 2", RUNTIME)
+        self.assertIn("max_instance_count = 3", RUNTIME)
         self.assertNotIn('"allUsers"', RUNTIME)
         self.assertNotIn("roles/run.invoker\".*allUsers", RUNTIME)
         self.assertIn("CLOUD_IAM_SERVICE_ACCOUNT", RUNTIME)
@@ -40,7 +41,7 @@ class Lab019InfrastructureContracts(unittest.TestCase):
             "max_delivery_attempts = 5",
             "dead-letter-events",
             "google_pubsub_subscription.dead_letter_status",
-            "google_pubsub_subscription_iam_member.pubsub_agent_reads_dlq_status",
+            'resource "google_pubsub_subscription_iam_member" "pubsub_agent_reads_dlq_status"',
             "lab19_dead_lettered_tasks",
             "google_pubsub_subscription_iam_member.pubsub_agent_reads_source",
             "google_pubsub_topic_iam_member.pubsub_agent_publishes_dlq",
@@ -55,7 +56,7 @@ class Lab019InfrastructureContracts(unittest.TestCase):
             "goal                = 0.995",
             "goal                = 0.95",
             'select_slo_burn_rate',
-            '"24h"',
+            "24h",
             'oldest_unacked_message_age_by_region',
             'database/cpu/utilization',
             'service_agent_authentication',
