@@ -160,7 +160,12 @@ diff --git a/tests/test_app.py b/tests/test_app.py
      def test_invalid_report_date_and_missing_identity_are_rejected(self):
          invalid = self.api.post(
              "/api/reports",
-@@ -241,1 +273,9 @@
+@@ -236,6 +268,14 @@
+     def test_worker_rejects_malformed_and_unknown_messages(self):
+         self.assertEqual(self.worker.post("/events/reports", json={"not": "a message"}).status_code, 400)
+         bad_data = {"message": {"data": base64.b64encode(b"[]").decode("ascii")}}
+         self.assertEqual(self.worker.post("/events/reports", json=bad_data).status_code, 400)
+         unknown = {"message": {"data": base64.b64encode(b'{"schema_version":2}').decode("ascii")}}
          self.assertEqual(self.worker.post("/events/reports", json=unknown).status_code, 400)
 +        invalid_date = {
 +            "message": {
