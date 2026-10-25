@@ -109,7 +109,7 @@ diff --git a/tests/test_app.py b/tests/test_app.py
              headers={"X-Test-User": user, "Idempotency-Key": key},
          )
  
-@@ -104,7 +104,7 @@
+@@ -106,7 +106,7 @@
                  text("SELECT version FROM schema_migrations ORDER BY version")
              ).scalars().all()
              slots = connection.execute(text("SELECT COUNT(*) FROM slots")).scalar_one()
@@ -184,6 +184,5 @@ diff --git a/app/migrations/002_booking_source.sql b/app/migrations/002_booking_
 new file mode 100644
 --- /dev/null
 +++ b/app/migrations/002_booking_source.sql
-@@ -1,0 +1,2 @@
+@@ -1,0 +1,1 @@
 +ALTER TABLE bookings ADD COLUMN booking_source TEXT NOT NULL DEFAULT 'portal';
-+
