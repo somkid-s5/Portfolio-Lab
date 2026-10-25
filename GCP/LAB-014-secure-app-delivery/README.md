@@ -102,7 +102,7 @@ Terraform ให้บาง role ระดับ project เพราะ Cloud 
 - ตั้ง budget alert ได้ แต่ให้ตรวจการใช้งานจริงและลบ resource ที่ไม่ใช้ด้วย; อย่าถือว่า alert เป็นวงเงินตัดค่าใช้จ่าย
 - ไม่ใช้ production/customer traffic, ไม่เปิด unauthenticated access, ไม่ใช้ load test ยิงไม่จำกัด และไม่ใช้ breakglass เพื่อทำให้ acceptance test ผ่าน
 - PR #1 ใน repository เป็น Draft และไม่ได้ถูกรวมโดยคู่มือนี้. เริ่มขั้นที่สร้าง resource หรือ release ได้เมื่อผู้ใช้ review และนำ Lab materials ไปไว้บน `main` เองแล้วเท่านั้น; ห้ามคาดหวังว่า branch ของ PR จะ trigger trusted release
-- Cloud Build trigger และ Release workflow ทำงานคู่กันบน push main. ตั้ง project/policy/pipeline/GitHub variables ให้เสร็จก่อนการเปลี่ยนแปลงที่เข้า release path; workflow รอ build ของ SHA เดียวกันและหยุดเมื่อหา build ที่ตรงกันไม่ได้
+- Cloud Build trigger บน GCP อาจทำงานเมื่อมี commit เข้า main ตาม path ที่ตั้งไว้; GitHub Release workflow ถูกปิดไว้โดยค่าเริ่มต้นและจะทำงานร่วมกันได้เฉพาะเมื่อกำหนด repository variable `LAB014_RELEASE_ENABLED=true` หลังสร้าง project/policy/pipeline/GitHub variables ครบแล้ว. ตั้งค่านี้เฉพาะช่วงทดลอง Lab และปิดกลับเป็น `false` ก่อน cleanup; workflow รอ build ของ SHA เดียวกันและหยุดเมื่อหา build ที่ตรงกันไม่ได้. การปิด GitHub workflow **ไม่ได้ปิด Cloud Build trigger ใน GCP**: ตรวจ/Disable trigger ใน Cloud Console ด้วยก่อน merge หรือ cleanup หากไม่ต้องการการ build ที่มีค่าใช้จ่าย.
 
 ## เตรียม Cloud Shell
 
@@ -268,7 +268,7 @@ gcloud deploy targets list --region="$REGION" --project="$PROJECT_ID"
 
 ### Task 07 — ตั้ง GitHub Environments และตัวแปร non-secret
 
-ก่อน run release workflow ให้ตรวจ repository default branch เป็น `main` และ workflow file `.github/workflows/release.yml` อยู่บน main. ที่ GitHub repository ไป **Settings → Environments** แล้วสร้าง:
+ก่อน run release workflow ให้ตรวจ repository default branch เป็น `main` และ workflow file `.github/workflows/release.yml` อยู่บน main. ค่าเริ่มต้น `LAB014_RELEASE_ENABLED` ต้องว่างหรือ `false` เพื่อกัน release จากการ merge เอกสารโดยไม่ได้ตั้งใจ. หลังสร้าง GCP sandbox และตรวจสิทธิ์ครบ ให้ตั้ง repository variable `LAB014_RELEASE_ENABLED=true` **ก่อน** push commit ทดลองที่แตะ release path และตั้งกลับเป็น `false` เมื่อจบ; GitHub Environment reviewers ไม่แทน Cloud Deploy production approval. ที่ GitHub repository ไป **Settings → Environments** แล้วสร้าง:
 
 - `gcp-attest`: จำกัด deployment branches เป็น `main`
 - `gcp-release`: จำกัด deployment branches เป็น `main`; เพิ่ม required reviewer ได้ตามนโยบายทีม
@@ -324,7 +324,7 @@ workflow นี้ไม่มี GitHub Environment และ workflow_ref/ref 
 
 ### Task 08 — รัน baseline จาก trusted commit และตรวจ staging
 
-ทำเมื่อ code/terraform/pipeline พร้อมทั้งหมด และการนำ PR ขึ้น main ผ่าน review/อนุมัติของผู้ใช้แล้ว. push ที่แตะ path ใน Lab จะทำให้ Cloud Build trigger และ release workflow ทำงานคู่กัน:
+ทำเมื่อ code/terraform/pipeline พร้อมทั้งหมด, `LAB014_RELEASE_ENABLED=true` (ตั้งโดยผู้ใช้หลังยืนยันการสร้าง Cloud resources/costs), GCP Cloud Build trigger เปิดใช้ตามที่ตั้งไว้ และการนำ PR ขึ้น main ผ่าน review/อนุมัติของผู้ใช้แล้ว. push ที่แตะ path ใน Lab จึงจะทำให้ Cloud Build trigger และ GitHub release workflow ทำงานคู่กัน; หาก flag ยังเป็น `false` งาน release จะถูก skip อย่างตั้งใจ:
 
 1. ใน GitHub ไป **Actions → Lab 14 trusted release** แล้วตรวจ run จาก `refs/heads/main`. Pull request หรือ feature branch ต้องไม่สร้าง Cloud credential หรือ release
 2. เปิด Cloud Build → History เลือก build ของ commit เดียวกัน. ตรวจ status SUCCESS, trigger ID, builder SA, source SHA และ image digest
@@ -568,7 +568,7 @@ Field ที่ checker บังคับมีดังนี้:
 
 ### Task 15 — Cleanup อย่างระวังและตรวจซ้ำ
 
-Cleanup เป็น destructive. เก็บ/export evidence ก่อน แล้วตรวจ project ID และ resource names ซ้ำทุกครั้ง. อย่าลบ project, policy, key หรือ connection ที่มี resource ร่วมโดยอัตโนมัติ
+Cleanup เป็น destructive. **ปิด `LAB014_RELEASE_ENABLED=false` และ disable GCP Cloud Build trigger ก่อน** เพื่อป้องกัน build/release ใหม่ระหว่างลบ. เก็บ/export evidence ก่อน แล้วตรวจ project ID และ resource names ซ้ำทุกครั้ง. อย่าลบ project, policy, key หรือ connection ที่มี resource ร่วมโดยอัตโนมัติ
 
 1. ปฏิเสธ approval ที่ไม่ต้องการและยุติ rollout ที่ยังค้างตาม Cloud Deploy workflow; ตรวจว่าไม่มี rollout ที่กำลังทำงาน
 2. ลบ Cloud Run services ของ Lab เท่านั้น:
