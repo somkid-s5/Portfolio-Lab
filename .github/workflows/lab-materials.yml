@@ -1702,3 +1702,77 @@ jobs:
             GCP/LAB-018-team-environment-factory/assets/**
           if-no-files-found: error
           retention-days: 14
+
+  lab018-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile Lab 18 API and bounded probe
+        run: python3 -m py_compile GCP/LAB-018-team-environment-factory/app/main.py GCP/LAB-018-team-environment-factory/scripts/*.py
+      - name: Exercise Status API and profile policy without cloud credentials
+        run: |
+          python3 -m unittest discover -s GCP/LAB-018-team-environment-factory/tests -p 'test_app.py' -v
+      - name: Build non-root Status API image
+        run: |
+          docker build --pull --file GCP/LAB-018-team-environment-factory/app/Dockerfile --tag lab018-status-api:ci GCP/LAB-018-team-environment-factory/app
+          test "$(docker image inspect --format '{{.Config.User}}' lab018-status-api:ci)" = "10001:10001"
+          container_id="$(docker run --detach --rm --publish 127.0.0.1:18018:8080 --env ENVIRONMENT=ci --env APP_VERSION=ci lab018-status-api:ci)"
+          trap 'docker logs "$container_id" || true; docker stop "$container_id" >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18018/healthz >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+          python3 -c 'import json,urllib.request; d=json.load(urllib.request.urlopen("http://127.0.0.1:18018/healthz",timeout=3)); assert d["environment"] == "ci" and d["status"] == "ok", d'
+
+  lab018-profiles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate baseline profiles and reject unapproved Change Request
+        run: |
+          python3 -m py_compile GCP/LAB-018-team-environment-factory/scripts/*.py
+          python3 -m unittest discover -s GCP/LAB-018-team-environment-factory/tests -p 'test_profiles.py' -v
+          python3 GCP/LAB-018-team-environment-factory/scripts/validate_profiles.py
+          if python3 GCP/LAB-018-team-environment-factory/scripts/validate_profiles.py --candidate GCP/LAB-018-team-environment-factory/config/change-request-dataops.example.json; then
+            echo "Unapproved Change Request unexpectedly passed"
+            exit 1
+          fi
+
+  lab018-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Format and validate all Lab 18 Terraform roots without credentials
+        run: |
+          terraform fmt -check -diff -recursive GCP/LAB-018-team-environment-factory/infra
+          for root in foundation seeder factory; do
+            terraform -chdir="GCP/LAB-018-team-environment-factory/infra/$root" init -backend=false -input=false
+            terraform -chdir="GCP/LAB-018-team-environment-factory/infra/$root" validate -no-color
+          done
+      - name: Check Lab 18 infrastructure security and ownership contracts
+        run: python3 -m unittest discover -s GCP/LAB-018-team-environment-factory/tests -p 'test_infra_contract.py' -v
+
+  lab018-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate Lab 18 task sequence, evidence fields, links and Bash examples
+        run: python3 -m unittest discover -s GCP/LAB-018-team-environment-factory/tests -p 'test_guide.py' -v

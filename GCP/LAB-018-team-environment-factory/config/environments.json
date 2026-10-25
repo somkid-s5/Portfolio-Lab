@@ -1,0 +1,41 @@
+{
+  "allowed_regions": ["asia-southeast1"],
+  "labels": {
+    "owner": "platform-team",
+    "team": "commerce",
+    "cost_center": "cc2042",
+    "managed_by": "terraform"
+  },
+  "environments": {
+    "dev": {
+      "project_id": "commerce-dev-lab18-demo",
+      "project_name": "Commerce Dev Lab 18",
+      "environment": "dev",
+      "region": "asia-southeast1",
+      "team_group": "commerce-dev@example.com",
+      "contractor_group": null,
+      "labels": {"environment": "dev"},
+      "budget": {
+        "currency": "THB",
+        "units": 1200,
+        "thresholds": [0.5, 0.9],
+        "notification_email": "cloud-ops@example.com"
+      }
+    },
+    "staging": {
+      "project_id": "commerce-stg-lab18-demo",
+      "project_name": "Commerce Staging Lab 18",
+      "environment": "staging",
+      "region": "asia-southeast1",
+      "team_group": "commerce-staging@example.com",
+      "contractor_group": null,
+      "labels": {"environment": "staging"},
+      "budget": {
+        "currency": "THB",
+        "units": 1800,
+        "thresholds": [0.5, 0.9],
+        "notification_email": "cloud-ops@example.com"
+      }
+    }
+  }
+}
