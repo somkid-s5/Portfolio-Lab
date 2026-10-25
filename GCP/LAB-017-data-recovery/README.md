@@ -16,7 +16,7 @@
 
 ![Database and attachment recovery drill](assets/diagrams/recovery-flow.svg)
 
-ไดอะแกรมใช้ Diagram Design Personal Custom จาก ZIP เป็นมาตรฐานสี ไอคอน การจัดกลุ่ม scope และแนวเส้นตาม [diagram-style.md](../../docs/diagram-style.md); ไอคอนบริการ GCP อ้างอิง source และ attribution ที่บันทึกไว้ใน assets
+ไดอะแกรมอ้างอิงมาตรฐานสี ไอคอน การจัดกลุ่ม scope และแนวเส้นจาก ZIP ตาม [diagram-style.md](../../docs/diagram-style.md) (ยังไม่มีหลักฐานว่าได้เรียกใช้ Personal Custom Skill); ไอคอนบริการ GCP อ้างอิง source และ attribution ที่บันทึกไว้ใน assets
 
 ## Requirements และเกณฑ์รับงาน
 
