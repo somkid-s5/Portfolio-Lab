@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +27,13 @@ class Lab020InfrastructureContracts(unittest.TestCase):
             'backend "gcs" {}',
         ):
             self.assertIn(expected, FOUNDATION)
+        self.assertEqual(
+            len(re.findall(
+                r'resource "google_project_service_identity" "[^"]+" \{\n\s*provider\s*=\s*google-beta',
+                FOUNDATION,
+            )),
+            2,
+        )
 
     def test_runtime_separates_environments_and_authentication(self):
         self.assertIn('terraform.workspace == var.environment', RUNTIME)

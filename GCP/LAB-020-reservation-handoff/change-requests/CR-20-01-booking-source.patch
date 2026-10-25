@@ -96,7 +96,7 @@ diff --git a/app/worker.py b/app/worker.py
 diff --git a/tests/test_app.py b/tests/test_app.py
 --- a/tests/test_app.py
 +++ b/tests/test_app.py
-@@ -90,10 +90,10 @@
+@@ -92,10 +92,10 @@
      def tearDown(self):
          self.engine.dispose()
  
@@ -109,16 +109,11 @@ diff --git a/tests/test_app.py b/tests/test_app.py
              headers={"X-Test-User": user, "Idempotency-Key": key},
          )
  
-@@ -106,7 +106,7 @@
-                 text("SELECT version FROM schema_migrations ORDER BY version")
-             ).scalars().all()
-             slots = connection.execute(text("SELECT COUNT(*) FROM slots")).scalar_one()
-+        self.assertEqual(versions, ["001_initial", "002_booking_source"])
+@@ -109,2 +109,2 @@
 -        self.assertEqual(versions, ["001_initial"])
++        self.assertEqual(versions, ["001_initial", "002_booking_source"])
          self.assertEqual(slots, 3)
- 
-     def test_booking_is_idempotent_and_capacity_is_enforced(self):
-@@ -160,13 +160,45 @@
+@@ -211,13 +211,45 @@
              f"/api/reports/{report_id}/download", headers={"X-Test-User": "one@example.test"}
          )
          self.assertEqual(download.status_code, 200)
@@ -165,9 +160,7 @@ diff --git a/tests/test_app.py b/tests/test_app.py
      def test_invalid_report_date_and_missing_identity_are_rejected(self):
          invalid = self.api.post(
              "/api/reports",
-@@ -188,6 +220,14 @@
-         self.assertEqual(self.worker.post("/events/reports", json=bad_data).status_code, 400)
-         unknown = {"message": {"data": base64.b64encode(b'{"schema_version":2}').decode("ascii")}}
+@@ -241,1 +273,9 @@
          self.assertEqual(self.worker.post("/events/reports", json=unknown).status_code, 400)
 +        invalid_date = {
 +            "message": {
@@ -177,9 +170,6 @@ diff --git a/tests/test_app.py b/tests/test_app.py
 +            }
 +        }
 +        self.assertEqual(self.worker.post("/events/reports", json=invalid_date).status_code, 400)
- 
- 
- if __name__ == "__main__":
 diff --git a/app/migrations/002_booking_source.sql b/app/migrations/002_booking_source.sql
 new file mode 100644
 --- /dev/null

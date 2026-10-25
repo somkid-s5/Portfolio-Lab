@@ -75,11 +75,13 @@ resource "google_project_service" "enabled" {
   disable_dependent_services = false
 }
 resource "google_project_service_identity" "pubsub" {
+  provider   = google-beta
   project    = var.project_id
   service    = "pubsub.googleapis.com"
   depends_on = [google_project_service.enabled]
 }
 resource "google_project_service_identity" "iap" {
+  provider   = google-beta
   project    = var.project_id
   service    = "iap.googleapis.com"
   depends_on = [google_project_service.enabled]
