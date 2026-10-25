@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** Lab 01–20 Guide-ready หลัง repository CI #431 ผ่านครบ 81/81 jobs. Cloud verification ทุก Lab ยังคง Not run.
+**สถานะ:** Lab 01–20 Guide-ready หลัง repository CI #432 ผ่านครบ 81/81 jobs. Cloud verification ทุก Lab ยังคง Not run.
 
 ## ผลลัพธ์ปลายทาง
 
@@ -92,4 +92,4 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## สถานะดำเนินงาน
 
-Lab 01–20 Guide-ready หลัง repository CI #431 ผ่านครบ 81/81 jobs รวม Lab 20 ครบ 5/5 checks. ไม่มี GCP provisioning และ Cloud verification ทุก Lab ยังคง Not run. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.
+Lab 01–20 Guide-ready หลัง repository CI #432 ผ่านครบ 81/81 jobs รวม Lab 20 ครบ 5/5 checks. ไม่มี GCP provisioning และ Cloud verification ทุก Lab ยังคง Not run. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.

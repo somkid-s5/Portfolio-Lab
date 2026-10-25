@@ -1,6 +1,6 @@
 # Lab 20 — แพลตฟอร์มจองและสร้างรายงานแบบรับมอบงานได้
 
-**สถานะคู่มือ:** Guide review pending  
+**สถานะคู่มือ:** Guide-ready (ตรวจคู่มือและโค้ดใน repository แล้ว; ไม่ใช่ Cloud-verified)  
 **Cloud verification:** Not run  
 **Region ตัวอย่าง:** asia-southeast1  
 GitHub CI ตรวจ source/contract เท่านั้น ไม่สร้าง GCP resources. ผู้เรียนเลือกงบประมาณและรัน Cloud Lab ใน project แยกของตนเอง
@@ -175,7 +175,12 @@ Cloud Build ทำ unit checks แล้ว build image ไปยัง Artifact
 ~~~bash
 export BUILD_TAG="baseline-$(date -u +%Y%m%dT%H%M%SZ)"
 export BUILD_SA="lab20-build@$PROJECT_ID.iam.gserviceaccount.com"
-gcloud builds submit --project="$PROJECT_ID" --region="$REGION" --config=cloudbuild.yaml --service-account="projects/$PROJECT_ID/serviceAccounts/$BUILD_SA" --substitutions="_REGION=$REGION,_REPOSITORY=lab20-apps,_IMAGE=reservation-handoff,_TAG=$BUILD_TAG" .
+export LAB_DIR="$(pwd)"
+export REPO_ROOT="$(git rev-parse --show-toplevel)"
+# cloudbuild.yaml อ้าง GCP/LAB-020-* จาก repository root ต้องส่ง root เป็น source context
+cd "$REPO_ROOT"
+gcloud builds submit --project="$PROJECT_ID" --region="$REGION" --config=GCP/LAB-020-reservation-handoff/cloudbuild.yaml --service-account="projects/$PROJECT_ID/serviceAccounts/$BUILD_SA" --substitutions="_REGION=$REGION,_REPOSITORY=lab20-apps,_IMAGE=reservation-handoff,_TAG=$BUILD_TAG" .
+cd "$LAB_DIR"
 export BASELINE_IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/lab20-apps/reservation-handoff"
 export BASELINE_IMAGE_DIGEST="$(gcloud artifacts docker images describe "$BASELINE_IMAGE_URI:$BUILD_TAG" --project="$PROJECT_ID" --format='value(image_summary.digest)')"
 printf 'baseline_digest=%s' "$BASELINE_IMAGE_DIGEST"
@@ -369,24 +374,68 @@ gcloud run jobs execute lab20-prod-migrate --project="$PROJECT_ID" --region="$RE
 
 ### Task T16 — Change Request CR-20-01: เพิ่มช่องทางรับจอง
 
-ทีม Support ต้องสร้างการจองแทนผู้ใช้ผ่านช่อง booking_source (portal หรือ support_desk) และต้องปรากฏในรายงาน CSV. ห้ามเปลี่ยน contract เดิมของ portal: เมื่อไม่ส่ง field ให้ default เป็น portal. Schema change ต้อง additive และ migrate ก่อนเลื่อน application image.
+ทีม Support ต้องสร้างการจองผ่าน `booking_source` (portal หรือ support_desk) โดยยังรักษา request contract เดิม: หากไม่ส่ง field นี้ ให้ default เป็น portal. เพิ่ม schema แบบ additive **ก่อน** เปลี่ยน Application image. ใช้ Project สำหรับ Lab เท่านั้น; Stage/Prod คือสอง environment ใน **Project เดียวกัน** และใช้ Cloud SQL instance ร่วมกัน
 
-เริ่ม branch แยกจาก baseline guide branch; ติดตั้ง dependencies ตาม README. จาก repository root:
+**16.1 ตรวจ Patch ในพื้นที่ชั่วคราวก่อนเปลี่ยน source จริง** — เริ่มจาก Lab Root (`GCP/LAB-020-reservation-handoff`). `test_release.py` คัดลอก baseline ไปยัง disposable directory แล้ว apply patch ของตัวเอง; ดังนั้น **ต้องรันก่อน `git apply` กับ working tree** มิฉะนั้นจะเป็น double-apply
 
 ~~~bash
-git switch -c cr20-01-booking-source
-git apply --check GCP/LAB-020-reservation-handoff/change-requests/CR-20-01-booking-source.patch
-git apply GCP/LAB-020-reservation-handoff/change-requests/CR-20-01-booking-source.patch
-python -m unittest discover -s GCP/LAB-020-reservation-handoff/tests -p 'test_release.py' -v
+# ต้องอยู่ใน GCP/LAB-020-reservation-handoff
+export LAB_DIR="$(pwd)"
+export REPO_ROOT="$(git rev-parse --show-toplevel)"
+git -C "$REPO_ROOT" switch -c cr20-01-booking-source
+python -m unittest discover -s tests -p 'test_release.py' -v
+git apply --check change-requests/CR-20-01-booking-source.patch
+git apply change-requests/CR-20-01-booking-source.patch
+git status --short
 ~~~
 
-test_release.py สร้าง disposable copy, apply patch และรัน regression suite; ไม่แก้ baseline evidence. Build candidate จาก source ที่มี patch โดยใช้ build command ใน T05 และตั้ง tag cr20-01-...; จด CR_IMAGE_DIGEST. ทดสอบ Stage schema ก่อน application deploy: ใช้ runtime workspace stage, คง image_digest=$BASELINE_IMAGE_DIGEST (API ยังเป็น baseline), ตั้ง migration_image_digest=$CR_IMAGE_DIGEST, plan/apply เพื่อเปลี่ยนเฉพาะ Migrator job แล้ว execute lab20-stage-migrate. เมื่อ migration ผ่าน จึง apply Stage services ด้วย image_digest=$CR_IMAGE_DIGEST และ migration_image_digest=$CR_IMAGE_DIGEST. ทดสอบ API ปกติ default portal, Support Desk support_desk, invalid source ถูก reject, export CSV มีคอลัมน์ใหม่.
+**16.2 สร้าง Candidate จาก source ที่ Patch แล้ว** — Cloud Build config ใช้ path จาก Repository Root เสมอ จึงห้ามส่งเพียง Lab directory เป็น build context. ใช้ digest ที่ได้จริง ไม่สร้างหรือคัดลอกค่า digest ตัวอย่าง
 
-ถ้า release มีปัญหา ให้ rollback app ไป BASELINE_IMAGE_DIGEST; additive column คงอยู่และ baseline app ไม่อ่าน column นี้. ห้ามลบ column ขณะมี app รุ่น CR ทำงาน. เมื่อ Stage ผ่าน ให้ migrate Prod ด้วยลำดับเดียวกัน: เปลี่ยน migration_image_digest เป็น CR ก่อน แต่คง production image_digest baseline, run Job, จากนั้น promote CR digest ไป Prod. Production ใน Lab ยังเป็น project แยก ไม่ใช้ระบบจริง.
+~~~bash
+export CR_BUILD_TAG="cr20-01-$(date -u +%Y%m%dT%H%M%SZ)"
+export BUILD_SA="lab20-build@$PROJECT_ID.iam.gserviceaccount.com"
+cd "$REPO_ROOT"
+gcloud builds submit --project="$PROJECT_ID" --region="$REGION" --config=GCP/LAB-020-reservation-handoff/cloudbuild.yaml --service-account="projects/$PROJECT_ID/serviceAccounts/$BUILD_SA" --substitutions="_REGION=$REGION,_REPOSITORY=lab20-apps,_IMAGE=reservation-handoff,_TAG=$CR_BUILD_TAG" .
+cd "$LAB_DIR"
+export BASELINE_IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/lab20-apps/reservation-handoff"
+export CR_IMAGE_DIGEST="$(gcloud artifacts docker images describe "$BASELINE_IMAGE_URI:$CR_BUILD_TAG" --project="$PROJECT_ID" --format='value(image_summary.digest)')"
+[[ "$CR_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo 'Invalid CR_IMAGE_DIGEST — STOP'; false; }
+[[ "$BASELINE_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo 'Missing BASELINE_IMAGE_DIGEST — STOP'; false; }
+~~~
 
-**ผลที่คาดหวัง:** patch apply ได้, migration 002 ถูก track, baseline app ใช้ได้หลัง migration, CR app รับค่าใหม่และสร้าง report CSV มี booking_source; invalid value ตอบ 400; Prod ได้ CR digest เดียวกับ Stage หลัง Stage acceptance.
+**16.3 Stage: Migration ก่อน Application** — ตรวจ plan ทุกครั้ง; เปลี่ยนเพียง Migrator image เป็น CR แล้วรัน schema migration ขณะที่ Portal/Worker ยังเป็น baseline. ตรวจ migration version 002 จาก Job logs ก่อนปล่อย CR application
 
-**บันทึกจริง / หลักฐาน:** CR branch: ____ · regression result: ____ · baseline digest: ____ · CR digest: ____ · Stage migration/app digest: ____ · Prod migration/app digest: ____ · rollback decision: ____
+~~~bash
+terraform -chdir=infra/runtime workspace select stage
+terraform -chdir=infra/runtime plan -out=stage-cr-migrate.tfplan -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="environment=stage" -var="image_digest=$BASELINE_IMAGE_DIGEST" -var="migration_image_digest=$CR_IMAGE_DIGEST" -var="operator_member=$OPERATOR_MEMBER" -var="iap_enabled=true"
+terraform -chdir=infra/runtime show stage-cr-migrate.tfplan
+terraform -chdir=infra/runtime apply stage-cr-migrate.tfplan
+gcloud run jobs execute lab20-stage-migrate --project="$PROJECT_ID" --region="$REGION" --wait
+# ดำเนินต่อได้ต่อเมื่อ migration จบ SUCCESS และ schema version 002 ถูกบันทึกจริง
+terraform -chdir=infra/runtime plan -out=stage-cr-app.tfplan -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="environment=stage" -var="image_digest=$CR_IMAGE_DIGEST" -var="migration_image_digest=$CR_IMAGE_DIGEST" -var="operator_member=$OPERATOR_MEMBER" -var="iap_enabled=true"
+terraform -chdir=infra/runtime show stage-cr-app.tfplan
+terraform -chdir=infra/runtime apply stage-cr-app.tfplan
+~~~
+
+เปิด Portal ด้วยบัญชีที่ได้รับ IAP และทดสอบ booking_source=portal (รวม default เมื่อไม่ส่ง field), support_desk, invalid source → 400, CSV column เพิ่ม, authorized access และ rollback ของ baseline. บันทึก HTTP response, revision/digest, timestamps และ Migration Job execution ID; ห้ามเก็บ token ลง Repo. ถ้าระบบผิดปกติให้ rollback เฉพาะ app digest ไป BASELINE_IMAGE_DIGEST โดย **คง schema additive** และบันทึกเหตุผล; ห้ามลบคอลัมน์ขณะยังมี CR app
+
+**16.4 Prod: ทำเฉพาะเมื่อ Stage Acceptance ผ่าน** — Prod เป็น environment จำลองภายใน Project เดียวกัน ไม่ใช่ Production องค์กร
+
+~~~bash
+terraform -chdir=infra/runtime workspace select prod
+terraform -chdir=infra/runtime plan -out=prod-cr-migrate.tfplan -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="environment=prod" -var="image_digest=$BASELINE_IMAGE_DIGEST" -var="migration_image_digest=$CR_IMAGE_DIGEST" -var="operator_member=$OPERATOR_MEMBER" -var="iap_enabled=true"
+terraform -chdir=infra/runtime show prod-cr-migrate.tfplan
+terraform -chdir=infra/runtime apply prod-cr-migrate.tfplan
+gcloud run jobs execute lab20-prod-migrate --project="$PROJECT_ID" --region="$REGION" --wait
+# ตรวจ migration version 002 และ Backup/rollback readiness ก่อน promote
+terraform -chdir=infra/runtime plan -out=prod-cr-app.tfplan -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="environment=prod" -var="image_digest=$CR_IMAGE_DIGEST" -var="migration_image_digest=$CR_IMAGE_DIGEST" -var="operator_member=$OPERATOR_MEMBER" -var="iap_enabled=true"
+terraform -chdir=infra/runtime show prod-cr-app.tfplan
+terraform -chdir=infra/runtime apply prod-cr-app.tfplan
+~~~
+
+**ผลที่คาดหวัง:** Patch/regression ตรวจผ่าน; migration 002 สำเร็จใน Stage ก่อน Prod; baseline app ยังทำงานกับ schema ใหม่ได้; API รับ booking_source ตาม contract และ invalid source ตอบ 400; CSV มีคอลัมน์ booking_source; promote CR digest เดียวกันหลัง Stage Acceptance จริง
+
+**บันทึกจริง / หลักฐาน:** CR branch: ____ · Patch preflight: ____ · CR Build ID/digest: ____ · Stage migration 002/job/revision: ____ · Stage API/CSV/regression: ____ · Prod migration 002/job/revision: ____ · Prod digest: ____ · rollback decision: ____
 
 ### Task T17 — Handover, evidence pack และ cleanup
 
@@ -403,16 +452,22 @@ gcloud artifacts docker images list "$REGION-docker.pkg.dev/$PROJECT_ID/lab20-ap
 ลบ image digests ที่ Lab สร้างด้วยตนเอง/ตรวจรายการก่อนทุกครั้ง:
 
 ~~~bash
-gcloud artifacts docker images delete "$REGION-docker.pkg.dev/$PROJECT_ID/lab20-apps/reservation-handoff@$BASELINE_IMAGE_DIGEST" --delete-tags --quiet
-gcloud artifacts docker images delete "$REGION-docker.pkg.dev/$PROJECT_ID/lab20-apps/reservation-handoff@$CR_IMAGE_DIGEST" --delete-tags --quiet
+# ใช้ digest ที่ deploy ล่าสุด; ถ้าไม่ได้ทำ CR ใช้ baseline (ตรวจ plan/state จริงก่อน destroy)
+export CLEANUP_IMAGE_DIGEST="${CR_IMAGE_DIGEST:-$BASELINE_IMAGE_DIGEST}"
+[[ "$CLEANUP_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo 'Missing cleanup digest — STOP'; false; }
 terraform -chdir=infra/runtime workspace select prod
-terraform -chdir=infra/runtime destroy -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="environment=prod" -var="image_digest=$CR_IMAGE_DIGEST" -var="migration_image_digest=$CR_IMAGE_DIGEST" -var="operator_member=$OPERATOR_MEMBER" -var="iap_enabled=true"
+terraform -chdir=infra/runtime destroy -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="environment=prod" -var="image_digest=$CLEANUP_IMAGE_DIGEST" -var="migration_image_digest=$CLEANUP_IMAGE_DIGEST" -var="operator_member=$OPERATOR_MEMBER" -var="iap_enabled=true"
 terraform -chdir=infra/runtime workspace select stage
-terraform -chdir=infra/runtime destroy -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="environment=stage" -var="image_digest=$CR_IMAGE_DIGEST" -var="migration_image_digest=$CR_IMAGE_DIGEST" -var="operator_member=$OPERATOR_MEMBER" -var="iap_enabled=true"
+terraform -chdir=infra/runtime destroy -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="environment=stage" -var="image_digest=$CLEANUP_IMAGE_DIGEST" -var="migration_image_digest=$CLEANUP_IMAGE_DIGEST" -var="operator_member=$OPERATOR_MEMBER" -var="iap_enabled=true"
 terraform -chdir=infra/foundation destroy -var="project_id=$PROJECT_ID" -var="region=$REGION" -var="operator_member=$OPERATOR_MEMBER"
+# เมื่อ Cloud Run/Jobs ไม่อ้าง images แล้ว จึงลบ digests หลังตรวจชื่อและ scope อีกครั้ง
+[[ "$BASELINE_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] && gcloud artifacts docker images delete "$REGION-docker.pkg.dev/$PROJECT_ID/lab20-apps/reservation-handoff@$BASELINE_IMAGE_DIGEST" --delete-tags
+if [[ -n "${CR_IMAGE_DIGEST:-}" && "$CR_IMAGE_DIGEST" != "$BASELINE_IMAGE_DIGEST" ]]; then
+  gcloud artifacts docker images delete "$REGION-docker.pkg.dev/$PROJECT_ID/lab20-apps/reservation-handoff@$CR_IMAGE_DIGEST" --delete-tags
+fi
 ~~~
 
-Review each destroy plan carefully. Foundation destroy removes the shared SQL instance and networks after both Runtime workspaces are empty. After confirming the exact bucket name, run gcloud storage rm --recursive "gs://$STATE_BUCKET/"; this deletes the bucket and every object generation. Do this last because it permanently removes remote Terraform state. State bucket ต้องเป็นขั้นตอนสุดท้าย เพราะการลบจะลบ remote state อย่างถาวร. หาก resource คงเหลือ ให้ตรวจ Terraform state และ Console ก่อน; อย่า issue broad project-wide deletes.
+Review each destroy plan carefully; ตรวจ resource ownership กับรายการจาก Terraform state ก่อนลบ และอย่าสมมติว่าทำ CR ครบทุกขั้น. Foundation destroy removes the shared SQL instance and networks after both Runtime workspaces are empty. After confirming the exact bucket name, run gcloud storage rm --recursive "gs://$STATE_BUCKET/"; this deletes the bucket and every object generation. Do this last because it permanently removes remote Terraform state. State bucket ต้องเป็นขั้นตอนสุดท้าย เพราะการลบจะลบ remote state อย่างถาวร. หาก resource คงเหลือ ให้ตรวจ Terraform state และ Console ก่อน; อย่า issue broad project-wide deletes.
 
 **ผลที่คาดหวัง:** services and database removed, report/artifact objects cleared, state bucket deleted last, no Lab resources remain; evidence and cost notes retainedนอก Cloud account โดยไม่มี secrets.
 

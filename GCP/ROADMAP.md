@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** GCP Solution Labs ทั้ง 20 เรื่อง Guide-ready; repository CI #431 ผ่าน 81/81 jobs. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
+**สถานะ:** GCP Solution Labs ทั้ง 20 เรื่อง Guide-ready; repository CI #432 ผ่าน 81/81 jobs. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -509,9 +509,9 @@ Lab 17 — ระบบจัดเก็บข้อมูลพร้อมแ
 
 Lab 18 — แพลตฟอร์มสร้าง Environment ให้ทีมใหม่ — Guide-ready หลัง [CI #401](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40162370516) ผ่าน 71/71 repository jobs; Lab 18 ผ่านครบ 6/6 jobs (brief, guide, app, infra, profiles, design/render). README Tasks 00–16 ครอบคลุม project-per-environment, Terraform GCS state/lock, controlled Project Creator Owner handoff, team-scoped IAM, alert-only budgets/labels, regional log sinks, authenticated Cloud Run sample, drift, Change Request และ cleanup. ใช้ Diagram Design ZIP เป็นมาตรฐานเดียวพร้อม official icon provenance. ไม่มี GCP provisioning; Cloud verification Not run.
 
-Lab 19 — [ระบบเฝ้าระวังและรับ Incident สำหรับทีมบริการ](LAB-019-service-observability/README.md) — Guide-ready; รวมอยู่ใน CI #431 ซึ่งผ่าน 81/81 repository jobs; Lab 19 ผ่าน 5/5 checks. ไม่มี GCP provisioning; Cloud verification Not run.
+Lab 19 — [ระบบเฝ้าระวังและรับ Incident สำหรับทีมบริการ](LAB-019-service-observability/README.md) — Guide-ready; รวมอยู่ใน CI #432 ซึ่งผ่าน 81/81 repository jobs; Lab 19 ผ่าน 5/5 checks. ไม่มี GCP provisioning; Cloud verification Not run.
 
-Lab 20 — [แพลตฟอร์มจองและสร้างรายงานแบบรับมอบงานได้](LAB-020-reservation-handoff/README.md) — Guide-ready; CI #431 ผ่าน 81/81 repository jobs และ Lab 20 ผ่านครบ 5/5 checks (brief, guide, app, infra, diagram/render). ใช้ ZIP Diagram Design เป็น visual reference หลัก พร้อม official icon provenance. ไม่มี GCP provisioning; Cloud verification Not run.
+Lab 20 — [แพลตฟอร์มจองและสร้างรายงานแบบรับมอบงานได้](LAB-020-reservation-handoff/README.md) — Guide-ready; CI #432 ผ่าน 81/81 repository jobs และ Lab 20 ผ่านครบ 5/5 checks (brief, guide, app, infra, diagram/render). ใช้ ZIP Diagram Design เป็น visual reference หลัก พร้อม official icon provenance. ไม่มี GCP provisioning; Cloud verification Not run.
 
 ตัวอย่างรูปแบบการอ่าน: [Lab Test 2](../test/lab-test-2/README.md) ใช้เป็น reference ด้านการอ่าน ไม่ใช่ผลการทำ GCP Lab
 

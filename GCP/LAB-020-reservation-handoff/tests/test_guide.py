@@ -39,6 +39,16 @@ class Lab020GuideTests(unittest.TestCase):
             resolved = (README.parent / local).resolve()
             self.assertTrue(resolved.is_file(), f"Broken README link: {target}")
 
+    def test_cloud_build_uses_repository_root_and_cr_patch_order(self):
+        guide = self.readme
+        self.assertIn('--config=GCP/LAB-020-reservation-handoff/cloudbuild.yaml', guide)
+        self.assertIn('cd "$REPO_ROOT"', guide)
+        t16 = guide.split('### Task T16 —', 1)[1].split('### Task T17 —', 1)[0]
+        self.assertLess(t16.index("python -m unittest discover -s tests -p 'test_release.py'"), t16.index('git apply change-requests/'))
+        self.assertIn("terraform -chdir=infra/runtime workspace select stage", t16)
+        self.assertIn("terraform -chdir=infra/runtime workspace select prod", t16)
+        self.assertIn("migration_image_digest=$CR_IMAGE_DIGEST", t16)
+
     def test_cloud_results_are_not_claimed(self):
         self.assertIn("Cloud verification:** Not run", self.readme)
         self.assertIn("Expected output เป็นตัวอย่าง", self.readme)

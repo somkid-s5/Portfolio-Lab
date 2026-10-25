@@ -23,7 +23,7 @@
 | 17 | [ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้](LAB-017-data-recovery/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1) |
 | 18 | [แพลตฟอร์มสร้าง Environment ให้ทีมใหม่](LAB-018-team-environment-factory/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #401](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40162370516) — 71/71 jobs; Lab 18 6/6 |
 | 19 | [ระบบเฝ้าระวังและรับ Incident สำหรับทีมบริการ](LAB-019-service-observability/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #422](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40167519527) — 76/76 jobs; Lab 19 5/5 |
-| 20 | [แพลตฟอร์มจองและสร้างรายงานแบบรับมอบงานได้](LAB-020-reservation-handoff/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #431](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40172438713) — 81/81 jobs; Lab 20 5/5 |
+| 20 | [แพลตฟอร์มจองและสร้างรายงานแบบรับมอบงานได้](LAB-020-reservation-handoff/README.md) | Guide-ready | Not run | [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1); [CI #432](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40172755055) — 81/81 jobs; Lab 20 5/5 |
 
 Guide status: Planned → Brief → Design → Authoring → Review → Guide-ready
 
@@ -31,6 +31,6 @@ Cloud verification: Not run → In progress → Verified / Failed / Blocked (ต
 
 ## Current checkpoint
 
-GCP Labs 01–20 / Guide-ready — [CI #431](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40172438713) ผ่านครบ 81/81 repository checks บน commit `9aaf5e1ce97785462ed9199c3bad24480a976191`; Lab 20 ผ่านครบ 5/5 (brief, guide, app, Terraform/infra, design/render). คู่มือ Lab 20 T00–T17 ครอบคลุม setup, deploy, verify, operation, fault/recovery, Change Request และ cleanup พร้อมช่อง Actual/Evidence; ใช้ ZIP Diagram Design เป็น visual reference หลัก และมี official-icon provenance. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
+GCP Labs 01–20 / Guide-ready — [CI #432](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40172755055) ผ่านครบ 81/81 repository checks บน commit `1ee472f226dbbed7ad0dfe157f93d49320cf2fb8`; Lab 20 ผ่านครบ 5/5 (brief, guide, app, Terraform/infra, design/render). คู่มือ Lab 20 T00–T17 ครอบคลุม setup, deploy, verify, operation, fault/recovery, Change Request และ cleanup พร้อมช่อง Actual/Evidence; ใช้ ZIP Diagram Design เป็น visual reference หลัก และมี official-icon provenance. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
 
 PR #1 ยังคง Draft และเปิดไว้สำหรับ review.
