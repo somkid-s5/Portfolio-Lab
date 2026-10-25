@@ -5,6 +5,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 FOUNDATION = (ROOT / "infra" / "foundation" / "main.tf").read_text(encoding="utf-8")
 RUNTIME = (ROOT / "infra" / "runtime" / "main.tf").read_text(encoding="utf-8")
+FOUNDATION_NORMALIZED = re.sub(r"\s+", " ", FOUNDATION)
+RUNTIME_NORMALIZED = re.sub(r"\s+", " ", RUNTIME)
 SCHEMA = (ROOT / "app" / "database_schema.py").read_text(encoding="utf-8")
 API = (ROOT / "app" / "api.py").read_text(encoding="utf-8")
 WORKER = (ROOT / "app" / "worker.py").read_text(encoding="utf-8")
@@ -26,7 +28,7 @@ class Lab020InfrastructureContracts(unittest.TestCase):
             'ip_cidr_range = "10.96.0.0/26"',
             'backend "gcs" {}',
         ):
-            self.assertIn(expected, FOUNDATION)
+            self.assertIn(expected, FOUNDATION_NORMALIZED)
         self.assertEqual(
             len(re.findall(
                 r'resource "google_project_service_identity" "[^"]+" \{\n\s*provider\s*=\s*google-beta',
@@ -36,28 +38,28 @@ class Lab020InfrastructureContracts(unittest.TestCase):
         )
 
     def test_runtime_separates_environments_and_authentication(self):
-        self.assertIn('terraform.workspace == var.environment', RUNTIME)
-        self.assertIn('iap_enabled = var.iap_enabled', RUNTIME)
-        self.assertIn('count = var.iap_enabled ? 1 : 0', RUNTIME)
-        self.assertEqual(RUNTIME.count('egress = "PRIVATE_RANGES_ONLY"'), 3)
-        self.assertIn('max_instance_count = 2', RUNTIME)
-        self.assertIn('max_instance_count = 3', RUNTIME)
-        self.assertIn('public_access_prevention = "enforced"', RUNTIME)
-        self.assertIn('uniform_bucket_level_access = true', RUNTIME)
-        self.assertIn('versioning { enabled = true }', RUNTIME)
-        self.assertIn('force_destroy = false', RUNTIME)
-        self.assertIn('image_digest', RUNTIME)
-        self.assertIn('migration_image_digest', RUNTIME)
-        self.assertIn('sha256:', RUNTIME)
-        self.assertNotIn('"allUsers"', RUNTIME)
-        self.assertEqual(RUNTIME.count('invoker_iam_disabled = false'), 2)
+        self.assertIn('terraform.workspace == var.environment', RUNTIME_NORMALIZED)
+        self.assertIn('iap_enabled = var.iap_enabled', RUNTIME_NORMALIZED)
+        self.assertIn('count = var.iap_enabled ? 1 : 0', RUNTIME_NORMALIZED)
+        self.assertEqual(RUNTIME_NORMALIZED.count('egress = "PRIVATE_RANGES_ONLY"'), 3)
+        self.assertIn('max_instance_count = 2', RUNTIME_NORMALIZED)
+        self.assertIn('max_instance_count = 3', RUNTIME_NORMALIZED)
+        self.assertIn('public_access_prevention = "enforced"', RUNTIME_NORMALIZED)
+        self.assertIn('uniform_bucket_level_access = true', RUNTIME_NORMALIZED)
+        self.assertIn('versioning { enabled = true }', RUNTIME_NORMALIZED)
+        self.assertIn('force_destroy = false', RUNTIME_NORMALIZED)
+        self.assertIn('image_digest', RUNTIME_NORMALIZED)
+        self.assertIn('migration_image_digest', RUNTIME_NORMALIZED)
+        self.assertIn('sha256:', RUNTIME_NORMALIZED)
+        self.assertNotIn('"allUsers"', RUNTIME_NORMALIZED)
+        self.assertEqual(RUNTIME_NORMALIZED.count('invoker_iam_disabled = false'), 2)
 
     def test_pubsub_uses_oidc_retry_dead_letter_and_bounded_operator_tools(self):
         for expected in ('oidc_token', 'service_account_email = local.push_sa',
                          'dead_letter_policy', 'max_delivery_attempts = 5',
                          'minimum_backoff = "10s"', 'maximum_backoff = "60s"',
-                         'google_pubsub_subscription.dead_letter_reader'):
-            self.assertIn(expected, RUNTIME)
+                         'resource "google_pubsub_subscription" "dead_letter_reader"'):
+            self.assertIn(expected, RUNTIME_NORMALIZED)
         redrive = (ROOT / "scripts" / "redrive_dlq.py").read_text(encoding="utf-8")
         self.assertIn('args.max_messages <= 5', redrive)
         recovery = (ROOT / "scripts" / "restore_object_generation.py").read_text(encoding="utf-8")
