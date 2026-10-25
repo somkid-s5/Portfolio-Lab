@@ -1,6 +1,6 @@
 # Lab 18 — แพลตฟอร์มสร้าง Environment ให้ทีมใหม่
 
-> **สถานะ:** Authoring — คู่มือและไฟล์ประกอบกำลังผ่าน repository checks  
+> **สถานะ:** Guide-ready — [CI #401](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40162370516) ผ่าน 71/71 repository jobs และ Lab 18 ผ่าน 6/6 checks  
 > **Cloud verification:** Not run — ไม่มีการสร้าง GCP resources ในงานจัดทำคู่มือนี้  
 > **มาตรฐาน Diagram:** Diagram Design Personal Custom จาก ZIP ตาม [docs/diagram-style.md](../../docs/diagram-style.md)
 

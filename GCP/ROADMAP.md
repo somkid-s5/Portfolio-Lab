@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–17 Guide-ready; Lab 18 Authoring; Lab 19–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–18 Guide-ready; Lab 19–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -507,7 +507,7 @@ Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลข�
 
 Lab 17 — ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้ — Guide-ready หลัง repository CI #394 ผ่าน 65/65 jobs; Lab 17 ผ่าน brief, guide, app, Terraform/infra, ops และ diagram/render ครบ 6/6 jobs. มี Records API, Cloud SQL PITR private, Cloud Storage soft-delete, Secret Manager, integrity manifest, least-privilege IAM และคู่มือ Tasks 00–19. ไม่มี GCP provisioning; Cloud verification Not run.
 
-Lab 18 — แพลตฟอร์มสร้าง Environment ให้ทีมใหม่ — Brief + Design in progress. กำหนด project-per-environment ใต้ Folder ที่มีอยู่, Terraform GCS state/lock, controlled Project Creator Owner handoff, team-scoped IAM, budgets/labels, regional log sinks และ authenticated Cloud Run sample. Diagram ใช้ ZIP Personal Custom พร้อม pinned official icons. ไม่มี GCP provisioning; Cloud verification Not run.
+Lab 18 — แพลตฟอร์มสร้าง Environment ให้ทีมใหม่ — Guide-ready หลัง [CI #401](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40162370516) ผ่าน 71/71 repository jobs; Lab 18 ผ่านครบ 6/6 jobs (brief, guide, app, infra, profiles, design/render). README Tasks 00–16 ครอบคลุม project-per-environment, Terraform GCS state/lock, controlled Project Creator Owner handoff, team-scoped IAM, alert-only budgets/labels, regional log sinks, authenticated Cloud Run sample, drift, Change Request และ cleanup. ใช้ Diagram Design ZIP เป็นมาตรฐานเดียวพร้อม official icon provenance. ไม่มี GCP provisioning; Cloud verification Not run.
 
 ตัวอย่างรูปแบบการอ่าน: [Lab Test 2](../test/lab-test-2/README.md) ใช้เป็น reference ด้านการอ่าน ไม่ใช่ผลการทำ GCP Lab
 
