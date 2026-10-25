@@ -2,7 +2,7 @@
 
 > **สถานะ:** Guide-ready — GitHub CI [#422](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40167519527) ผ่าน 76/76 repository jobs และ Lab 19 ผ่าน 5/5 checks
 > **Cloud verification:** Not run — ไม่มีการสร้าง GCP resources หรือผลทดสอบจริง  
-> **Diagram:** ใช้แนวทาง Diagram Design Personal Custom จาก ZIP ตาม [docs/diagram-style.md](../../docs/diagram-style.md)
+> **Diagram:** อ้างอิงแนวทางภาพจาก ZIP ตาม [docs/diagram-style.md](../../docs/diagram-style.md); ยังไม่ได้รับรองว่าใช้ Personal Custom Skill สร้างภาพ
 
 ## ภาพรวม Solution
 
@@ -766,7 +766,7 @@ terraform apply foundation-destroy.tfplan
 ## ไฟล์ใน Lab
 
 - README.md — brief, architecture, T00–T17, Actual/Evidence, troubleshooting, Case Study, cleanup
-- assets/solution.svg, assets/solution.html — diagram source/preview ตาม Diagram Design Personal Custom จาก ZIP
+- assets/solution.svg, assets/solution.html — diagram source/preview ที่อ้างอิง style จาก ZIP; ตรวจหลักฐาน Skill และ visual sign-off แยกจากกัน
 - assets/diagram-provenance.json, assets/icons/ — pinned official icon provenance/attribution
 - app/ — Task API, idempotent Worker, schema migration, Cloud Build config, Dockerfile/dependencies
 - infra/foundation/, infra/runtime/ — Terraform stacks และ example tfvars
@@ -802,7 +802,7 @@ terraform apply foundation-destroy.tfplan
 
 **โจทย์:** ทีม Commerce มี asynchronous Task API และต้องเห็น reliability ที่ลูกค้าสัมผัส พร้อมแยกเหตุ API, Queue, Worker และฐานข้อมูล.
 
-**การออกแบบ:** IAM-authenticated Cloud Run API/Worker, Pub/Sub push OIDC, Cloud SQL private IP ผ่าน Direct VPC egress/PSA, SLI/SLO, burn alerts, uptime check, DLQ status handler และ bounded redrive. Diagram ใช้ Diagram Design Personal Custom จาก ZIP พร้อม attribution/pinned icon provenance.
+**การออกแบบ:** IAM-authenticated Cloud Run API/Worker, Pub/Sub push OIDC, Cloud SQL private IP ผ่าน Direct VPC egress/PSA, SLI/SLO, burn alerts, uptime check, DLQ status handler และ bounded redrive. Diagram อ้างอิง visual style จาก ZIP พร้อม attribution/pinned icon provenance; ไม่ได้ยืนยันการเรียกใช้ Personal Custom Skill.
 
 **ผลจริงจากการทำ Lab:** กรอกหลังทำเท่านั้น; ห้ามนำ Expected มาแทน Actual.
 
