@@ -1873,3 +1873,105 @@ jobs:
           persist-credentials: false
       - name: Validate Lab 19 task order, expected/evidence fields, links, and Bash examples
         run: python3 -m unittest discover -s GCP/LAB-019-service-observability/tests -p 'test_guide.py' -v
+
+  lab020-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate Lab 20 scenario, acceptance criteria, and access boundary
+        run: python3 -m unittest discover -s GCP/LAB-020-reservation-handoff/tests -p 'test_brief.py' -v
+
+  lab020-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify ZIP Personal Custom diagram, scopes, route geometry, and official icon provenance
+        run: python3 -m unittest discover -s GCP/LAB-020-reservation-handoff/tests -p 'test_design.py' -v
+      - name: Install SVG renderer and Thai font
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin fonts-noto-core
+      - name: Render Lab 20 diagram at reading width
+        run: |
+          rsvg-convert --width 1000 GCP/LAB-020-reservation-handoff/assets/solution.svg -o /tmp/lab020-solution.png
+          test -s /tmp/lab020-solution.png
+
+  lab020-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: lab20_ci
+          POSTGRES_USER: lab020_admin
+          POSTGRES_PASSWORD: disposable-lab020-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lab020_admin -d lab20_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+pg8000://lab020_admin:disposable-lab020-ci@127.0.0.1:5432/lab20_ci
+      GOOGLE_CLOUD_PROJECT: lab20-ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned Lab 20 application and test dependencies
+        run: python -m pip install --disable-pip-version-check -r GCP/LAB-020-reservation-handoff/app/requirements-test.txt
+      - name: Compile app, migration, and operator tools
+        run: python -m py_compile GCP/LAB-020-reservation-handoff/app/*.py GCP/LAB-020-reservation-handoff/scripts/*.py
+      - name: Apply schema to disposable PostgreSQL and exercise the API, worker, and database role boundaries
+        working-directory: GCP/LAB-020-reservation-handoff
+        run: |
+          python -m app.migrate
+          python -m unittest discover -s tests -p 'test_app.py' -v
+      - name: Exercise bounded object-generation recovery tool
+        run: python -m unittest discover -s GCP/LAB-020-reservation-handoff/tests -p 'test_recovery_tools.py' -v
+      - name: Apply Change Request patch and run its regression suite on disposable SQLite
+        run: python -m unittest discover -s GCP/LAB-020-reservation-handoff/tests -p 'test_release.py' -v
+      - name: Build application image without cloud credentials
+        run: |
+          docker build --pull --file GCP/LAB-020-reservation-handoff/app/Dockerfile --tag lab020-reservation:ci GCP/LAB-020-reservation-handoff/app
+          test "$(docker image inspect --format '{{.Config.User}}' lab020-reservation:ci)" = "10001:10001"
+
+  lab020-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Format and validate both Lab 20 Terraform roots without cloud credentials
+        run: |
+          terraform fmt -check -diff -recursive GCP/LAB-020-reservation-handoff/infra
+          for root in foundation runtime; do
+            terraform -chdir="GCP/LAB-020-reservation-handoff/infra/$root" init -backend=false -input=false
+            terraform -chdir="GCP/LAB-020-reservation-handoff/infra/$root" validate -no-color
+          done
+      - name: Check private networking, IAM DB roles, IAP, Pub/Sub retry, and cost controls
+        run: python3 -m unittest discover -s GCP/LAB-020-reservation-handoff/tests -p 'test_infra_contract.py' -v
+
+  lab020-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate Lab 20 tasks, recording fields, links, and Bash examples
+        run: python3 -m unittest discover -s GCP/LAB-020-reservation-handoff/tests -p 'test_guide.py' -v

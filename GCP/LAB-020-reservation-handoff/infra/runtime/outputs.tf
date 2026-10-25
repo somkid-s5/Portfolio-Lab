@@ -1,0 +1,9 @@
+output "environment" { value = var.environment }
+output "api_url" { value = google_cloud_run_v2_service.api.uri }
+output "worker_url" { value = google_cloud_run_v2_service.worker.uri }
+output "migration_job" { value = google_cloud_run_v2_job.migrate.name }
+output "iap_audience" { value = local.iap_audience }
+output "report_bucket" { value = google_storage_bucket.reports.name }
+output "report_topic" { value = google_pubsub_topic.reports.name }
+output "dead_letter_subscription" { value = google_pubsub_subscription.dead_letter_reader.name }
+output "image" { value = local.image }

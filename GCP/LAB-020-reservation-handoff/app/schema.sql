@@ -1,0 +1,2 @@
+-- Schema source of truth: app/migrations/*.sql
+-- Apply with python -m app.migrate. Migrations are tracked and re-runnable.

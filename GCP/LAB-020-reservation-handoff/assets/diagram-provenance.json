@@ -1,0 +1,77 @@
+{
+  "diagram": "assets/solution.svg",
+  "standalone_html": "assets/solution.html",
+  "style": "Diagram Design — Personal Custom from the user's diagram-design.zip",
+  "style_attribution": "Adapted from Cathryn Lavery / LittleMight, diagram-design (MIT)",
+  "style_reference": "../../docs/diagram-style.md",
+  "style_source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+  "official_icon_catalog": "https://cloud.google.com/icons",
+  "icon_mirror_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+  "icon_source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+  "icon_license": "Apache-2.0",
+  "render_target_width": 1000,
+  "cloud_verification": "not-run",
+  "layout_decisions": [
+    "Left-to-right request flow: Staff → IAP → API → Pub/Sub → Worker. The push worker is a separate IAM-authenticated service.",
+    "Cloud Run, Pub/Sub resources, Cloud SQL, and regional report buckets are within asia-southeast1. Logging and Monitoring are project-level services outside the regional frame.",
+    "Cloud Run and Cloud SQL remain managed resources outside the VPC frame. A compact central VPC contains only the Direct VPC egress subnet; API and Worker enter from separate sides after short shared egress stems. Private Services Access uses a compact lower route to Cloud SQL.",
+    "API and Worker reach the shared private report bucket from separate sides. The API proxies private downloads; users receive no direct bucket permission.",
+    "Cloud Build publishes an immutable image digest; Terraform applies the same digest to Stage and then Production after Stage acceptance.",
+    "Stage and Production have separate services, databases, topics, subscriptions, identities, and buckets but share a single-zone Cloud SQL instance as an explicit cost and fault-domain trade-off.",
+    "Global Logging and Monitoring sit outside the regional frame. Telemetry routes use the open project header; network and storage connectors use short orthogonal paths without perimeter loops.",
+    "IAP is a labeled access gate rather than using the unrelated IAM service icon."
+  ],
+  "icons": {
+    "cloud_run.svg": {
+      "path": "assets/icons/cloud_run.svg",
+      "source_path": "docs/images/cloud_run.svg",
+      "git_blob_sha": "e2e3b7d3165bb94f0b37aa0a78bf85b2d851100c",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_run.svg"
+    },
+    "cloud_sql.svg": {
+      "path": "assets/icons/cloud_sql.svg",
+      "source_path": "docs/images/cloud_sql.svg",
+      "git_blob_sha": "9f29818450998825fd6fcca0a5f7621da2d811ee",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_sql.svg"
+    },
+    "pubsub.svg": {
+      "path": "assets/icons/pubsub.svg",
+      "source_path": "docs/images/pubsub.svg",
+      "git_blob_sha": "51cccfd913acf353f597ea6300300ba27919ef17",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/pubsub.svg"
+    },
+    "cloud_logging.svg": {
+      "path": "assets/icons/cloud_logging.svg",
+      "source_path": "docs/images/cloud_logging.svg",
+      "git_blob_sha": "7691a3ed0450b744311427e8818c5d5bf4894c30",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_logging.svg"
+    },
+    "cloud_monitoring.svg": {
+      "path": "assets/icons/cloud_monitoring.svg",
+      "source_path": "docs/images/cloud_monitoring.svg",
+      "git_blob_sha": "ab3111db6d740473ea85ca9606631b97a7241236",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_monitoring.svg"
+    },
+    "cloud_build.svg": {
+      "path": "assets/icons/cloud_build.svg",
+      "source_path": "docs/images/cloud_build.svg",
+      "git_blob_sha": "21de5420f0480abe399d15c29c8353da9783bc39",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_build.svg"
+    },
+    "artifact_registry.svg": {
+      "path": "assets/icons/artifact_registry.svg",
+      "source_path": "docs/images/artifact_registry.svg",
+      "git_blob_sha": "81c46f8af7e0823a56c8c460e35758cbac8bfaf7",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/artifact_registry.svg"
+    },
+    "cloud_storage.svg": {
+      "path": "assets/icons/cloud_storage.svg",
+      "source_path": "docs/images/cloud_storage.svg",
+      "git_blob_sha": "59db35d960aca1b2beb942f1d8a693722b350db0",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_storage.svg"
+    }
+  },
+  "generic_fallbacks": [
+    "IAP is a labeled generic access gate; no unrelated IAM glyph is substituted."
+  ]
+}

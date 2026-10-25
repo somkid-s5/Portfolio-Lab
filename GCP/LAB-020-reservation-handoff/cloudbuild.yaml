@@ -1,0 +1,32 @@
+steps:
+  - id: unit-tests
+    name: python:3.12-slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        cd GCP/LAB-020-reservation-handoff
+        python -m pip install --disable-pip-version-check -r app/requirements-test.txt
+        DATABASE_URL=sqlite+pysqlite:////tmp/lab20-cloudbuild.db APP_LOCAL_TEST=1 \
+          python -m unittest discover -s tests -p 'test_app.py' -v
+
+  - id: build-and-push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=GCP/LAB-020-reservation-handoff/app/Dockerfile
+      - --tag=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:${_TAG}
+      - GCP/LAB-020-reservation-handoff/app
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:${_TAG}
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_MEDIUM
+
+substitutions:
+  _REGION: asia-southeast1
+  _REPOSITORY: lab20-apps
+  _IMAGE: reservation-handoff
+  _TAG: local-build
