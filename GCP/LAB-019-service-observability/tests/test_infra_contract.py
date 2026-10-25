@@ -69,6 +69,12 @@ class Lab019InfrastructureContracts(unittest.TestCase):
         self.assertTrue((ROOT / "infra" / ".gitignore").is_file())
         self.assertIn("*.tfvars", (ROOT / "infra" / ".gitignore").read_text(encoding="utf-8"))
 
+    def test_custom_cloud_build_identity_uses_cloud_logging_only(self):
+        build_config = (ROOT / "app" / "cloudbuild.yaml").read_text(encoding="utf-8")
+        self.assertIn("CLOUD_LOGGING_ONLY", build_config)
+        self.assertIn("$_IMAGE_URI", build_config)
+        self.assertIn("docker", build_config)
+
 
 if __name__ == "__main__":
     unittest.main()
