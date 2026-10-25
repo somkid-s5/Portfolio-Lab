@@ -19,7 +19,7 @@ permissions:
   contents: read
 jobs:
   attest:
-    if: github.ref == 'refs/heads/main'
+    if: vars.LAB014_RELEASE_ENABLED == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: gcp-attest
@@ -81,7 +81,7 @@ jobs:
 
   release:
     needs: attest
-    if: needs.attest.result == 'success' && github.ref == 'refs/heads/main'
+    if: vars.LAB014_RELEASE_ENABLED == 'true' && needs.attest.result == 'success' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: gcp-release
