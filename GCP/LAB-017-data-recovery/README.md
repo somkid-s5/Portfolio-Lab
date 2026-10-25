@@ -1,6 +1,6 @@
 # Lab 17 — กู้คืน Records และไฟล์แนบหลังข้อมูลเสียหาย
 
-> **สถานะคู่มือ:** Design — Brief และ architecture พร้อมตรวจ; Task Guide ยังไม่เริ่ม  
+> **สถานะคู่มือ:** Build materials in progress — Brief/Design ผ่าน; กำลังเพิ่ม App, Terraform และ recovery tools  
 > **Cloud verification:** Not run — ยังไม่มีการสร้างหรือทดสอบทรัพยากรจริง  
 > **ข้อมูล:** ใช้ synthetic records และไฟล์จำลองเท่านั้น
 

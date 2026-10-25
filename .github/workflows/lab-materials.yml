@@ -1579,3 +1579,76 @@ jobs:
             GCP/LAB-017-data-recovery/assets/**
           if-no-files-found: error
           retention-days: 14
+
+  lab017-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: lab017_ci
+          POSTGRES_USER: lab017
+          POSTGRES_PASSWORD: disposable-lab017-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lab017 -d lab017_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PG_DSN: postgresql://lab017:disposable-lab017-ci@127.0.0.1:5432/lab017_ci
+      DB_HOST: 127.0.0.1
+      DB_NAME: lab017_ci
+      DB_USER: lab017
+      DB_PASSWORD: disposable-lab017-ci
+      STORAGE_BACKEND: memory
+      STORAGE_BUCKET: lab017-ci-bucket
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Lab 17 application dependencies
+        run: |
+          python3 -m venv .ci-lab017-app
+          .ci-lab017-app/bin/pip install --disable-pip-version-check -r GCP/LAB-017-data-recovery/app/requirements.txt
+      - name: Initialize Lab 17 CI database schema
+        run: .ci-lab017-app/bin/python GCP/LAB-017-data-recovery/scripts/initialize_schema.py
+      - name: Compile and exercise Records API and recovery tools
+        env:
+          PYTHONPATH: GCP/LAB-017-data-recovery
+        run: |
+          .ci-lab017-app/bin/python -m py_compile GCP/LAB-017-data-recovery/app/main.py GCP/LAB-017-data-recovery/scripts/*.py
+          .ci-lab017-app/bin/python -m unittest discover -s GCP/LAB-017-data-recovery/tests -p 'test_app.py' -v
+          .ci-lab017-app/bin/python -m unittest discover -s GCP/LAB-017-data-recovery/tests -p 'test_recovery_tools.py' -v
+      - name: Build the application container
+        run: docker build --pull --file GCP/LAB-017-data-recovery/app/Dockerfile --tag lab017-records-api:ci GCP/LAB-017-data-recovery/app
+
+  lab017-infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+      - name: Format and validate Lab 17 Terraform without credentials or provisioning
+        working-directory: GCP/LAB-017-data-recovery/infra
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+      - name: Check Lab 17 private-network, recovery and IAM contracts
+        run: python3 -m unittest discover -s GCP/LAB-017-data-recovery/tests -p 'test_infra_contract.py' -v
+
+  lab017-ops:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Lab 17 operator tools and IAM-safe fault path
+        run: python3 -m unittest discover -s GCP/LAB-017-data-recovery/tests -p 'test_ops_contract.py' -v

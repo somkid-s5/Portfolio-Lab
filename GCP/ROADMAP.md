@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–16 Guide-ready; Lab 17 Design in progress; Lab 18–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–16 Guide-ready; Lab 17 Build materials in progress; Lab 18–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -505,7 +505,7 @@ Lab 15 — ระบบสำนักงานสาขาเชื่อมบ
 
 Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud — Guide-ready หลัง [CI #385](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40156391005) ผ่าน 59/59 repository jobs; ไม่มี GCP provisioning และ Cloud verification ยัง Not run.
 
-Lab 17 — ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้ — Design in progress. เพิ่ม requirements R01–R10, Cloud SQL PITR ไป instance ใหม่, Cloud Storage soft-delete restore, RPO/RTO objectives และ recovery diagrams ตาม Diagram Design Personal Custom จาก ZIP. CI review pending; ไม่มี GCP provisioning.
+Lab 17 — ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้ — Build materials in progress. Brief/Design ผ่าน; เพิ่ม Records API, Cloud SQL PITR private, Cloud Storage soft-delete, integrity manifest, scoped object IAM และ recovery tools. Guide ยังไม่เริ่มจนกว่า App/Terraform checks จะผ่าน. ไม่มี GCP provisioning.
 
 ตัวอย่างรูปแบบการอ่าน: [Lab Test 2](../test/lab-test-2/README.md) ใช้เป็น reference ด้านการอ่าน ไม่ใช่ผลการทำ GCP Lab
 
