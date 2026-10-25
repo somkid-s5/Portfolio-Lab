@@ -27,3 +27,14 @@ Date: 2026-10-25 · Scope: docs and source; **no provisioned GCP resources**
 1. **Diagram visual sign-off:** ต้องเรียก Diagram Design Personal Custom Skill จริง (ปัจจุบันไม่ปรากฏใน connected skills), เปิด/ตรวจ Render และแก้จาก source; ดู audit
 2. **Cloud execution:** ยังไม่ได้ดำเนินการตาม policy ไม่สร้างทรัพยากร/ค่าใช้จ่ายโดยไม่อนุญาต
 3. **Full semantic line-by-line review:** 20 Labs มีเอกสารหลายหมื่นบรรทัด; การตรวจหมวดและ spot-check ไม่เท่ากับการ validate ทุก claim บน Cloud; review กับ official docs ก่อนรันแต่ละ Lab
+
+## Follow-up audit — 2026-10-25 (final-review attempt)
+
+- ตรวจ `README.md`, `PLAN.md`, `GCP/{README,ROADMAP,PROGRESS}.md`, เอกสาร QA และ README Lab 01–20 เทียบกับรายการไฟล์ใน PR #1: **ไม่พบ relative Markdown link ที่ชี้ไฟล์ไม่มีอยู่ใน PR** (ตรวจ target path; ยังไม่ได้ตรวจทุก anchor/URL ภายนอก)
+- อ่านโครงสร้างของ `assets/diagrams/solution.svg` ครบ **20/20**: มี `viewBox`, `title`, `desc`, และ `role="img"`; ไม่พบการโหลด icon ผ่าน external HTTP URL ภายใน SVG หลัก. เป็นการตรวจ source ไม่ใช่ยืนยันความถูกต้องของการวาง node/เส้น
+- เปิด **PNG preview ของ Lab 01–08** เพื่อ spot-review รูปที่แสดงจริง. พบความต่างของขนาดตัวอักษร ความหนาแน่น และรูปแบบ panel/heading ระหว่าง Labs; ยังไม่เซ็นรับรองว่า visual design ทั้งชุดสม่ำเสมอ. Lab 09–20 มี SVG/HTML และ CI render artifacts แต่ไม่ได้ตรวจภาพที่ render จริงผ่าน reviewer ในรอบนี้ จึงห้ามนับเป็น visual-reviewed
+- แก้ README Lab 16–20 ให้สื่อความหมายอย่างถูกต้องว่าใช้ **visual reference จาก ZIP** ไม่ได้ยืนยันว่าเรียกใช้ Personal Custom Diagram Design Skill; Skill นี้ยังไม่พบใน connected skills ของรอบตรวจ
+- เพิ่ม guard ให้ `.github/workflows/release.yml` สำหรับ Lab 14: GitHub attestation/release จะไม่ทำงานเมื่อไม่มี repository variable `LAB014_RELEASE_ENABLED=true`. อัปเดต README Lab 14 เรื่อง opt-in/disable ก่อน cleanup. **ต้องตรวจ Cloud Build trigger ใน GCP แยกเอง** เพราะ GitHub variable นี้ไม่สามารถปิด GCP-side trigger ที่ถูกตั้งไว้ก่อนแล้ว
+- ตรวจคำสั่งและ identity boundary บางส่วนของ Lab 14/20 กับ Terraform, README และ Google Cloud documentation; **ยังไม่ใช่ full semantic validation ทุกบรรทัดหรือ runtime proof**
+
+**Merge gate / pending:** คง PR #1 เป็น Draft จนกว่าจะตรวจภาพ Render ของ Lab 09–20 และแก้ visual differences ที่ตรวจพบ (พร้อมทำ visual sign-off ของ Lab 01–08), ตรวจ cloud release trigger/cost side effects ของ Lab 14 และมีผู้ทบทวนความถูกต้องของ critical instructions ก่อนอนุมัติ Merge. ไม่จำเป็นต้องรัน GCP จริงเพื่อ Merge คู่มือ แต่ห้ามเรียกผลนั้นว่า Cloud-verified.
