@@ -146,16 +146,17 @@ def create_app(
 
     @app.get("/tasks/{task_id}")
     async def get_task(task_id: str, request: Request):
-        result = engine_factory().connect().execute(
-            text(
-                """
-                SELECT task_id, status, result, created_at, completed_at
-                FROM lab19.tasks
-                WHERE task_id = :task_id
-                """
-            ),
-            {"task_id": task_id},
-        ).mappings().first()
+        with engine_factory().connect() as connection:
+            result = connection.execute(
+                text(
+                    """
+                    SELECT task_id, status, result, created_at, completed_at
+                    FROM lab19.tasks
+                    WHERE task_id = :task_id
+                    """
+                ),
+                {"task_id": task_id},
+            ).mappings().first()
         if result is None:
             raise HTTPException(status_code=404, detail="Task not found")
         request.state.task_id = task_id

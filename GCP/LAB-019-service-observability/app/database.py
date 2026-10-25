@@ -51,9 +51,12 @@ def get_engine() -> Engine:
 
 
 def close_engine(engine: Engine | None = None) -> None:
-    target = engine or (get_engine.cache_info().currsize and get_engine())
-    if target is None:
-        return
+    if engine is None:
+        if get_engine.cache_info().currsize == 0:
+            return
+        target = get_engine()
+    else:
+        target = engine
     target.dispose()
     connector = getattr(target, "_lab19_connector", None)
     if connector is not None:
