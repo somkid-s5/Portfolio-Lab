@@ -1975,3 +1975,35 @@ jobs:
           persist-credentials: false
       - name: Validate Lab 20 tasks, recording fields, links, and Bash examples
         run: python3 -m unittest discover -s GCP/LAB-020-reservation-handoff/tests -p 'test_guide.py' -v
+
+  final-diagram-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install SVG renderer
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 install -y librsvg2-bin
+      - name: Render canonical diagrams 09–20 at document width
+        run: |
+          mkdir -p /tmp/final-diagrams
+          for n in $(seq -w 9 20); do
+            set -- GCP/LAB-0${n}-*/assets/diagrams/solution.svg
+            test -f "$1"
+            rsvg-convert --width 1000 "$1" -o "/tmp/final-diagrams/lab${n}.png"
+            test -s "/tmp/final-diagrams/lab${n}.png"
+          done
+          python3 - <<'PY'
+          import base64
+          from pathlib import Path
+          for p in sorted(Path('/tmp/final-diagrams').glob('*.png')):
+              print('FINAL_DIAGRAM_REVIEW_' + p.stem.upper() + '=' + base64.b64encode(p.read_bytes()).decode('ascii'), flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-diagram-review-09-20
+          path: /tmp/final-diagrams/*.png
+          retention-days: 14
