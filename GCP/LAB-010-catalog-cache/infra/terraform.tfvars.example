@@ -1,0 +1,17 @@
+project_id     = "replace-with-your-dedicated-lab-project"
+region         = "asia-southeast1"
+operator_member = "user:you@example.com"
+
+# First apply: foundation only; use enable_workloads=false.
+enable_workloads = false
+image_uri         = ""
+redis_auth_version = ""
+redis_ca_version   = ""
+category_list_ttl_seconds = 60
+cache_enabled = true
+simulate_redis_failure = false
+allow_destroy = false
+
+# After image build and external Secret Manager versions exist, set
+# enable_workloads=true, paste the immutable @sha256 image URI and numeric
+# secret versions. Never put secret payloads in this file.

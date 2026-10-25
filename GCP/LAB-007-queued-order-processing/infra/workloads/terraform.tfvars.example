@@ -1,0 +1,20 @@
+project_id = "lab007-sandbox-123"
+
+# Replace with immutable image references printed by Artifact Registry after pushing.
+serving_image  = "asia-southeast1-docker.pkg.dev/lab007-sandbox-123/lab007-images/order-queue@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+bootstrap_image = "asia-southeast1-docker.pkg.dev/lab007-sandbox-123/lab007-images/bootstrap@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+
+# Replace each placeholder with the corresponding numeric version from publish_secrets.py.
+secret_versions = {
+  auth       = "1"
+  portal     = "1"
+  worker     = "1"
+  dispatcher = "1"
+  bootstrap  = "1"
+}
+
+# Optional; example: "user:you@example.com"
+operator_member     = ""
+worker_max_instances = 1
+worker_fault_mode    = "off"
+allow_destroy        = false

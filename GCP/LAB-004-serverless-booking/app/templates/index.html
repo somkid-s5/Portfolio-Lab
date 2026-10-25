@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Service Booking</title><link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script></head>
+<body><main><header><small>FIELD NOTES / SERVICE BOOKING</small><h1>จองช่วงเวลาบริการ</h1><p>App version: <strong>{{ version }}</strong></p>
+{% if version == 'v2' %}<p class="notice">v2: เก็บ Booking reference ก่อนแจ้งทีมบริการ และตรวจรายการของคุณก่อนลองจองซ้ำ</p>{% endif %}
+<p>ข้อมูลตัวอย่างเท่านั้น · Cloud IAM และบัญชีผู้ใช้ App เป็นคนละระบบ</p></header>
+<section><h2>เข้าใช้งาน</h2><form id="login"><label>Username <input name="username" autocomplete="username" required></label>
+<label>Password <input name="password" type="password" autocomplete="current-password" required></label><button>Login</button></form>
+<p id="identity">ยังไม่ได้เข้าใช้งาน</p><button id="logout" type="button">Logout</button></section>
+<section><h2>ช่วงเวลาที่เปิด</h2><button id="load-slots">ดูช่วงเวลา</button>
+<table><thead><tr><th>ช่วงเวลา</th><th>จองแล้ว/ความจุ</th><th>ทำรายการ</th></tr></thead><tbody id="slots"></tbody></table></section>
+<section><h2>การจองของฉัน</h2><button id="load-bookings">ดูรายการ</button><table><thead><tr><th>Reference</th><th>Slot</th><th>Status</th><th>ทำรายการ</th></tr></thead><tbody id="bookings"></tbody></table>
+<button id="operator">Operator: ตรวจรายการทั้งหมด</button></section>
+<section><h2>ผลล่าสุด</h2><pre id="result">พร้อมใช้งาน</pre></section>
+<footer>Session อายุ 10 นาที · ไม่บันทึก password/cookie ลง screenshot หรือหลักฐาน</footer></main></body></html>

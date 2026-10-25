@@ -1,0 +1,4 @@
+project_id     = "replace-with-dedicated-project-id"
+region         = "asia-southeast1"
+zone           = "asia-southeast1-a"
+operator_email = "your-google-account@example.com"

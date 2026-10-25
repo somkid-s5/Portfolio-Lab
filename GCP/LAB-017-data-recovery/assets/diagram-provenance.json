@@ -1,0 +1,52 @@
+{
+  "diagram": "assets/solution.svg",
+  "recovery_diagram": "assets/recovery-flow.svg",
+  "standalone_html": [
+    "assets/solution.html",
+    "assets/recovery-flow.html"
+  ],
+  "style": "Diagram Design — Personal Custom from the user's diagram-design.zip",
+  "style_attribution": "Adapted from Cathryn Lavery / LittleMight, diagram-design (MIT)",
+  "official_icon_catalog": "https://cloud.google.com/icons",
+  "mirror_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+  "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+  "render_target_width": 1440,
+  "cloud_verification": "not-run",
+  "layout_decisions": [
+    "Cloud Run and Cloud SQL follow GCP project and regional scopes; Cloud SQL remains outside the customer VPC boundary while using private IP through Private Services Access.",
+    "Cloud Run is drawn outside the VPC and connected through a dedicated Direct VPC egress subnet.",
+    "PITR recovery is a new Cloud SQL instance; original primary remains intact during validation.",
+    "Application and recovery revisions are stacked in one service; recovery receives no traffic until the data gate passes.",
+    "Database and object-recovery tasks are stacked vertically as parallel paths that converge at one validation gate.",
+    "Connectors use orthogonal routes and avoid unrelated resource frames.",
+    "If integrity validation fails, the service remains in maintenance and the recovery candidate stays at 0% service traffic.",
+    "Secret Manager is shown inside the project but outside the regional boundary; its DB password flow reaches the Cloud Run runtime."
+  ],
+  "icons": {
+    "cloud_run.svg": {
+      "path": "assets/icons/cloud_run.svg",
+      "git_blob_sha": "e2e3b7d3165bb94f0b37aa0a78bf85b2d851100c",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_run.svg"
+    },
+    "cloud_sql.svg": {
+      "path": "assets/icons/cloud_sql.svg",
+      "git_blob_sha": "9f29818450998825fd6fcca0a5f7621da2d811ee",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_sql.svg"
+    },
+    "virtual_private_cloud.svg": {
+      "path": "assets/icons/virtual_private_cloud.svg",
+      "git_blob_sha": "295b0ee2abc1f84424bf78978b39502820769fac",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/virtual_private_cloud.svg"
+    },
+    "cloud_storage.svg": {
+      "path": "assets/icons/cloud_storage.svg",
+      "git_blob_sha": "59db35d960aca1b2beb942f1d8a693722b350db0",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_storage.svg"
+    },
+    "secret_manager.svg": {
+      "path": "assets/icons/secret_manager.svg",
+      "git_blob_sha": "1668a03267db8ec93c9d1d44b0f799bdab2c148c",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/secret_manager.svg"
+    }
+  }
+}

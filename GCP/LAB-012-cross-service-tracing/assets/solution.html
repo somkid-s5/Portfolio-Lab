@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Lab 12 — Microservices tracing</title>
+<style>html,body{margin:0;background:#f7faff;color:#1f2937;font-family:Inter,Segoe UI,Arial,sans-serif}main{max-width:1440px;margin:0 auto;padding:16px}svg{display:block;width:100%;height:auto;background:white}</style></head>
+<body><main><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-labelledby="diagram-title diagram-desc" viewBox="0 0 1400 900">
+<title id="diagram-title">ระบบ Microservices ที่ติดตามปัญหาข้ามบริการได้</title>
+<desc id="diagram-desc">ลูกค้าส่ง HTTPS ผ่าน Regional Gateway ไปยัง Storefront, Order service แล้ว fan-out ไป Catalog และ Payment mock ภายใน GKE. แต่ละ service ส่ง OTLP spans ไปยัง collector ที่ส่ง trace ผ่าน Telemetry API ไป Cloud Trace; logs เชื่อม trace ID ไป Cloud Logging. Cloud Build ส่ง image ไป Artifact Registry และ GKE ดึง image ด้วย digest.</desc>
+<defs>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2563EB"/></marker>
+  <marker id="arrow-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0F766E"/></marker>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7C3AED"/></marker>
+  <marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#64748B"/></marker>
+  <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#C2410C"/></marker>
+</defs>
+<style>
+  text{font-family:'Noto Sans Thai',Tahoma,'Leelawadee UI',Inter,Segoe UI,Arial,sans-serif;fill:#1F2937}
+  .title{font-size:27px;font-weight:700}.subtitle{font-size:14px;fill:#526174}
+  .scope{font-size:18px;font-weight:650}.project-label{font-size:15px;font-weight:700;fill:#FFFFFF}.region-title{fill:#0369A1}.vpc-title{fill:#0F766E}.gke-title{fill:#1D4ED8}.app-title{fill:#1D4ED8}.telemetry-title{fill:#6D28D9}.identity-title{fill:#6D28D9}.subscope{font-size:14px;fill:#526174}
+  .service{font-size:14px;font-weight:650}.small{font-size:12px;fill:#526174}.tiny{font-size:11px;fill:#526174}
+  .node{fill:#fff;stroke:#2563EB;stroke-width:1.5}.edge{fill:#FFF7ED;stroke:#C2410C;stroke-width:1.5}
+  .telemetry{fill:#F5F3FF;stroke:#7C3AED;stroke-width:1.4}.logs{fill:#F1F5F9;stroke:#64748B;stroke-width:1.4}
+  .flow-user{fill:none;stroke:#2563EB;stroke-width:2.5;marker-end:url(#arrow-blue)}
+  .flow-call{fill:none;stroke:#0F766E;stroke-width:1.8;marker-end:url(#arrow-teal)}
+  .flow-trace{fill:none;stroke:#7C3AED;stroke-width:2;stroke-dasharray:7 5;marker-end:url(#arrow-purple)}
+  .flow-log{fill:none;stroke:#64748B;stroke-width:1.7;stroke-dasharray:3 5;marker-end:url(#arrow-gray)}
+  .flow-build{fill:none;stroke:#C2410C;stroke-width:1.8;stroke-dasharray:6 4;marker-end:url(#arrow-orange)}
+  .label-bg{fill:#fff;stroke:#E2E8F0;stroke-width:1}
+</style>
+<rect width="1400" height="900" fill="#FFFFFF"/>
+<text class="title" x="160" y="44">ตามรอยปัญหา Checkout ข้าม Microservices</text>
+<text class="subtitle" x="160" y="66">ขอบเขต: GKE Autopilot • asia-southeast1 • checkout จำลอง</text>
+
+<!-- Project and regional/VPC boundaries -->
+<rect x="140" y="82" width="1220" height="770" rx="8" fill="#FFFFFF" stroke="#1F2937" stroke-width="2"/>
+<rect x="153" y="94" width="160" height="30" rx="4" fill="#1F2937"/>
+<text class="project-label" x="166" y="115">GCP PROJECT</text>
+<text class="small" x="325" y="114">Dedicated project • Lab 12</text>
+<rect x="170" y="150" width="720" height="570" rx="8" fill="#F8FAFC" stroke="#0EA5E9" stroke-width="2" stroke-dasharray="8 5"/>
+<rect x="183" y="161" width="314" height="32" rx="4" fill="#E0F2FE"/>
+<text class="scope region-title" x="195" y="183">Region • asia-southeast1</text>
+<rect x="340" y="215" width="535" height="400" rx="7" fill="#F0FDFA" stroke="#0F766E" stroke-width="2"/>
+<rect x="354" y="225" width="232" height="31" rx="4" fill="#CCFBF1"/>
+<text class="scope vpc-title" x="366" y="247">VPC • lab012-vpc</text>
+
+<!-- Main request and service-call paths -->
+<path id="flow-client-gateway" class="flow-user" d="M112 390H220"/>
+<path id="flow-gateway-proxy" class="flow-user" d="M292 390H360"/>
+<path id="flow-proxy-storefront" class="flow-user" d="M447 390H485"/>
+<path id="flow-storefront-order" class="flow-call" d="M592 390H625"/>
+<path id="flow-order-catalog" class="flow-call" d="M732 377H744V355H760"/>
+<path id="flow-order-payment" class="flow-call" d="M732 407H744V443H760"/>
+<path id="flow-services-collector" class="flow-trace" d="M665 478V510"/>
+<path id="flow-collector-trace" class="flow-trace" d="M822 540H900V320H1004"/>
+<path id="flow-services-logging" class="flow-log" d="M858 580H945V520H1004"/>
+<path id="flow-build-artifacts" class="flow-build" d="M302 785H365V657H530"/>
+<path id="flow-artifacts-gke" class="flow-build" d="M559 628V590"/>
+
+<!-- External client -->
+<circle cx="73" cy="360" r="17" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+<path d="M46 408c1-21 12-32 27-32s26 11 27 32" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
+<text class="service" x="73" y="431" text-anchor="middle">Client</text>
+<text class="tiny" x="163" y="377" text-anchor="middle">HTTPS :443</text>
+
+<!-- Managed regional edge and proxy-only subnet -->
+<image id="icon-Gateway" x="220" y="338" width="72" height="72" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOm5vbmU7fS5jbHMtMntmaWxsOiM2NjlkZjY7fS5jbHMtM3tmaWxsOiM0Mjg1ZjQ7fS5jbHMtNHtmaWxsOiNhZWNiZmE7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfTG9hZEJhbGFuY2luZ19Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48ZyBkYXRhLW5hbWU9ImNvbG9yZWQtMzIvbG9hZC1iYWxhbmNpbmciPjxyZWN0IGNsYXNzPSJjbHMtMSIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+PGcgPjxyZWN0IGNsYXNzPSJjbHMtMiIgeD0iMTgiIHk9IjEyIiB3aWR0aD0iMiIgaGVpZ2h0PSI0Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIxMSIgeT0iMTIiIHdpZHRoPSIyIiBoZWlnaHQ9IjQiLz48cmVjdCBjbGFzcz0iY2xzLTIiIHg9IjQiIHk9IjEyIiB3aWR0aD0iMiIgaGVpZ2h0PSI0Ii8+PHBvbHlnb24gaWQ9IkZpbGwtMiIgY2xhc3M9ImNscy0zIiBwb2ludHM9IjEzIDExIDExIDExIDExIDcgMTMgNyAxMyAxMSIvPjxyZWN0IGNsYXNzPSJjbHMtMiIgeD0iNCIgeT0iMTEiIHdpZHRoPSIxNiIgaGVpZ2h0PSIyIi8+PHJlY3QgY2xhc3M9ImNscy00IiB4PSI2IiB5PSIyIiB3aWR0aD0iMTIiIGhlaWdodD0iNSIvPjxyZWN0IGNsYXNzPSJjbHMtMiIgeD0iMTIiIHk9IjIiIHdpZHRoPSI2IiBoZWlnaHQ9IjUiLz48cmVjdCBjbGFzcz0iY2xzLTQiIHg9IjE2IiB5PSIxNiIgd2lkdGg9IjYiIGhlaWdodD0iNiIvPjxyZWN0IGNsYXNzPSJjbHMtNCIgeD0iMiIgeT0iMTYiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiLz48cmVjdCBjbGFzcz0iY2xzLTIiIHg9IjUiIHk9IjE2IiB3aWR0aD0iMyIgaGVpZ2h0PSI2Ii8+PHJlY3QgY2xhc3M9ImNscy00IiB4PSI5IiB5PSIxNiIgd2lkdGg9IjYiIGhlaWdodD0iNiIvPjxyZWN0IGNsYXNzPSJjbHMtMiIgeD0iMTIiIHk9IjE2IiB3aWR0aD0iMyIgaGVpZ2h0PSI2Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIxOSIgeT0iMTYiIHdpZHRoPSIzIiBoZWlnaHQ9IjYiLz48L2c+PC9nPjwvZz48L3N2Zz4="/>
+<text class="service" x="256" y="427" text-anchor="middle">Regional Gateway</text>
+<text class="tiny" x="256" y="443" text-anchor="middle">TLS termination</text>
+<rect x="360" y="324" width="87" height="132" rx="5" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.5"/>
+<text x="403" y="347" text-anchor="middle" font-size="12" font-weight="700">Proxy-only</text>
+<text x="403" y="365" text-anchor="middle" font-size="11">10.12.48.0/23</text>
+<text x="403" y="383" text-anchor="middle" font-size="10" fill="#526174">regional LB</text>
+<text x="403" y="398" text-anchor="middle" font-size="10" fill="#526174">data plane</text>
+<text class="tiny" x="328" y="376" text-anchor="middle">HTTP :8080</text>
+
+<!-- GKE cluster / application tier -->
+<rect x="468" y="260" width="390" height="330" rx="8" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.8"/>
+<image id="icon-GKE" x="484" y="267" width="54" height="54" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0Mjg1ZjQ7fS5jbHMtMSwuY2xzLTIsLmNscy00e2ZpbGwtcnVsZTpldmVub2RkO30uY2xzLTJ7ZmlsbDojNjY5ZGY2O30uY2xzLTMsLmNscy00e2ZpbGw6I2FlY2JmYTt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPkljb25fMjRweF9LOEVuZ2luZV9Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48ZyA+PHBvbHlnb24gY2xhc3M9ImNscy0xIiBwb2ludHM9IjE0LjY4IDEzLjA2IDE5LjIzIDE1LjY5IDE5LjIzIDE2LjY4IDE0LjI5IDEzLjgzIDE0LjY4IDEzLjA2Ii8+PHBvbHlnb24gY2xhc3M9ImNscy0yIiBwb2ludHM9IjkuOTggMTMuNjUgNC43NyAxNi42NiA0LjQ1IDE1Ljg2IDkuNTMgMTIuOTIgOS45OCAxMy42NSIvPjxyZWN0IGNsYXNzPSJjbHMtMyIgeD0iMTEuNTUiIHk9IjMuMjkiIHdpZHRoPSIwLjg2IiBoZWlnaHQ9IjUuNzgiLz48cGF0aCBjbGFzcz0iY2xzLTQiIGQ9Ik0zLjI1LDdWMTdMMTIsMjJsOC43NC01VjdMMTIsMlptMTUuNjMsOC44OUwxMiwxOS43OCw1LjEyLDE1Ljg5VjguMTFMMTIsNC4yMmw2Ljg3LDMuODl2Ny43OFoiLz48cG9seWdvbiBjbGFzcz0iY2xzLTQiIHBvaW50cz0iMTEuOTggMTEuNSAxNS45NiA5LjIxIDExLjk4IDYuOTEgOC4wMSA5LjIxIDExLjk4IDExLjUiLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMTEuNTIgMTIuMyA3LjY2IDEwLjAxIDcuNjYgMTQuNiAxMS41MiAxNi44OSAxMS41MiAxMi4zIi8+PHBvbHlnb24gY2xhc3M9ImNscy0xIiBwb2ludHM9IjEyLjQ4IDEyLjMgMTIuNDggMTYuODkgMTYuMzQgMTQuNiAxNi4zNCAxMC4wMSAxMi40OCAxMi4zIi8+PC9nPjwvZz48L3N2Zz4="/>
+<text class="scope gke-title" x="548" y="287">GKE Autopilot • regional</text>
+<text class="tiny" x="548" y="305">private nodes • DNS control-plane endpoint</text>
+<rect x="480" y="320" width="365" height="168" rx="6" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.2"/>
+<text class="service app-title" x="496" y="341">App ingress • NetworkPolicy</text>
+<rect class="node" x="485" y="356" width="107" height="82" rx="5"/>
+<path d="M501 370h18v15h-18zM506 374h18v15h-18z" fill="none" stroke="#2563EB" stroke-width="1.5"/>
+<text class="service" x="538" y="410" text-anchor="middle">Storefront</text>
+<text class="tiny" x="538" y="427" text-anchor="middle">checkout edge</text>
+<rect class="node" x="625" y="356" width="107" height="82" rx="5"/>
+<path d="M642 370h18v15h-18zM647 374h18v15h-18z" fill="none" stroke="#2563EB" stroke-width="1.5"/>
+<text class="service" x="678" y="410" text-anchor="middle">Order service</text>
+<text class="tiny" x="678" y="427" text-anchor="middle">bounded retry</text>
+<rect class="node" x="760" y="327" width="79" height="76" rx="5"/>
+<path d="M772 340h17v15h-17zM777 344h17v15h-17z" fill="none" stroke="#2563EB" stroke-width="1.4"/>
+<text x="799" y="381" text-anchor="middle" font-size="12" font-weight="650">Catalog</text>
+<text x="799" y="396" text-anchor="middle" font-size="10">v1 → v2</text>
+<rect class="node" x="760" y="414" width="79" height="66" rx="5"/>
+<path d="M772 425h17v15h-17zM777 429h17v15h-17z" fill="none" stroke="#2563EB" stroke-width="1.4"/>
+<text x="799" y="462" text-anchor="middle" font-size="12" font-weight="650">Payment mock</text>
+
+
+<rect class="telemetry" x="603" y="510" width="219" height="59" rx="5"/>
+<circle cx="614" cy="530" r="5" fill="none" stroke="#7C3AED" stroke-width="1.6"/>
+<circle cx="628" cy="530" r="5" fill="none" stroke="#7C3AED" stroke-width="1.6"/>
+<circle cx="642" cy="530" r="5" fill="none" stroke="#7C3AED" stroke-width="1.6"/>
+<path d="M619 530H637" stroke="#7C3AED" stroke-width="1.5"/>
+<text class="telemetry-title" x="657" y="533" font-size="12" font-weight="700">OpenTelemetry Collector</text>
+<text x="712" y="552" text-anchor="middle" font-size="11">collector KSA • trace-write only</text>
+<text class="tiny" x="716" y="499" text-anchor="middle">OTLP/gRPC :4317</text>
+
+<!-- Project-level observability -->
+<image id="icon-Trace" x="1004" y="282" width="72" height="72" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOm5vbmU7fS5jbHMtMntmaWxsOiM0Mjg1ZjQ7fS5jbHMtM3tmaWxsOiM2NjlkZjY7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfVHJhY2VfQ29sb3I8L3RpdGxlPjxnIGRhdGEtbmFtZT0iUHJvZHVjdCBJY29ucyI+PGcgZGF0YS1uYW1lPSJjb2xvcmVkLTMyL3RyYWNlcyI+PHJlY3QgY2xhc3M9ImNscy0xIiB3aWR0aD0iMjQiIGhlaWdodD0iMjQiLz48ZyA+PHBvbHlnb24gaWQ9IkZpbGwtMSIgY2xhc3M9ImNscy0yIiBwb2ludHM9IjEyIDE0IDIyIDE0IDIyIDEwIDEyIDEwIDEyIDE0Ii8+PC9nPjxnIGRhdGEtbmFtZT0iU2hhcGUiPjxwb2x5Z29uIGlkPSJGaWxsLTEtMiIgZGF0YS1uYW1lPSJGaWxsLTEiIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIxMiAyMiAyMiAyMiAyMiAxOCAxMiAxOCAxMiAyMiIvPjwvZz48ZyBkYXRhLW5hbWU9IlNoYXBlIj48cG9seWdvbiBpZD0iRmlsbC0xLTMiIGRhdGEtbmFtZT0iRmlsbC0xIiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iOCAyMiAxMiAyMiAxMiAxOCA4IDE4IDggMjIiLz48L2c+PC9nPjxyZWN0IGNsYXNzPSJjbHMtMyIgeD0iMiIgeT0iMiIgd2lkdGg9IjYiIGhlaWdodD0iNCIvPjxyZWN0IGNsYXNzPSJjbHMtMyIgeD0iMiIgeT0iMTAiIHdpZHRoPSIxMCIgaGVpZ2h0PSI0Ii8+PC9nPjwvc3ZnPg=="/>
+<text class="service" x="1040" y="372" text-anchor="middle">Cloud Trace</text>
+<text class="tiny" x="1040" y="389" text-anchor="middle">Telemetry API • W3C trace</text>
+<image id="icon-Logging" x="1004" y="482" width="72" height="72" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0Mjg1ZjQ7fS5jbHMtMntmaWxsOm5vbmU7fS5jbHMtM3tmaWxsOiM2NjlkZjY7fS5jbHMtNHtmaWxsOiNhZWNiZmE7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfTG9nZ2luZ19Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48cmVjdCBjbGFzcz0iY2xzLTEiIHg9IjYiIHk9IjExIiB3aWR0aD0iNCIgaGVpZ2h0PSIyIi8+PHJlY3QgY2xhc3M9ImNscy0xIiB4PSI0IiB5PSIxOCIgd2lkdGg9IjYiIGhlaWdodD0iMiIvPjxnIGRhdGEtbmFtZT0iY29sb3JlZC0zMi9sb2dzIj48cmVjdCBjbGFzcz0iY2xzLTIiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIvPjxnID48cG9seWdvbiBpZD0iRmlsbC0zIiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iNCAxOCA2IDE4IDYgNiA0IDYgNCAxOCIvPjxwb2x5Z29uIGlkPSJGaWxsLTQiIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSI5IDcgMjIgNyAyMiAzIDkgMyA5IDciLz48cG9seWdvbiBpZD0iRmlsbC00LTIiIGRhdGEtbmFtZT0iRmlsbC00IiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iOSAxNCAyMiAxNCAyMiAxMCA5IDEwIDkgMTQiLz48cG9seWdvbiBpZD0iRmlsbC00LTMiIGRhdGEtbmFtZT0iRmlsbC00IiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iOSAyMSAyMiAyMSAyMiAxNyA5IDE3IDkgMjEiLz48cG9seWdvbiBpZD0iRmlsbC03IiBjbGFzcz0iY2xzLTQiIHBvaW50cz0iMiA4IDggOCA4IDIgMiAyIDIgOCIvPjwvZz48L2c+PC9nPjwvc3ZnPg=="/>
+<text class="service" x="1040" y="572" text-anchor="middle">Cloud Logging</text>
+<text class="tiny" x="1040" y="589" text-anchor="middle">structured stdout • trace IDs</text>
+<text class="tiny" x="995" y="310" text-anchor="end">OTLP/HTTP TLS</text>
+
+<rect x="985" y="632" width="330" height="99" rx="6" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.3"/>
+<text class="service identity-title" x="1003" y="657">Identity • IAM</text>
+<text class="small" x="1003" y="679">Apps: no Google Cloud IAM roles</text>
+<text class="small" x="1003" y="699">Collector KSA: telemetry.tracesWriter</text>
+<text class="tiny" x="1003" y="718">+ serviceusage.serviceUsageConsumer</text>
+
+<!-- Build and image-delivery lane -->
+<rect x="180" y="728" width="700" height="104" rx="6" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.4"/>
+<text class="service" x="198" y="752" fill="#9A3412">Build → Artifact Registry • deploy by digest</text>
+<image id="icon-Build" x="240" y="755" width="62" height="62" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0Mjg1ZjQ7fS5jbHMtMntmaWxsOiM2NjlkZjY7fS5jbHMtM3tmaWxsOiNhZWNiZmE7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfQ2xvdWRCdWlsZF9Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48ZyA+PGcgPjxnID48cG9seWdvbiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iMTIuMTUgMTYuMjQgMTUuNjcgMTQuMjEgMTUuNjcgMTAuMTUgMTQuNDkgOS40NiAxMC45NyAxNS41NiAxMi4xNSAxNi4yNCIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSI4LjYzIDEwLjE1IDguNjMgMTQuMjEgOS44MSAxNC44OSAxMy4zNCA4LjggMTIuMTUgOC4xMSA4LjYzIDEwLjE1Ii8+PC9nPjwvZz48L2c+PHBvbHlnb24gY2xhc3M9ImNscy0zIiBwb2ludHM9IjExLjQ2IDE3LjQ1IDcuMjQgMTUuMDEgNy4yNCAxMC4xNSAzLjQ5IDcuOTggMy40OSAxNy4xOCAxMS40NiAyMS43OCAxMS40NiAxNy40NSIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSI3LjkzIDguOTUgMTIuMTUgNi41MSAxNi4zNyA4Ljk1IDIwLjEzIDYuNzggMTIuMTUgMi4xNyA0LjE3IDYuNzggNy45MyA4Ljk1Ii8+PHBvbHlnb24gY2xhc3M9ImNscy0zIiBwb2ludHM9IjE3LjA2IDE1LjAxIDEyLjg0IDE3LjQ1IDEyLjg0IDIxLjc4IDIwLjgyIDE3LjE4IDIwLjgyIDcuOTggMTcuMDYgMTAuMTUgMTcuMDYgMTUuMDEiLz48L2c+PC9zdmc+"/>
+<text class="small" x="271" y="826" text-anchor="middle">Cloud Build</text>
+<image id="icon-Artifacts" x="530" y="628" width="58" height="58" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIGJhc2VQcm9maWxlPSJ0aW55IiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIKCSB4PSIwcHgiIHk9IjBweCIgd2lkdGg9IjI0cHgiIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiBvdmVyZmxvdz0idmlzaWJsZSIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxnID4KCTxyZWN0IHk9IjAiIGZpbGw9Im5vbmUiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIvPgoJPHBvbHlnb24gZmlsbC1ydWxlPSJldmVub2RkIiBmaWxsPSIjNUM4NURFIiBwb2ludHM9IjYsMi40IDAuOCw1LjQgMC44LDE5LjEgNiwyMi4xIDYsMTkuNSAzLDE3LjggMyw2LjcgNiw1IAkiLz4KCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdENiIgcG9pbnRzPSIwLjgsOCAwLjgsMTYuNSAzLDE3LjggMyw2LjcgCSIvPgoJPHBvbHlnb24gZmlsbC1ydWxlPSJldmVub2RkIiBmaWxsPSIjMzM2N0Q2IiBwb2ludHM9IjAuOCw4IDMsNy41IDMsNi43IAkiLz4KCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzVDODVERSIgcG9pbnRzPSIxOCwyLjQgMTgsNSAyMSw2LjcgMjEsMTcuOCAxOCwxOS41IDE4LDIyLjEgMjMuMiwxOS4xIDIzLjIsNS40IAkiLz4KCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdENiIgcG9pbnRzPSIyMSwxNy44IDIzLjIsMTYuNSAyMy4yLDggMjEsNi43IAkiLz4KCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdENiIgcG9pbnRzPSIyMSw3LjUgMjMuMiw4IDIxLDYuNyAJIi8+Cgk8cG9seWdvbiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiMzMzY3RDYiIHBvaW50cz0iMjEsMTcuMSAyMSwxNy44IDIzLjIsMTYuNSAJIi8+Cgk8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg2Ljg2MDAwMCwgNi41MDAwMDApIj4KCQk8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0LjU0MDAwMCwgMC4wMDAwMDApIj4KCQkJPHBvbHlnb24gZmlsbC1ydWxlPSJldmVub2RkIiBmaWxsPSIjNUM4NURFIiBwb2ludHM9IjAuNiwtMSAtMi40LDAuNiAwLjYsMi4yIDMuNiwwLjYgCQkJIi8+CgkJCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdENiIgcG9pbnRzPSIxLDUuOSAzLjksNC4zIDMuOSwxLjIgMSwyLjggCQkJIi8+CgkJCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdENiIgcG9pbnRzPSIwLjMsMi44IC0yLjcsMS4yIC0yLjcsNC4zIDAuMyw1LjkgCQkJIi8+CgkJPC9nPgoJCTxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAuMDAwMDAwLCA3Ljk3NjE5MCkiPgoJCQk8cG9seWdvbiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiM1Qzg1REUiIHBvaW50cz0iMS43LC0zLjEgLTEuMiwtMS41IDEuNywwLjEgNC41LC0xLjUgCQkJIi8+CgkJCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdENiIgcG9pbnRzPSIxLjksMy44IDQuOCwyLjIgNC44LC0xIDEuOSwwLjYgCQkJIi8+CgkJCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdENiIgcG9pbnRzPSIxLjQsMC42IC0xLjUsLTEgLTEuNSwyLjIgMS40LDMuOCAJCQkiLz4KCQk8L2c+CgkJPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoOS4zNjAwMDAsIDcuOTc2MTkwKSI+CgkJCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzVDODVERSIgcG9pbnRzPSItMC43LC0zLjEgLTMuNiwtMS41IC0wLjcsMC4xIDIuMiwtMS41IAkJCSIvPgoJCQk8cG9seWdvbiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiMzMzY3RDYiIHBvaW50cz0iLTAuNCwzLjggMi41LDIuMiAyLjUsLTEgLTAuNCwwLjYgCQkJIi8+CgkJCTxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzMzNjdENiIgcG9pbnRzPSItMSwwLjYgLTMuOSwtMSAtMy45LDIuMiAtMSwzLjggCQkJIi8+CgkJPC9nPgoJPC9nPgo8L2c+Cjwvc3ZnPgo="/>
+<text class="small" x="559" y="700" text-anchor="middle">Artifact Registry</text>
+<text class="tiny" x="559" y="715" text-anchor="middle">regional repo</text>
+<text class="tiny" x="447" y="646" text-anchor="middle">build &amp; push</text>
+<text class="tiny" x="650" y="608" text-anchor="middle">GKE pulls immutable digest</text>
+
+<!-- Legend -->
+<line x1="1000" y1="770" x2="1035" y2="770" stroke="#2563EB" stroke-width="2.5" marker-end="url(#arrow-blue)"/>
+<text class="tiny" x="1045" y="774">user / service request</text>
+<line x1="1000" y1="795" x2="1035" y2="795" stroke="#7C3AED" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow-purple)"/>
+<text class="tiny" x="1045" y="799">trace export</text>
+<line x1="1000" y1="820" x2="1035" y2="820" stroke="#64748B" stroke-width="1.7" stroke-dasharray="3 5" marker-end="url(#arrow-gray)"/>
+<text class="tiny" x="1045" y="824">application logs</text>
+</svg></main></body></html>

@@ -1,0 +1,7 @@
+foundation_project_id  = "replace-with-existing-foundation-project"
+state_bucket_name      = "replace-with-globally-unique-state-bucket"
+state_bucket_location  = "ASIA"
+log_locations          = ["asia-southeast1"]
+operator_member        = "user:replace-with-active-operator@example.com"
+platform_group         = "platform-operators@example.com"
+sink_writer_identities = []

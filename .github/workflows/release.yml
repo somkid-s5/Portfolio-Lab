@@ -1,0 +1,122 @@
+name: Lab 14 trusted release
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'GCP/LAB-014-secure-app-delivery/app/**'
+      - 'GCP/LAB-014-secure-app-delivery/cloudbuild.yaml'
+      - 'GCP/LAB-014-secure-app-delivery/deploy/**'
+      - 'GCP/LAB-014-secure-app-delivery/skaffold.yaml'
+      - 'GCP/LAB-014-secure-app-delivery/tests/**'
+      - 'GCP/LAB-014-secure-app-delivery/tools/**'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+concurrency:
+  group: lab014-release-\${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  attest:
+    if: vars.LAB014_RELEASE_ENABLED == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: gcp-attest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      build_id: \${{ steps.verify.outputs.build_id }}
+      digest: \${{ steps.verify.outputs.digest }}
+      image_uri: \${{ steps.verify.outputs.image_uri }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: \${{ vars.LAB014_WIF_PROVIDER }}
+          service_account: \${{ vars.LAB014_ATTESTOR_SA }}
+          project_id: \${{ vars.LAB014_PROJECT_ID }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+        with:
+          project_id: \${{ vars.LAB014_PROJECT_ID }}
+          install_components: beta
+      - name: Wait for the exact trusted Cloud Build
+        id: verify
+        env:
+          PROJECT_ID: \${{ vars.LAB014_PROJECT_ID }}
+          REGION: \${{ vars.LAB014_REGION }}
+          TRIGGER_ID: \${{ vars.LAB014_CLOUDBUILD_TRIGGER_ID }}
+          BUILDER_EMAIL: \${{ vars.LAB014_BUILDER_SA }}
+        run: |
+          python3 GCP/LAB-014-secure-app-delivery/tools/release.py \
+            --project-id "$PROJECT_ID" \
+            --region "$REGION" \
+            --trigger-id "$TRIGGER_ID" \
+            --commit-sha "$GITHUB_SHA" \
+            --builder-email "$BUILDER_EMAIL" \
+            --max-wait-seconds 720 \
+            --poll-seconds 10
+      - name: Sign and create the digest-bound attestation
+        env:
+          PROJECT_ID: \${{ vars.LAB014_PROJECT_ID }}
+          REGION: \${{ vars.LAB014_REGION }}
+          IMAGE_URI: \${{ steps.verify.outputs.image_uri }}
+        run: |
+          gcloud beta container binauthz attestations sign-and-create \
+            --project="$PROJECT_ID" \
+            --artifact-url="$IMAGE_URI" \
+            --attestor="lab014-release-attestor" \
+            --attestor-project="$PROJECT_ID" \
+            --keyversion-project="$PROJECT_ID" \
+            --keyversion-location="$REGION" \
+            --keyversion-keyring="lab014-attestation" \
+            --keyversion-key="lab014-release-signing" \
+            --keyversion=1 \
+            --validate
+
+  release:
+    needs: attest
+    if: vars.LAB014_RELEASE_ENABLED == 'true' && needs.attest.result == 'success' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: gcp-release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: \${{ vars.LAB014_WIF_PROVIDER }}
+          service_account: \${{ vars.LAB014_RELEASER_SA }}
+          project_id: \${{ vars.LAB014_PROJECT_ID }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+        with:
+          project_id: \${{ vars.LAB014_PROJECT_ID }}
+      - name: Create a digest-pinned Cloud Deploy release
+        env:
+          PROJECT_ID: \${{ vars.LAB014_PROJECT_ID }}
+          REGION: \${{ vars.LAB014_REGION }}
+          IMAGE_URI: \${{ needs.attest.outputs.image_uri }}
+          BUILD_ID: \${{ needs.attest.outputs.build_id }}
+        run: |
+          test -n "$IMAGE_URI"
+          test -n "$BUILD_ID"
+          release_name="r-\${GITHUB_RUN_NUMBER}-\${GITHUB_RUN_ATTEMPT}"
+          echo "Creating $release_name from Cloud Build $BUILD_ID ($IMAGE_URI)"
+          gcloud deploy releases create "$release_name" \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --delivery-pipeline=lab014-quote-delivery \
+            --source=GCP/LAB-014-secure-app-delivery \
+            --images="shipping-quote-api=$IMAGE_URI" \
+            --deploy-parameters="runtime-service-account=lab014-runtime@$PROJECT_ID.iam.gserviceaccount.com"

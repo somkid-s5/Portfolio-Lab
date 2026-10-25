@@ -1,0 +1,21 @@
+{
+  "family": "Noto Sans Thai",
+  "copyright": "Copyright 2022 The Noto Project Authors",
+  "license": "SIL Open Font License 1.1",
+  "source_repository": "https://github.com/google/fonts",
+  "source_commit": "e7db6ca603fd4862010383ff17ffd6cc4ffac1c0",
+  "source_path": "ofl/notosansthai/NotoSansThai[wdth,wght].ttf",
+  "source_git_blob_sha": "34b48ab6f74867dbfce19410a2f452abef34e3ff",
+  "license_source_path": "ofl/notosansthai/OFL.txt",
+  "license_git_blob_sha": "7fa8dcb08ce4d2667b683ac4a8e79166e44e5277",
+  "note": "Unmodified variable font bundled for deterministic Thai CI browser previews. No runtime font downloads or cloud provisioning.",
+  "ci_verification": {
+    "workflow_run": 40003102208,
+    "source_commit": "1ce65d95c2d816110e8b9e675e5d08f59fe2c54b",
+    "jobs": {
+      "lab005": 120584033940,
+      "lab006": 120584034034
+    },
+    "review": "Font identity/fc-match succeeded in both jobs; real browser screenshots visually checked for Thai glyphs, labels, tables and full job detail. Not GCP screenshots."
+  }
+}

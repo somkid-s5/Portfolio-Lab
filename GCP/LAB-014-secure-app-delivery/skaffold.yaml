@@ -1,0 +1,30 @@
+apiVersion: skaffold/v4beta7
+kind: Config
+metadata:
+  name: lab014-quote-delivery
+build:
+  artifacts:
+    - image: shipping-quote-api
+      context: .
+      docker:
+        dockerfile: app/Dockerfile
+manifests:
+  rawYaml:
+    - deploy/service-staging.yaml
+deploy:
+  cloudrun: {}
+profiles:
+  - name: production
+    manifests:
+      rawYaml:
+        - deploy/service-production.yaml
+    deploy:
+      cloudrun: {}
+verify:
+  - name: quote-contract
+    container:
+      name: quote-contract
+      image: shipping-quote-api
+      command:
+        - python
+        - /srv/quote-api/tools/verify_quote.py

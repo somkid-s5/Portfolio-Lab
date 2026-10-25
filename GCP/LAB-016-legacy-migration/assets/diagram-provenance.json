@@ -1,0 +1,72 @@
+{
+  "style": "Diagram Design — Personal Custom from the user's diagram-design.zip",
+  "style_attribution": "Adapted from Cathryn Lavery / LittleMight, diagram-design (MIT)",
+  "official_icon_catalog": "https://cloud.google.com/icons",
+  "mirror_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+  "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+  "icons": {
+    "cloud_load_balancing.svg": {
+      "path": "assets/icons/cloud_load_balancing.svg",
+      "git_blob_sha": "8ee1ca75ee3074ccdb693c54b1a6391c4832c9e9",
+      "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+      "source_path": "docs/images/cloud_load_balancing.svg"
+    },
+    "compute_engine.svg": {
+      "path": "assets/icons/compute_engine.svg",
+      "git_blob_sha": "811860c5c78d342cce10722963c470759a3534d1",
+      "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+      "source_path": "docs/images/compute_engine.svg"
+    },
+    "cloud_run.svg": {
+      "path": "assets/icons/cloud_run.svg",
+      "git_blob_sha": "e2e3b7d3165bb94f0b37aa0a78bf85b2d851100c",
+      "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+      "source_path": "docs/images/cloud_run.svg"
+    },
+    "cloud_sql.svg": {
+      "path": "assets/icons/cloud_sql.svg",
+      "git_blob_sha": "9f29818450998825fd6fcca0a5f7621da2d811ee",
+      "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+      "source_path": "docs/images/cloud_sql.svg"
+    },
+    "virtual_private_cloud.svg": {
+      "path": "assets/icons/virtual_private_cloud.svg",
+      "git_blob_sha": "295b0ee2abc1f84424bf78978b39502820769fac",
+      "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+      "source_path": "docs/images/virtual_private_cloud.svg"
+    },
+    "secret_manager.svg": {
+      "path": "assets/icons/secret_manager.svg",
+      "git_blob_sha": "1668a03267db8ec93c9d1d44b0f799bdab2c148c",
+      "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+      "source_path": "docs/images/secret_manager.svg"
+    },
+    "database_migration_service.svg": {
+      "path": "assets/icons/database_migration_service.svg",
+      "git_blob_sha": "0131558a425ec1863f3723d4498ff88871ec421c",
+      "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+      "source_path": "docs/images/database_migration_service.svg"
+    },
+    "cloud_logging.svg": {
+      "path": "assets/icons/cloud_logging.svg",
+      "git_blob_sha": "7691a3ed0450b744311427e8818c5d5bf4894c30",
+      "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+      "source_path": "docs/images/cloud_logging.svg"
+    },
+    "cloud_nat.svg": {
+      "path": "assets/icons/cloud_nat.svg",
+      "git_blob_sha": "5e1653551b9491d13aeab7394c77a2b2eeffed7b",
+      "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+      "source_path": "docs/images/cloud_nat.svg"
+    }
+  },
+  "cloud_verification": "not-run",
+  "design_notes": [
+    "global external Application Load Balancer has separate backend services for the instance-group and serverless NEG backends",
+    "URL map selects one default backend at a time",
+    "Cloud SQL is outside the customer VPC and reached through Direct VPC egress and Private Services Access",
+    "migration diagram distinguishes baseline write-freeze from gated DMS continuous migration",
+    "routes use orthogonal connectors and preserve GCP scope boundaries",
+    "the source VM has no external IP; Cloud NAT is scoped to the source subnet for outbound bootstrap only"
+  ]
+}

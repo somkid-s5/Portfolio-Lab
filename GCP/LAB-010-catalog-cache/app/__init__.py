@@ -1,0 +1,1 @@
+"""Catalog Cache solution application."""

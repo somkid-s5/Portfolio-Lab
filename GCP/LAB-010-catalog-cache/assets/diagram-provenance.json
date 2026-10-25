@@ -1,0 +1,53 @@
+{
+  "diagram_sources": [
+    "assets/solution.svg",
+    "assets/cache-flow.svg"
+  ],
+  "icon_source": {
+    "official_entry_point": "https://cloud.google.com/icons",
+    "mirror": "https://github.com/AwesomeLogos/google-cloud-icons",
+    "pinned_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+    "files": [
+      {
+        "service": "Cloud Run",
+        "repository_path": "docs/images/cloud_run.svg",
+        "sha256": "97e1db08021eecae2a8c5124f382a9b451dc63deecaa87825dc5b396fab59c37"
+      },
+      {
+        "service": "Cloud SQL",
+        "repository_path": "docs/images/cloud_sql.svg",
+        "sha256": "ffdf8329a098d53313f4a8b10449b33e1cf9f139aaeb4a53e6564c1fad6b8b1b"
+      },
+      {
+        "service": "Memorystore",
+        "repository_path": "docs/images/memorystore.svg",
+        "sha256": "e1e14c0fa7a2a155cd5626226ea7b49b933641d384c86aa38b1a4fd9470fab6a"
+      },
+      {
+        "service": "Cloud Monitoring",
+        "repository_path": "docs/images/cloud_monitoring.svg",
+        "sha256": "804f66b773fcc5cd59a3fb8e0da9ff3de9b69efa99c23f8e1797943647a8e79e"
+      },
+      {
+        "service": "Cloud Logging",
+        "repository_path": "docs/images/cloud_logging.svg",
+        "sha256": "f7fdd93a1847fdebf174c78cce418fac52198be72893116e7787ca3e1659cf38"
+      },
+      {
+        "service": "Secret Manager",
+        "repository_path": "docs/images/secret_manager.svg",
+        "sha256": "194b0f81870b265064680007e472d011797d01fbdede0bb4ade28e025a22e7b6"
+      }
+    ]
+  },
+  "style_attribution": {
+    "name": "Diagram Design",
+    "upstream": "https://github.com/cathrynlavery/diagram-design",
+    "license": "MIT",
+    "note": "Visual conventions adapted; diagrams are independently authored and are not an official copy."
+  },
+  "verification": {
+    "diagram_render": "Rendered at 960px in GitHub Actions run 40084647364; source commit b9462b43d5444fdcdadc029ec649147831b2a5d8",
+    "cloud_deployment": "not-run"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "diagram": "assets/solution.svg",
+  "standalone_html": "assets/solution.html",
+  "style": "Diagram Design — Personal Custom from the user's diagram-design.zip",
+  "style_attribution": "Adapted from Cathryn Lavery / LittleMight, diagram-design (MIT)",
+  "official_icon_catalog": "https://cloud.google.com/icons",
+  "mirror_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+  "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+  "render_target_width": 1440,
+  "cloud_verification": "not-run",
+  "layout_decisions": [
+    "The existing organization and team folder contain three sibling projects: foundation, dev, and staging; organization/folder creation and policy changes are out of scope.",
+    "Dev and staging projects are stacked vertically to keep the factory fan-out short and preserve a separate per-environment IAM and workload panel.",
+    "Terraform setup uses one blue trunk that branches to the two actual environment projects; log sinks merge at a junction only because both route to the same central bucket.",
+    "The Terraform state route and the log routing route use separate gutters; no connector crosses a service label or unrelated resource.",
+    "Cloud Run workloads are regional in asia-southeast1; project boundaries remain global. The billing account is shown as an existing operator input, not nested inside the resource hierarchy.",
+    "The project seeder and keyless environment-factory identity are distinct phases; the Project Creator's automatic Owner grant is removed during handoff."
+  ],
+  "icons": {
+    "billing.svg": {
+      "path": "assets/icons/billing.svg",
+      "source_path": "docs/images/billing.svg",
+      "git_blob_sha": "85e30dfda353b6c18604704bcf604555389f24d7",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/billing.svg"
+    },
+    "project.svg": {
+      "path": "assets/icons/project.svg",
+      "source_path": "docs/images/project.svg",
+      "git_blob_sha": "728e85e14ae63083e1898fd95c938965c9d1b07c",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/project.svg"
+    },
+    "cloud_logging.svg": {
+      "path": "assets/icons/cloud_logging.svg",
+      "source_path": "docs/images/cloud_logging.svg",
+      "git_blob_sha": "7691a3ed0450b744311427e8818c5d5bf4894c30",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_logging.svg"
+    },
+    "cloud_run.svg": {
+      "path": "assets/icons/cloud_run.svg",
+      "source_path": "docs/images/cloud_run.svg",
+      "git_blob_sha": "e2e3b7d3165bb94f0b37aa0a78bf85b2d851100c",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_run.svg"
+    },
+    "cloud_storage.svg": {
+      "path": "assets/icons/cloud_storage.svg",
+      "source_path": "docs/images/cloud_storage.svg",
+      "git_blob_sha": "59db35d960aca1b2beb942f1d8a693722b350db0",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_storage.svg"
+    },
+    "identity_and_access_management.svg": {
+      "path": "assets/icons/identity_and_access_management.svg",
+      "source_path": "docs/images/identity_and_access_management.svg",
+      "git_blob_sha": "4ba9ea6b0db107723fd70fc6f5207fe4a2760a11",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/identity_and_access_management.svg"
+    }
+  }
+}

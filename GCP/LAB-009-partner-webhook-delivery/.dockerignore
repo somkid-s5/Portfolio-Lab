@@ -1,0 +1,13 @@
+.git/
+**/__pycache__/
+**/*.py[cod]
+.venv/
+venv/
+tests/
+infra/
+assets/
+*.md
+.env
+.env.*
+*service-account*.json
+credentials.json

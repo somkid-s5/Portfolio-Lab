@@ -1,17 +1,21 @@
 # Portfolio-Lab
 
-Solution Labs สำหรับฝึกออกแบบ สร้าง และดูแลระบบบน Cloud พร้อมคู่มือและหลักฐานการทำงาน
+ห้องทดลองสำหรับออกแบบ สร้าง Deploy ทดสอบ แก้ปัญหา และดูแลระบบบน Cloud พร้อมบันทึกผลเป็น **Portfolio Case Study** ที่ตรวจย้อนกลับได้
 
-## GCP
+## Google Cloud — 20 Solution Labs
 
-- [ภาพรวม 20 Solution Labs](GCP/ROADMAP.md)
-- [แผนดำเนินงานและเกณฑ์เสร็จ](PLAN.md)
-- [สถานะราย Lab](GCP/PROGRESS.md)
+เริ่มที่ **[GCP Lab Index: คู่มือครบทั้ง 20 เรื่อง](GCP/README.md)** เพื่อเลือก Lab และเข้าถึง README แต่ละเรื่องโดยตรง ไม่ต้องเริ่มจากเอกสารวางแผน
 
-แต่ละ Lab จบทั้ง Build, Deploy, Test, Operate, Troubleshoot และ Change Request ในเรื่องเดียว ใช้ README เดียว พร้อม App, Script, Diagram และช่องบันทึกผลที่จำเป็น
+- [Roadmap — ภาพรวม Architecture และทักษะ](GCP/ROADMAP.md)
+- [ACE Exam Coverage Matrix — ตาม Exam Guide ปัจจุบัน](GCP/ACE-COVERAGE.md)
+- [Progress — Guide-ready แยกจาก Cloud Verification](GCP/PROGRESS.md)
+- [PLAN — Definition of Done และข้อจำกัด](PLAN.md)
+- [Diagram Design — Visual Standard](docs/diagram-style.md)
+- [Quality Acceptance — ขอบเขตการตรวจรับ](docs/quality-acceptance.md)
+- [Diagram Alignment Audit — รูปแบบภาพเหมือนกันจริงหรือยัง](docs/diagram-audit.md)
 
-## ตัวอย่างคู่มือ
+**สถานะ:** คู่มือและโค้ดประกอบสำหรับ Lab 01–20 เผยแพร่บน `main` ระดับ **Guide-ready** (ประวัติการตรวจรับ: [PR #1](https://github.com/somkid-s5/Portfolio-Lab/pull/1)); **ยังไม่มีหลักฐานว่า Deploy และ Cloud Verify จริง** และไม่ได้สร้างเว็บไซต์ Portfolio. เริ่มลงมือจาก [GCP/README.md](GCP/README.md) ได้ทันทีโดยใช้ Project Sandbox และตรวจค่าใช้จ่ายก่อนสร้างทรัพยากร
 
-[Lab Test 2 — Two-Zone Web Application](test/lab-test-2/README.md)
+> ทุก Lab ต้องมีโจทย์ที่ตรวจได้, Diagram อธิบายระบบ, Build/Deploy/Test/Operate/Troubleshoot/Change Request/Cleanup, และช่องบันทึก Expected/Actual/Evidence โดยไม่อ้างว่า CI ผ่านเท่ากับรันบน GCP ผ่าน
 
-ตัวอย่างนี้ใช้ตรวจรูปแบบการอ่านและ Diagram ผลบน GCP ยังเป็น PENDING
+[Lab Test 2 — ต้นแบบคู่มือและ Diagram](test/lab-test-2/README.md) ยังเก็บไว้เป็นตัวอย่างการออกแบบ ไม่ใช่ Cloud-verified case study

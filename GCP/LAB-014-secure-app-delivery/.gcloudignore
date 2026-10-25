@@ -1,0 +1,10 @@
+.git
+.github
+infra
+evidence
+work
+assets
+README.md
+*.tfstate
+*.tfstate.*
+terraform.tfvars

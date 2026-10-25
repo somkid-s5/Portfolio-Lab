@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1620" height="1160" viewBox="0 0 1620 1160" role="img" aria-labelledby="title desc">
+<title id="title">Lab 10 — Catalog cache architecture</title>
+<desc id="desc">Customer and bounded load driver reach the public read-only Cloud Run Catalog service. An operator reaches a separate IAM-protected Cloud Run admin service. Both services in asia-southeast1 use Direct VPC egress through a dedicated subnet to Cloud SQL PostgreSQL and Memorystore Redis private endpoints over Private Services Access. PostgreSQL is the source of truth and Redis is an authenticated TLS cache. Secret Manager supplies Redis AUTH and CA versions; Cloud Logging and Monitoring receive runtime logs and managed-service metrics.</desc>
+<style>
+text{font-family:Arial,sans-serif;fill:#1f2937}.title{font-size:38px;font-weight:700}.subtitle{font-size:18px;fill:#526174}.scope{font-size:24px;font-weight:700}.heading{font-size:21px;font-weight:700}.node{font-size:20px;font-weight:700}.body{font-size:18px;fill:#334155}.small{font-size:15px;fill:#526174}.tiny{font-size:13px;fill:#526174}.boundary{fill:#fff;stroke:#334155;stroke-width:2}.region{fill:#fff;stroke:#2563eb;stroke-width:2;stroke-dasharray:9 6}.app-panel{fill:#eff6ff;stroke:#2563eb;stroke-width:2}.network-panel{fill:#f0fdfa;stroke:#0f766e;stroke-width:2}.data-panel{fill:#f5f3ff;stroke:#7c3aed;stroke-width:2}.secret-panel{fill:#f1f5f9;stroke:#475569;stroke-width:1.6}.telemetry-panel{fill:#f8fafc;stroke:#64748b;stroke-width:1.6}.service-card{fill:#fff;stroke:#94a3b8;stroke-width:1.4}.user-flow{fill:none;stroke:#2563eb;stroke-width:2.6;marker-end:url(#arrow-blue)}.operator-flow{fill:none;stroke:#7c3aed;stroke-width:2.4;marker-end:url(#arrow-purple)}.network-flow{fill:none;stroke:#0f766e;stroke-width:2.6;marker-end:url(#arrow-teal)}.secret-flow{fill:none;stroke:#7c3aed;stroke-width:2;stroke-dasharray:7 5;marker-end:url(#arrow-purple)}.telemetry-flow{fill:none;stroke:#64748b;stroke-width:1.8;stroke-dasharray:5 5;marker-end:url(#arrow-gray)}.legend{font-size:14px;fill:#334155}
+</style>
+<defs>
+<marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#2563eb"/></marker>
+<marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#7c3aed"/></marker>
+<marker id="arrow-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#0f766e"/></marker>
+<marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#64748b"/></marker>
+</defs>
+<rect width="1620" height="1160" fill="#fff"/>
+<text x="32" y="46" class="title">Catalog Cache — private data path, bounded read optimization</text>
+<text x="32" y="74" class="subtitle">Public reads · IAM-protected writes · PostgreSQL source of truth · Redis is disposable cache</text>
+
+<!-- external actors -->
+<g aria-label="Customer browser and bounded load driver">
+<rect x="20" y="510" width="225" height="120" rx="8" class="service-card"/>
+<rect x="39" y="535" width="48" height="36" rx="3" fill="#fff" stroke="#1f2937" stroke-width="2"/>
+<line x1="39" y1="545" x2="87" y2="545" stroke="#1f2937" stroke-width="2"/>
+<circle cx="45" cy="540" r="2" fill="#2563eb"/><circle cx="52" cy="540" r="2" fill="#0f766e"/>
+<path d="M47 579h32M63 571v8" stroke="#1f2937" stroke-width="2" fill="none"/>
+<text x="98" y="548" class="node">Customer</text><text x="98" y="570" class="small">Browser / public GET</text>
+<text x="39" y="605" class="small">Load driver capped at 10 workers</text>
+</g>
+<g aria-label="Operator authenticated by IAM">
+<rect x="20" y="715" width="225" height="110" rx="8" class="service-card"/>
+<circle cx="62" cy="746" r="12" fill="#c4b5fd" stroke="#6d28d9" stroke-width="1.5"/>
+<path d="M41 787c2-16 12-24 21-24s19 8 21 24" fill="#ede9fe" stroke="#6d28d9" stroke-width="1.5"/>
+<text x="98" y="750" class="node">Operator</text><text x="98" y="773" class="small">IAM-authenticated</text>
+<text x="39" y="809" class="small">Only catalog-operator invoker</text>
+</g>
+
+<!-- project boundary -->
+<rect x="270" y="95" width="1320" height="1050" rx="8" class="boundary"/>
+<rect x="285" y="108" width="8" height="29" fill="#334155"/>
+<text x="304" y="130" class="scope">Google Cloud project · dedicated Lab sandbox</text>
+
+<!-- global secret service -->
+<rect x="335" y="158" width="390" height="170" rx="8" class="secret-panel"/>
+<image x="360" y="184" width="80" height="80" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjRweCIgaGVpZ2h0PSIyNHB4IiB2aWV3Qm94PSIwIDAgMjQgMjQiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8ZyBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KICAgICAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyLjAwMDAwMCwgNi4wMDAwMDApIiBmaWxsPSIjNDI4NUY0IiBmaWxsLXJ1bGU9Im5vbnplcm8iPgogICAgICAgICAgICA8cGF0aCBkPSJNMjAsOS40MTQ2OTEyNWUtMTQgTDIwLDExLjg4Njc5MjUgTDE2LjAzNzczNTgsMTEuODg2NzkyNSBDMTUuOTMzNTMxMiwxMS44ODY3OTI1IDE1Ljg0OTA1NjYsMTEuODAyMzE3OSAxNS44NDkwNTY2LDExLjY5ODExMzIgTDE1Ljg0OTA1NjYsMTAuNTY2MDM3NyBDMTUuODQ5MDU2NiwxMC40NjE4MzMxIDE1LjkzMzUzMTIsMTAuMzc3MzU4NSAxNi4wMzc3MzU4LDEwLjM3NzM1ODUgTDE4LjQ5MDA1NjYsMTAuMzc3IEwxOC40OTAwNTY2LDEuNTA5IEwxNi4wMzc3MzU4LDEuNTA5NDMzOTYgQzE1LjkzMzUzMTIsMS41MDk0MzM5NiAxNS44NDkwNTY2LDEuNDI0OTU5MzkgMTUuODQ5MDU2NiwxLjMyMDc1NDcyIEwxNS44NDkwNTY2LDAuMTg4Njc5MjQ1IEMxNS44NDkwNTY2LDAuMDg0NDc0NTc1NSAxNS45MzM1MzEyLDkuNDExMDU0MzRlLTE0IDE2LjAzNzczNTgsOS40MTQ2OTEyNWUtMTQgTDIwLDkuNDE0NjkxMjVlLTE0IFogTTQuMzA5MTAxLDkuNDE0NjkxMjVlLTE0IEM0LjQxMzMwNTY3LDkuMzg3Nzg2OWUtMTQgNC40OTc3ODAyNCwwLjA4NDQ3NDU3NTUgNC40OTc3ODAyNCwwLjE4ODY3OTI0NSBMNC40OTc3ODAyNCwxLjMyMDc1NDcyIEM0LjQ5Nzc4MDI0LDEuNDI0OTU5MzkgNC40MTMzMDU2NywxLjUwOTQzMzk2IDQuMzA5MTAxLDEuNTA5NDMzOTYgTDEuNTA5LDEuNTA5IEwxLjUwOSwxMC4zNzcgTDQuMjkyNDUyODMsMTAuMzc3MzU4NSBDNC4zOTY2NTc1LDEwLjM3NzM1ODUgNC40ODExMzIwOCwxMC40NjE4MzMxIDQuNDgxMTMyMDgsMTAuNTY2MDM3NyBMNC40ODExMzIwOCwxMS42OTgxMTMyIEM0LjQ4MTEzMjA4LDExLjgwMjMxNzkgNC4zOTY2NTc1LDExLjg4Njc5MjUgNC4yOTI0NTI4MywxMS44ODY3OTI1IEwyLjE0MDUwOTk5ZS0xMywxMS44ODY3OTI1IEwyLjE0MDUwOTk5ZS0xMyw5LjQxNDY5MTI1ZS0xNCBMNC4zMDkxMDEsOS40MTQ2OTEyNWUtMTQgWiBNMTUuNDI3MTA5OCwzLjg2NzkyNDUzIEwxNS40MjcxMDk4LDUuMzI0MDU2NiBMMTUuNDg3OTMwNSw1LjM0ODUyOTQxIEwxNi44MzgxNDk0LDQuODcxMzA5NjYgTDE3LjExNzkyNDUsNS42OTExNDg3MiBMMTUuNzU1NTQxNCw2LjE1NjEzMjA4IEwxNS43MTkwNDksNi4yNTQwMjMzMSBMMTYuNjU1Njg3NCw3LjUxNDM3MjkyIEwxNS45NTAxNjc2LDguMDI4MzAxODkgTDE1LjAzNzg1NzUsNi43Njc5NTIyOCBMMTQuOTUyNzA4NSw2Ljc2Nzk1MjI4IEwxNC4wNDAzOTg0LDguMDI4MzAxODkgTDEzLjMzNDg3ODYsNy41MTQzNzI5MiBMMTQuMjU5MzUyOSw2LjI1NDAyMzMxIEwxNC4yMzUwMjQ2LDYuMTU2MTMyMDggTDEyLjg3MjY0MTUsNS42OTExNDg3MiBMMTMuMTUyNDE2Niw0Ljg3MTMwOTY2IEwxNC40OTA0NzE0LDUuMzQ4NTI5NDEgTDE0LjU2MzQ1NjIsNS4zMjQwNTY2IEwxNC41NjM0NTYyLDMuODY3OTI0NTMgTDE1LjQyNzEwOTgsMy44Njc5MjQ1MyBaIE01LjE5NTk3NzczLDMuODY3OTI0NTMgTDUuMTk1OTc3NzMsNS4zMDk2Mzk0NSBMNS4yNTY3OTg0LDUuMzMzODY5OTYgTDYuNjA3MDE3MzUsNC44NjEzNzUxNSBMNi44ODY3OTI0NSw1LjY3MzA5NyBMNS41MjQ0MDkzNiw2LjEzMzQ3NjU2IEw1LjQ4NzkxNjk2LDYuMjMwMzk4NTcgTDYuNDI0NTU1MzMsNy40NzgyNjk0NyBMNS43MTkwMzU1Miw3Ljk4NzExMDAzIEw0LjgwNjcyNTQxLDYuNzM5MjM5MTMgTDQuNzIxNTc2NDcsNi43MzkyMzkxMyBMMy44MDkyNjYzNyw3Ljk4NzExMDAzIEwzLjEwMzc0NjU1LDcuNDc4MjY5NDcgTDQuMDI4MjIwNzksNi4yMzAzOTg1NyBMNC4wMDM4OTI1Miw2LjEzMzQ3NjU2IEwyLjY0MTUwOTQzLDUuNjczMDk3IEwyLjkyMTI4NDUzLDQuODYxMzc1MTUgTDQuMjU5MzM5MzUsNS4zMzM4Njk5NiBMNC4zMzIzMjQxNiw1LjMwOTYzOTQ1IEw0LjMzMjMyNDE2LDMuODY3OTI0NTMgTDUuMTk1OTc3NzMsMy44Njc5MjQ1MyBaIE0xMC4yOTAzMTczLDMuODY3OTI0NTMgTDEwLjI5MDMxNzMsNS4zMDk2Mzk0NSBMMTAuMzUxMTM4LDUuMzMzODY5OTYgTDExLjcwMTM1Nyw0Ljg2MTM3NTE1IEwxMS45ODExMzIxLDUuNjczMDk3IEwxMC42MTg3NDksNi4xMzM0NzY1NiBMMTAuNTgyMjU2Niw2LjIzMDM5ODU3IEwxMS41MTg4OTUsNy40NzgyNjk0NyBMMTAuODEzMzc1MSw3Ljk4NzExMDAzIEw5LjkwMTA2NTA0LDYuNzM5MjM5MTMgTDkuODE1OTE2MDksNi43MzkyMzkxMyBMOC45MDM2MDU5OSw3Ljk4NzExMDAzIEw4LjE5ODA4NjE4LDcuNDc4MjY5NDcgTDkuMTIyNTYwNDIsNi4yMzAzOTg1NyBMOS4wOTgyMzIxNSw2LjEzMzQ3NjU2IEw3LjczNTg0OTA2LDUuNjczMDk3IEw4LjAxNTYyNDE2LDQuODYxMzc1MTUgTDkuMzUzNjc4OTcsNS4zMzM4Njk5NiBMOS40MjY2NjM3OCw1LjMwOTYzOTQ1IEw5LjQyNjY2Mzc4LDMuODY3OTI0NTMgTDEwLjI5MDMxNzMsMy44Njc5MjQ1MyBaIiA+PC9wYXRoPgogICAgICAgIDwvZz4KICAgIDwvZz4KPC9zdmc+"/>
+<text x="448" y="208" class="node">Secret Manager</text>
+<text x="448" y="234" class="body">Redis AUTH string + server CA</text>
+<text x="360" y="286" class="small">Pinned versions · reader/admin SAs only</text>
+<path d="M530 328V434" class="secret-flow"/>
+<text x="545" y="370" class="small">runtime secret access</text>
+
+<!-- regional solution boundary -->
+<rect x="292" y="370" width="1280" height="590" rx="7" class="region"/>
+<rect x="306" y="383" width="8" height="27" fill="#2563eb"/>
+<text x="326" y="404" class="scope">Region · asia-southeast1 (Singapore)</text>
+
+<!-- Cloud Run application tier -->
+<rect x="330" y="438" width="315" height="432" rx="8" class="app-panel"/>
+<text x="350" y="468" class="heading">Cloud Run · separate identities</text>
+<rect x="350" y="500" width="275" height="145" rx="7" class="service-card"/>
+<image x="370" y="534" width="80" height="80" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNhZWNiZmE7fS5jbHMtMSwuY2xzLTJ7ZmlsbC1ydWxlOmV2ZW5vZGQ7fS5jbHMtMntmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfQ2xvdWRSdW5fQ29sb3I8L3RpdGxlPjxnIGRhdGEtbmFtZT0iUHJvZHVjdCBJY29ucyI+PGcgPjxwb2x5Z29uIGNsYXNzPSJjbHMtMSIgcG9pbnRzPSI4LjkgMi42MyAxMi4wMiAxMiAyMS4zOCAxMiA4LjkgMi42MyIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIyMS4zOCAxMiAxMi4wMiAxMiA4LjkgMjEuMzggMjEuMzggMTIiLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMy40NCAyMS4zOCA2LjU3IDE5LjgxIDguOSAxMiA1Ljc4IDEyIDMuNDQgMjEuMzgiLz48cG9seWdvbiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iMy40NCAyLjYzIDUuNzggMTIgOC45IDEyIDYuNTcgNC4xOSAzLjQ0IDIuNjMiLz48L2c+PC9nPjwvc3ZnPg=="/>
+<text x="456" y="542" class="node">catalog-public</text>
+<text x="456" y="566" class="body">Public UI + read API</text>
+<text x="456" y="591" class="small">DB: SELECT · cache: GET/SET</text>
+<text x="456" y="613" class="small">max 2 instances · min 0</text>
+
+<rect x="350" y="690" width="275" height="145" rx="7" class="service-card"/>
+<image x="370" y="724" width="80" height="80" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNhZWNiZmE7fS5jbHMtMSwuY2xzLTJ7ZmlsbC1ydWxlOmV2ZW5vZGQ7fS5jbHMtMntmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfQ2xvdWRSdW5fQ29sb3I8L3RpdGxlPjxnIGRhdGEtbmFtZT0iUHJvZHVjdCBJY29ucyI+PGcgPjxwb2x5Z29uIGNsYXNzPSJjbHMtMSIgcG9pbnRzPSI4LjkgMi42MyAxMi4wMiAxMiAyMS4zOCAxMiA4LjkgMi42MyIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIyMS4zOCAxMiAxMi4wMiAxMiA4LjkgMjEuMzggMjEuMzggMTIiLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMy40NCAyMS4zOCA2LjU3IDE5LjgxIDguOSAxMiA1Ljc4IDEyIDMuNDQgMjEuMzgiLz48cG9seWdvbiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iMy40NCAyLjYzIDUuNzggMTIgOC45IDEyIDYuNTcgNC4xOSAzLjQ0IDIuNjMiLz48L2c+PC9nPjwvc3ZnPg=="/>
+<text x="456" y="732" class="node">catalog-operator</text>
+<text x="456" y="756" class="body">IAM-protected write API</text>
+<text x="456" y="781" class="small">DB: limited DML · cache: DEL</text>
+<text x="456" y="803" class="small">max 1 instance · min 0</text>
+
+<!-- network -->
+<rect x="700" y="438" width="260" height="432" rx="8" class="network-panel"/>
+<text x="720" y="468" class="heading">catalog-vpc</text>
+<text x="720" y="491" class="small">Dedicated VPC · private endpoints</text>
+<rect x="723" y="548" width="214" height="258" rx="6" fill="#fff" stroke="#0f766e" stroke-width="1.4"/>
+<text x="740" y="577" class="node">Cloud Run egress subnet</text>
+<text x="740" y="601" class="body">catalog-run-egress</text>
+<text x="740" y="624" class="body">/26 or larger</text>
+<path d="M760 680H898M760 706H898M760 732H898" stroke="#0f766e" stroke-width="2" fill="none"/>
+<circle cx="760" cy="680" r="6" fill="#14b8a6"/><circle cx="760" cy="706" r="6" fill="#14b8a6"/><circle cx="760" cy="732" r="6" fill="#14b8a6"/>
+<circle cx="898" cy="680" r="6" fill="#14b8a6"/><circle cx="898" cy="706" r="6" fill="#14b8a6"/><circle cx="898" cy="732" r="6" fill="#14b8a6"/>
+<text x="720" y="794" class="small">Direct VPC egress</text>
+<text x="720" y="816" class="small">private-ranges-only</text>
+<text x="720" y="842" class="tiny">PSA = Private Services Access</text>
+
+<!-- managed private services; outside the customer VPC -->
+<rect x="1010" y="438" width="530" height="432" rx="8" class="data-panel"/>
+<text x="1030" y="468" class="heading">Managed private services · PSA</text>
+<rect x="1030" y="500" width="490" height="145" rx="7" class="service-card"/>
+<image x="1050" y="535" width="80" height="80" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNhZWNiZmE7fS5jbHMtMSwuY2xzLTIsLmNscy0ze2ZpbGwtcnVsZTpldmVub2RkO30uY2xzLTJ7ZmlsbDojNjY5ZGY2O30uY2xzLTN7ZmlsbDojNDI4NWY0O308L3N0eWxlPjwvZGVmcz48dGl0bGU+SWNvbl8yNHB4X1NRTF9Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48ZyA+PHBvbHlnb24gY2xhc3M9ImNscy0xIiBwb2ludHM9IjQuNjcgMTAuNDQgNC42NyAxMy40NSAxMiAxNy4zNSAxMiAxNC4zNCA0LjY3IDEwLjQ0Ii8+PHBvbHlnb24gY2xhc3M9ImNscy0xIiBwb2ludHM9IjQuNjcgMTUuMDkgNC42NyAxOC4xIDEyIDIyIDEyIDE4Ljk5IDQuNjcgMTUuMDkiLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMTIgMTcuMzUgMTkuMzMgMTMuNDUgMTkuMzMgMTAuNDQgMTIgMTQuMzQgMTIgMTcuMzUiLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMTIgMjIgMTkuMzMgMTguMSAxOS4zMyAxNS4wOSAxMiAxOC45OSAxMiAyMiIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSIxOS4zMyA4LjkxIDE5LjMzIDUuOSAxMiAyIDEyIDUuMDEgMTkuMzMgOC45MSIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIxMiAyIDQuNjcgNS45IDQuNjcgOC45MSAxMiA1LjAxIDEyIDIiLz48cG9seWdvbiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iNC42NyA1Ljg3IDQuNjcgOC44OSAxMiAxMi43OSAxMiA5Ljc3IDQuNjcgNS44NyIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIxMiAxMi43OSAxOS4zMyA4Ljg5IDE5LjMzIDUuODcgMTIgOS43NyAxMiAxMi43OSIvPjwvZz48L2c+PC9zdmc+"/>
+<text x="1140" y="542" class="node">Cloud SQL · catalog-db</text>
+<text x="1140" y="566" class="body">PostgreSQL 16 · private IP</text>
+<text x="1140" y="591" class="small">PSA · IAM DB auth · TCP 3307</text>
+<text x="1140" y="613" class="small">Source of truth · zonal test tier</text>
+
+<rect x="1030" y="690" width="490" height="145" rx="7" class="service-card"/>
+<image x="1050" y="724" width="80" height="80" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMSwuY2xzLTR7ZmlsbDojNjY5ZGY2O30uY2xzLTJ7ZmlsbDojNDI4NWY0O30uY2xzLTIsLmNscy0zLC5jbHMtNHtmaWxsLXJ1bGU6ZXZlbm9kZDt9LmNscy0ze2ZpbGw6I2FlY2JmYTt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPkljb25fMjRweF9NZW1vcnlTdG9yZV9Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48ZyA+PHJlY3QgY2xhc3M9ImNscy0xIiB4PSIyIiB5PSIzLjk0IiB3aWR0aD0iMy4zMyIgaGVpZ2h0PSIyLjU4Ii8+PHJlY3QgY2xhc3M9ImNscy0xIiB4PSIyIiB5PSI4LjQ1IiB3aWR0aD0iMy4zMyIgaGVpZ2h0PSIyLjU4Ii8+PHJlY3QgY2xhc3M9ImNscy0xIiB4PSIyIiB5PSIxMi45NyIgd2lkdGg9IjMuMzMiIGhlaWdodD0iMi41OCIvPjxyZWN0IGNsYXNzPSJjbHMtMSIgeD0iMiIgeT0iMTcuNDgiIHdpZHRoPSIzLjMzIiBoZWlnaHQ9IjIuNTgiLz48cmVjdCBjbGFzcz0iY2xzLTEiIHg9IjE4LjY3IiB5PSIzLjk0IiB3aWR0aD0iMy4zMyIgaGVpZ2h0PSIyLjU4Ii8+PHJlY3QgY2xhc3M9ImNscy0xIiB4PSIxOC42NyIgeT0iOC40NSIgd2lkdGg9IjMuMzMiIGhlaWdodD0iMi41OCIvPjxyZWN0IGNsYXNzPSJjbHMtMSIgeD0iMTguNjciIHk9IjEyLjk3IiB3aWR0aD0iMy4zMyIgaGVpZ2h0PSIyLjU4Ii8+PHJlY3QgY2xhc3M9ImNscy0xIiB4PSIxOC42NyIgeT0iMTcuNDgiIHdpZHRoPSIzLjMzIiBoZWlnaHQ9IjIuNTgiLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMjEuMzMgNi41MiAxOC42NyA2LjUyIDE4LjY3IDMuOTQgMjEuMzMgNi41MiIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIyMS4zMyAxMS4wMyAxOC42NyAxMS4wMyAxOC42NyA4LjQ1IDIxLjMzIDExLjAzIi8+PHBvbHlnb24gY2xhc3M9ImNscy0yIiBwb2ludHM9IjIxLjMzIDE1LjU1IDE4LjY3IDE1LjU1IDE4LjY3IDEyLjk3IDIxLjMzIDE1LjU1Ii8+PHBvbHlnb24gY2xhc3M9ImNscy0yIiBwb2ludHM9IjIxLjMzIDIwLjA3IDE4LjY3IDIwLjA3IDE4LjY3IDE3LjQ4IDIxLjMzIDIwLjA3Ii8+PHBhdGggY2xhc3M9ImNscy0zIiBkPSJNNS4zMywyMkgxOC42N1YySDUuMzNabTYtOUg4bDQuNjctNy43NFYxMUgxNmwtNC42Nyw3Ljc0WiIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtNCIgcG9pbnRzPSIxMS4zMyAyMiAxMS4zMyAxOC43NyAxNiAxMS4wMyAxMi42NyAxMS4wMyAxMi42NyAyIDE4LjY3IDIgMTguNjcgMjIgMTEuMzMgMjIiLz48L2c+PC9nPjwvc3ZnPg=="/>
+<text x="1140" y="732" class="node">Memorystore · catalog-cache</text>
+<text x="1140" y="756" class="body">Redis 7.0 · Basic 1 GiB</text>
+<text x="1140" y="781" class="small">PSA · AUTH + TLS · port 6378</text>
+<text x="1140" y="803" class="small">Disposable cache · no HA claim</text>
+
+<!-- primary and private flows -->
+<path d="M245 570H350" class="user-flow"/>
+<text x="257" y="552" class="small">HTTPS · GET</text>
+<path d="M245 770H350" class="operator-flow"/>
+<text x="257" y="752" class="small">IAM token</text>
+
+<path d="M625 570H723" class="network-flow"/>
+<path d="M625 770H723" class="network-flow"/>
+<text x="650" y="550" class="tiny">private egress</text>
+<text x="650" y="750" class="tiny">private egress</text>
+
+<path d="M937 570H1030" class="network-flow"/>
+<path d="M937 770H1030" class="network-flow"/>
+
+<!-- managed telemetry -->
+<path d="M485 870V985H1210V1008" class="telemetry-flow"/>
+<circle cx="485" cy="985" r="4" fill="#64748b"/>
+<path d="M1275 870V985" class="telemetry-flow"/>
+<circle cx="1275" cy="985" r="4" fill="#64748b"/>
+<text x="800" y="978" class="small">platform logs / managed service metrics</text>
+<rect x="800" y="1008" width="740" height="116" rx="8" class="telemetry-panel"/>
+<image x="900" y="1027" width="64" height="64" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0Mjg1ZjQ7fS5jbHMtMntmaWxsOm5vbmU7fS5jbHMtM3tmaWxsOiM2NjlkZjY7fS5jbHMtNHtmaWxsOiNhZWNiZmE7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfTG9nZ2luZ19Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48cmVjdCBjbGFzcz0iY2xzLTEiIHg9IjYiIHk9IjExIiB3aWR0aD0iNCIgaGVpZ2h0PSIyIi8+PHJlY3QgY2xhc3M9ImNscy0xIiB4PSI0IiB5PSIxOCIgd2lkdGg9IjYiIGhlaWdodD0iMiIvPjxnIGRhdGEtbmFtZT0iY29sb3JlZC0zMi9sb2dzIj48cmVjdCBjbGFzcz0iY2xzLTIiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIvPjxnID48cG9seWdvbiBpZD0iRmlsbC0zIiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iNCAxOCA2IDE4IDYgNiA0IDYgNCAxOCIvPjxwb2x5Z29uIGlkPSJGaWxsLTQiIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSI5IDcgMjIgNyAyMiAzIDkgMyA5IDciLz48cG9seWdvbiBpZD0iRmlsbC00LTIiIGRhdGEtbmFtZT0iRmlsbC00IiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iOSAxNCAyMiAxNCAyMiAxMCA5IDEwIDkgMTQiLz48cG9seWdvbiBpZD0iRmlsbC00LTMiIGRhdGEtbmFtZT0iRmlsbC00IiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iOSAyMSAyMiAyMSAyMiAxNyA5IDE3IDkgMjEiLz48cG9seWdvbiBpZD0iRmlsbC03IiBjbGFzcz0iY2xzLTQiIHBvaW50cz0iMiA4IDggOCA4IDIgMiAyIDIgOCIvPjwvZz48L2c+PC9nPjwvc3ZnPg=="/>
+<text x="980" y="1054" class="node">Cloud Logging</text><text x="980" y="1079" class="small">structured app events</text>
+<image x="1220" y="1027" width="64" height="64" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM2NjlkZjY7fS5jbHMtMntmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfTW9uaXRvcmluZ19Db2xvcjwvdGl0bGU+PGcgZGF0YS1uYW1lPSJQcm9kdWN0IEljb25zIj48cmVjdCBjbGFzcz0iY2xzLTEiIHg9IjEwLjgzIiB5PSIxNS44NCIgd2lkdGg9IjIuMzMiIGhlaWdodD0iMi42NCIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTE4LjQ4LDEzLjg3YS41Ni41NiwwLDAsMS0uNC0uMTdMMTQsOS40N2wtMi43NCwyLjg5YS41Ny41NywwLDAsMS0uNzYuMDVMOC40MiwxMC43M2wtMi4yLDIuOTJhLjU2LjU2LDAsMCwxLS40NS4yMkgydjEuNzFhLjc1Ljc1LDAsMCwwLC43NC43NUgyMS4yNmEuNzUuNzUsMCwwLDAsLjc0LS43NVYxMy44N1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik01LjUsMTIuNzYsNy44OCw5LjZhLjU1LjU1LDAsMCwxLC4zNy0uMjIuNjMuNjMsMCwwLDEsLjQyLjEybDIuMTIsMS43MiwyLjgtMi45NGEuNTQuNTQsMCwwLDEsLjQtLjE3aDBhLjU0LjU0LDAsMCwxLC40LjE3bDQuMzMsNC40OEgyMlY2YS43NC43NCwwLDAsMC0uNzQtLjc0SDIuNzRBLjc0Ljc0LDAsMCwwLDIsNnY2LjgxWiIvPjxyZWN0IGNsYXNzPSJjbHMtMiIgeD0iOC42NyIgeT0iMTguMTgiIHdpZHRoPSI2LjY3IiBoZWlnaHQ9IjAuNjEiIHJ4PSIwLjMiLz48L2c+PC9zdmc+"/>
+<text x="1300" y="1054" class="node">Cloud Monitoring</text><text x="1300" y="1079" class="small">Cloud Run / SQL / Redis metrics</text>
+
+<!-- legend -->
+<line x1="34" y1="900" x2="72" y2="900" class="user-flow"/><text x="82" y="904" class="legend">customer request</text>
+<line x1="34" y1="928" x2="72" y2="928" class="operator-flow"/><text x="82" y="932" class="legend">IAM / operator</text>
+<line x1="34" y1="956" x2="72" y2="956" class="network-flow"/><text x="82" y="960" class="legend">private data path</text>
+</svg>

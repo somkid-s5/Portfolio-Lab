@@ -1,0 +1,49 @@
+from pathlib import Path
+import re
+import subprocess
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+README = ROOT / "README.md"
+
+
+class Lab019GuideTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.readme = README.read_text(encoding="utf-8")
+
+    def test_all_tasks_have_expected_and_recording_fields(self):
+        ids = re.findall(r"(?m)^### Task T(\d{2}) — ", self.readme)
+        self.assertEqual(ids, [f"{i:02d}" for i in range(18)])
+        tasks = re.split(r"(?m)^### Task T\d{2} — ", self.readme)[1:]
+        self.assertEqual(len(tasks), 18)
+        for task in tasks:
+            self.assertIn("**ผลที่คาดหวัง:**", task)
+            self.assertIn("**บันทึกจริง / หลักฐาน:**", task)
+
+    def test_every_bash_example_parses(self):
+        blocks = re.findall(r"(?ms)^```bash[ \t]*\n(.*?)^```[ \t]*$", self.readme)
+        self.assertGreaterEqual(len(blocks), 25)
+        for index, block in enumerate(blocks, start=1):
+            result = subprocess.run(
+                ["bash", "-n"], input=block, text=True, capture_output=True, check=False
+            )
+            self.assertEqual(result.returncode, 0, f"bash block {index}: {result.stderr}")
+
+    def test_local_markdown_links_resolve(self):
+        links = re.findall(r"(?<!!)\[[^\]]+\]\(([^)]+)\)", self.readme)
+        for target in links:
+            local = target.split("#", 1)[0]
+            if not local or "://" in local or local.startswith("mailto:"):
+                continue
+            resolved = (README.parent / local).resolve()
+            self.assertTrue(resolved.is_file(), f"Broken README link: {target}")
+
+    def test_cloud_results_are_not_claimed(self):
+        self.assertIn("Cloud verification:** Not run", self.readme)
+        self.assertIn("ไม่ถือ Expected เป็น PASS", self.readme)
+        self.assertIn("GitHub CI ไม่สร้าง GCP resources", self.readme)
+
+
+if __name__ == "__main__":
+    unittest.main()

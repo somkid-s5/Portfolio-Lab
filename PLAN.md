@@ -1,6 +1,6 @@
 # แผนดำเนินงาน — GCP 20 Solution Labs
 
-**สถานะ:** พร้อมใช้ตั้ง Goal; ยังไม่เริ่มจัดทำ Lab จริง 01–20
+**สถานะ:** Lab 01–20 Guide-ready หลัง repository CI #432 ผ่านครบ 81/81 jobs. Cloud verification ทุก Lab ยังคง Not run.
 
 ## ผลลัพธ์ปลายทาง
 
@@ -88,8 +88,8 @@ Guide-ready ไม่เท่ากับ Cloud-verified โดย Cloud-verifi
 
 ## ข้อความตั้ง Goal ที่พร้อมใช้
 
-> จัดทำ GCP Solution Labs ทั้ง 20 เรื่องใน repository somkid-s5/Portfolio-Lab ตาม PLAN.md และ GCP/ROADMAP.md ให้ครบระดับ Guide-ready ทำทีละ Lab เริ่มจาก Lab 01: วาง brief และ architecture ให้ชัดก่อนเขียน Task/README พร้อม App, scripts, Diagram และการตรวจที่เหมาะสม เมื่อ Lab ปัจจุบันผ่าน self-review แล้วจึงไป Lab ถัดไป บันทึกงานบน GitHub ผ่าน branch/PR และอัปเดต GCP/PROGRESS.md ทุก checkpoint ทำใน Cloud โดยไม่พึ่ง laptop ไม่สร้างทรัพยากร GCP ที่คิดค่าใช้จ่าย ไม่ deploy เว็บไซต์ Portfolio และไม่อ้าง Cloud-verified เมื่อยังไม่ได้รันจริง
+> จัดทำ GCP Solution Labs ทั้ง 20 เรื่องใน repository somkid-s5/Portfolio-Lab ตาม PLAN.md และ GCP/ROADMAP.md ให้ครบระดับ Guide-ready ทำทีละ Lab เริ่มจาก Lab ที่ยังไม่ Guide-ready ลำดับถัดไป: วาง brief และ architecture ให้ชัดก่อนเขียน Task/README พร้อม App, scripts, Diagram และการตรวจที่เหมาะสม เมื่อ Lab ปัจจุบันผ่าน self-review แล้วจึงไป Lab ถัดไป บันทึกงานบน GitHub ผ่าน branch/PR และอัปเดต GCP/PROGRESS.md ทุก checkpoint ทำใน Cloud โดยไม่พึ่ง laptop ไม่สร้างทรัพยากร GCP ที่คิดค่าใช้จ่าย ไม่ deploy เว็บไซต์ Portfolio และไม่อ้าง Cloud-verified เมื่อยังไม่ได้รันจริง
 
-## สิ่งที่ยังไม่เริ่มในรอบวางแผน
+## สถานะดำเนินงาน
 
-ยังไม่ตั้ง Goal อัตโนมัติ และยังไม่เริ่มสร้าง Lab 01–20 ผู้ใช้จะเป็นผู้เริ่ม Goal เมื่อพร้อม
+Lab 01–20 Guide-ready หลัง repository CI #432 ผ่านครบ 81/81 jobs รวม Lab 20 ครบ 5/5 checks. ไม่มี GCP provisioning และ Cloud verification ทุก Lab ยังคง Not run. ติดตามสถานะล่าสุดที่ GCP/PROGRESS.md.

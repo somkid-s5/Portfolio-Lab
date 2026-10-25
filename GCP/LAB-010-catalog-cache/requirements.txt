@@ -1,0 +1,7 @@
+Flask==3.1.2
+SQLAlchemy==2.0.44
+pg8000==1.31.5
+cloud-sql-python-connector[pg8000]==1.18.5
+redis==7.4.1
+requests==2.34.2
+gunicorn==23.0.0

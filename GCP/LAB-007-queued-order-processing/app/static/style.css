@@ -1,0 +1,19 @@
+:root{font-family:"Noto Sans Thai",Tahoma,Arial,sans-serif;color:#152c3a;background:#f3f7fb;font-size:16px}
+*{box-sizing:border-box}body{margin:0}header{background:#153a49;color:white;padding:28px 0}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}.eyebrow{font-size:12px;letter-spacing:2px;color:#85e3df}
+h1{font-size:36px;margin:8px 0}h2{font-size:23px;margin:0 0 16px}p{line-height:1.65}
+.identity,.section-head,.actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.identity,.section-head{justify-content:space-between}
+main{padding-top:22px!important;padding-bottom:36px!important}.card{background:white;border:1px solid #d7e2ea;border-radius:10px;padding:24px;margin:20px 0}
+#message{border-left:4px solid #0e8e80;background:#e4f3ef;padding:12px 16px;min-height:48px;overflow-wrap:anywhere}
+#message.error{border-color:#b73535;background:#fff0ee}.note,footer{font-size:13px;color:#526c7a}header .note{color:#b9d8e3}
+button{font:inherit;background:#14746e;border:1px solid #14746e;border-radius:5px;color:white;padding:9px 15px;cursor:pointer}
+button.secondary{color:#254958;background:#edf4f8;border-color:#d7e5ec}button:disabled{opacity:.5;cursor:default}button:hover:not(:disabled){filter:brightness(.94)}
+input{font:inherit;border:1px solid #a8bfcd;border-radius:4px;padding:10px;background:white;color:#152c3a}
+#login-form{display:grid;gap:10px;max-width:380px}#login-form button{margin-top:8px}label{font-weight:600}
+.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{text-align:left;vertical-align:top;border-bottom:1px solid #dce7ee;padding:13px 8px}
+th{font-size:14px;color:#3e5d70}td small{display:block;font-size:12px;color:#5e788a;margin-top:5px;overflow-wrap:anywhere}
+.quantity{width:90px}pre{font:13px/1.6 ui-monospace,Consolas,monospace;background:#f0f5fa;padding:18px;white-space:pre-wrap;overflow-wrap:anywhere;border-radius:6px;margin-bottom:0}
+.badge{display:inline-block;border-radius:16px;padding:4px 10px;font-size:14px;background:#eaf0f5}.state-confirmed{background:#dcf4e5;color:#116244}
+.state-rejected,.state-exhausted{background:#ffebe8;color:#9c2b2b}.state-accepted,.state-pending,.state-publishing{background:#fff2d5;color:#805a0d}
+.state-published{background:#e4efff;color:#1b55a3}footer{line-height:1.8;margin:24px 0}[hidden]{display:none!important}
+@media(max-width:640px){h1{font-size:28px}.wrap{padding:0 14px}.card{padding:18px}th,td{padding:10px 6px}}

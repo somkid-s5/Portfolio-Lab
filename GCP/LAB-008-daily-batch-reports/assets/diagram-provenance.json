@@ -1,0 +1,58 @@
+{
+  "archive_url": "https://services.google.com/fh/files/misc/google-cloud-legacy-icons.zip",
+  "archive_sha256": "a6d9d7921758042538b462f03cf64614c2cebd96743b3ed63580a769fc7de3e9",
+  "official_entrypoint": "https://cloud.google.com/icons",
+  "icons": [
+    {
+      "service": "Cloud Run",
+      "path": "cloud_run/cloud_run.svg",
+      "sha256": "97e1db08021eecae2a8c5124f382a9b451dc63deecaa87825dc5b396fab59c37"
+    },
+    {
+      "service": "Cloud Scheduler",
+      "path": "cloud_scheduler/cloud_scheduler.svg",
+      "sha256": "f1880ba2be9c1f294af12a7c0594d535f94e860ea9a5262eb94236b133fce5f9"
+    },
+    {
+      "service": "Cloud Storage",
+      "path": "cloud_storage/cloud_storage.svg",
+      "sha256": "2528d1bf4dce824c66e5a1421e22e1153e0661b296a48d310886d5cd09921fef"
+    },
+    {
+      "service": "Firestore",
+      "path": "firestore/firestore.svg",
+      "sha256": "2452104b804806ec196f0cac9bb1f8c74884fede904f94f2adf8c7df4256c9d1"
+    },
+    {
+      "service": "Pub/Sub",
+      "path": "pubsub/pubsub.svg",
+      "sha256": "bd71cb16b24c5a368fc7913525e093f03e426d06e8917c1f255187e9f6c10217"
+    },
+    {
+      "service": "Cloud Logging",
+      "path": "docs/images/cloud_logging.svg",
+      "sha256": "f7fdd93a1847fdebf174c78cce418fac52198be72893116e7787ca3e1659cf38",
+      "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+      "git_blob_sha1": "7691a3ed0450b744311427e8818c5d5bf4894c30"
+    },
+    {
+      "service": "Cloud Monitoring",
+      "path": "docs/images/cloud_monitoring.svg",
+      "sha256": "804f66b773fcc5cd59a3fb8e0da9ff3de9b69efa99c23f8e1797943647a8e79e",
+      "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+      "git_blob_sha1": "ab3111db6d740473ea85ca9606631b97a7241236"
+    }
+  ],
+  "layout_decision": "Regional schedule→coordinator→job stays horizontal; pinned source, Firestore ledger and create-only output sit below. Global Pub/Sub, Logging and Monitoring stay outside the region; external operator/consumer remain outside the project. Watchdog log alerts route from Logging through Monitoring.",
+  "verification": "Design artifact only; no GCP deployment or Cloud verification is implied.",
+  "style_attribution": {
+    "upstream": "https://github.com/cathrynlavery/diagram-design",
+    "license": "MIT",
+    "note": "Diagram Design conventions adapted; official Google Cloud icons retain original colors and geometry."
+  },
+  "pinned_icon_mirror": {
+    "repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+    "commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+    "note": "Pinned expansion of Google Cloud product icon downloads; original Google ownership and colors retained."
+  }
+}

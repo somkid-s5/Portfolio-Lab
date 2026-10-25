@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 140" role="img" aria-labelledby="title desc">
+<title id="title">Synthetic product placeholder</title><desc id="desc">Decorative abstract placeholder used for the sample catalog.</desc>
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#203a3d"/><stop offset="1" stop-color="#25283b"/></linearGradient></defs>
+<rect width="240" height="140" rx="12" fill="url(#g)"/><circle cx="165" cy="62" r="34" fill="#c4f36b" opacity=".72"/><path d="M36 112 89 56l36 40 21-22 58 38Z" fill="#72d9c2" opacity=".75"/><circle cx="69" cy="39" r="11" fill="#f3f0e9" opacity=".8"/>
+</svg>

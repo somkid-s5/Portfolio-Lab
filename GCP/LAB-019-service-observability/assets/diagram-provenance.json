@@ -1,0 +1,63 @@
+{
+  "diagram": "assets/solution.svg",
+  "standalone_html": "assets/solution.html",
+  "style": "Diagram Design — Personal Custom from the user's diagram-design.zip",
+  "style_attribution": "Adapted from Cathryn Lavery / LittleMight, diagram-design (MIT)",
+  "style_reference": "../../docs/diagram-style.md",
+  "style_source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+  "official_icon_catalog": "https://cloud.google.com/icons",
+  "icon_mirror_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+  "icon_source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+  "icon_license": "Apache-2.0",
+  "render_target_width": 1000,
+  "cloud_verification": "not-run",
+  "layout_decisions": [
+    "Pub/Sub is drawn at project scope outside the regional frame; Cloud Run and Cloud SQL are regional resources.",
+    "Cloud Run services remain outside the VPC boundary. Only the actual VPC egress subnet is nested in the VPC frame; Cloud SQL remains a managed service outside that boundary and is reached over Private Services Access.",
+    "API and Worker are vertically offset to keep the Pub/Sub push route and the two data paths separate; API status reads and Worker result writes share the real private egress path without crossing.",
+    "The Monitoring uptime check uses a distinct orange OIDC path to the IAM-authenticated API; the API and Worker never grant allUsers.",
+    "Run service signals are grouped by destination: structured logs/log-based SLI metrics, sampled traces, and Monitoring SLO/dashboard/alerts. Sampling is labelled; the diagram does not imply trace completeness.",
+    "Orthogonal routes use short gutters, arrows terminate at destinations, and no route traverses an unrelated resource card.",
+    "API and Worker telemetry paths meet at a visible junction because both share the same Observability destinations.",
+    "The one-off Schema Migrator is placed in the regional service area outside the VPC boundary. Its private egress route enters the VPC subnet before reaching Cloud SQL through PSA; this separates the runtime migration job from the managed SQL scope.",
+    "The Pub/Sub dead-letter topic has a separate OIDC push subscription to the Worker dead-letter endpoint; an independent operator pull subscription keeps the message available for bounded manual redrive."
+  ],
+  "icons": {
+    "cloud_run.svg": {
+      "path": "assets/icons/cloud_run.svg",
+      "source_path": "docs/images/cloud_run.svg",
+      "git_blob_sha": "e2e3b7d3165bb94f0b37aa0a78bf85b2d851100c",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_run.svg"
+    },
+    "pubsub.svg": {
+      "path": "assets/icons/pubsub.svg",
+      "source_path": "docs/images/pubsub.svg",
+      "git_blob_sha": "51cccfd913acf353f597ea6300300ba27919ef17",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/pubsub.svg"
+    },
+    "cloud_sql.svg": {
+      "path": "assets/icons/cloud_sql.svg",
+      "source_path": "docs/images/cloud_sql.svg",
+      "git_blob_sha": "9f29818450998825fd6fcca0a5f7621da2d811ee",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_sql.svg"
+    },
+    "cloud_logging.svg": {
+      "path": "assets/icons/cloud_logging.svg",
+      "source_path": "docs/images/cloud_logging.svg",
+      "git_blob_sha": "7691a3ed0450b744311427e8818c5d5bf4894c30",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_logging.svg"
+    },
+    "cloud_monitoring.svg": {
+      "path": "assets/icons/cloud_monitoring.svg",
+      "source_path": "docs/images/cloud_monitoring.svg",
+      "git_blob_sha": "ab3111db6d740473ea85ca9606631b97a7241236",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_monitoring.svg"
+    },
+    "trace.svg": {
+      "path": "assets/icons/trace.svg",
+      "source_path": "docs/images/trace.svg",
+      "git_blob_sha": "b018b3c54cbe6ed82f555fdb4d00002dd87841fc",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/trace.svg"
+    }
+  }
+}

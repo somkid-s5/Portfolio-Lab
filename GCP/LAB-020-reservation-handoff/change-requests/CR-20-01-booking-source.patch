@@ -1,0 +1,168 @@
+diff --git a/app/api.py b/app/api.py
+--- a/app/api.py
++++ b/app/api.py
+@@ -187,24 +187,30 @@
+     @app.post("/api/bookings")
+     def create_booking():
+         payload = request.get_json(silent=True)
++        if not isinstance(payload, dict) or not {"slot_id"} <= set(payload) or set(payload) - {"slot_id", "booking_source"}:
+-        if not isinstance(payload, dict) or set(payload) != {"slot_id"}:
+             raise Problem(400, "invalid_booking")
+         slot_id = payload.get("slot_id")
++        booking_source = payload.get("booking_source", "portal")
+         key = request.headers.get("Idempotency-Key", "")
++        if (
++            not isinstance(slot_id, str)
++            or not _SLOT.fullmatch(slot_id)
++            or booking_source not in ("portal", "support_desk")
++            or not _KEY.fullmatch(key)
++        ):
+-        if not isinstance(slot_id, str) or not _SLOT.fullmatch(slot_id) or not _KEY.fullmatch(key):
+             raise Problem(400, "invalid_booking")
+         booking_id = uuid.uuid4().hex
+         try:
+             with database().begin() as connection:
+                 existing = connection.execute(
+                     text(
++                        "SELECT booking_id, slot_id, booking_source, status FROM bookings "
+-                        "SELECT booking_id, slot_id, status FROM bookings "
+                         "WHERE created_by=:actor AND idempotency_key=:key"
+                     ),
+                     {"actor": g.actor, "key": key},
+                 ).mappings().first()
+                 if existing:
++                    if existing["slot_id"] != slot_id or existing["booking_source"] != booking_source:
+-                    if existing["slot_id"] != slot_id:
+                         raise Problem(409, "idempotency_key_conflict")
+                     return jsonify(booking=dict(existing), replayed=True), 200
+                 result = connection.execute(
+@@ -221,10 +227,10 @@
+                     raise Problem(409 if exists else 404, "slot_full" if exists else "slot_not_found")
+                 connection.execute(
+                     text(
++                        "INSERT INTO bookings(booking_id, created_by, slot_id, booking_source, idempotency_key, status) "
++                        "VALUES (:id, :actor, :slot, :source, :key, 'confirmed')"
+-                        "INSERT INTO bookings(booking_id, created_by, slot_id, idempotency_key, status) "
+-                        "VALUES (:id, :actor, :slot, :key, 'confirmed')"
+                     ),
++                    {"id": booking_id, "actor": g.actor, "slot": slot_id, "source": booking_source, "key": key},
+-                    {"id": booking_id, "actor": g.actor, "slot": slot_id, "key": key},
+                 )
+         except IntegrityError:
+             with database().connect() as connection:
+@@ -235,7 +241,7 @@
+                     ),
+                     {"actor": g.actor, "key": key},
+                 ).mappings().first()
++            if existing and existing["slot_id"] == slot_id and existing["booking_source"] == booking_source:
+-            if existing and existing["slot_id"] == slot_id:
+                 return jsonify(booking=dict(existing), replayed=True), 200
+             raise Problem(409, "idempotency_key_conflict")
+         print(
+@@ -251,7 +257,7 @@
+             flush=True,
+         )
+         return jsonify(
++            booking={"booking_id": booking_id, "slot_id": slot_id, "booking_source": booking_source, "status": "confirmed"},
+-            booking={"booking_id": booking_id, "slot_id": slot_id, "status": "confirmed"},
+             replayed=False,
+         ), 201
+ 
+diff --git a/app/worker.py b/app/worker.py
+--- a/app/worker.py
++++ b/app/worker.py
+@@ -91,7 +91,7 @@
+             with app.extensions["db"].connect() as connection:
+                 rows = connection.execute(
+                     text(
++                        "SELECT booking_id, booking_source, slot_id, status, created_at "
+-                        "SELECT booking_id, slot_id, status, created_at "
+                         "FROM bookings WHERE substr(created_at, 1, 10)=:report_date "
+                         "ORDER BY created_at ASC LIMIT 5001"
+                     ),
+@@ -110,10 +110,10 @@
+                 return "", 204
+             output = io.StringIO(newline="")
+             writer = csv.writer(output, lineterminator="\n")
++            writer.writerow(["booking_id", "booking_source", "slot_id", "status", "created_at"])
+-            writer.writerow(["booking_id", "slot_id", "status", "created_at"])
+             for item in rows:
+                 writer.writerow(
++                    [item["booking_id"], item["booking_source"], item["slot_id"], item["status"], item["created_at"]]
+-                    [item["booking_id"], item["slot_id"], item["status"], item["created_at"]]
+                 )
+             object_name = f"{app.config['ENVIRONMENT']}/reports/{report_id}.csv"
+             blob = get_storage().bucket(app.config["REPORT_BUCKET"]).blob(object_name)
+diff --git a/tests/test_app.py b/tests/test_app.py
+--- a/tests/test_app.py
++++ b/tests/test_app.py
+@@ -92,10 +92,10 @@
+     def tearDown(self):
+         self.engine.dispose()
+ 
++    def booking(self, user, key, slot="consult-morning", source=None):
+-    def booking(self, user, key, slot="consult-morning"):
+         return self.api.post(
+             "/api/bookings",
++            json={"slot_id": slot, **({"booking_source": source} if source else {})},
+-            json={"slot_id": slot},
+             headers={"X-Test-User": user, "Idempotency-Key": key},
+         )
+ 
+@@ -109,2 +109,2 @@
+-        self.assertEqual(versions, ["001_initial"])
++        self.assertEqual(versions, ["001_initial", "002_booking_source"])
+         self.assertEqual(slots, 3)
+@@ -211,13 +211,45 @@
+             f"/api/reports/{report_id}/download", headers={"X-Test-User": "one@example.test"}
+         )
+         self.assertEqual(download.status_code, 200)
++        self.assertIn(b"booking_id,booking_source,slot_id,status,created_at", download.data)
+-        self.assertIn(b"booking_id,slot_id,status,created_at", download.data)
+         forbidden = self.api.get(
+             f"/api/reports/{report_id}", headers={"X-Test-User": "other@example.test"}
+         )
+         self.assertEqual(forbidden.status_code, 404)
+         self.assertEqual(self.worker.post("/events/reports", json=envelope).status_code, 204)
+ 
++    def test_change_request_booking_source_is_validated_and_exported(self):
++        portal = self.booking("one@example.test", "booking-key-4101")
++        support = self.booking(
++            "two@example.test", "booking-key-4102", source="support_desk"
++        )
++        invalid = self.api.post(
++            "/api/bookings",
++            json={"slot_id": "consult-morning", "booking_source": "unknown"},
++            headers={"X-Test-User": "three@example.test", "Idempotency-Key": "booking-key-4103"},
++        )
++        self.assertEqual(portal.status_code, 201)
++        self.assertEqual(portal.json["booking"]["booking_source"], "portal")
++        self.assertEqual(support.status_code, 201)
++        self.assertEqual(support.json["booking"]["booking_source"], "support_desk")
++        self.assertEqual(invalid.status_code, 400)
++        report_date = datetime.now(timezone.utc).date().isoformat()
++        accepted = self.api.post(
++            "/api/reports",
++            json={"report_date": report_date},
++            headers={"X-Test-User": "one@example.test", "Idempotency-Key": "report-key-4101"},
++        )
++        message = self.publisher.events[-1][1]
++        envelope = {"message": {"data": base64.b64encode(message).decode("ascii")}}
++        self.assertEqual(self.worker.post("/events/reports", json=envelope).status_code, 204)
++        downloaded = self.api.get(
++            f"/api/reports/{accepted.json['report_id']}/download",
++            headers={"X-Test-User": "one@example.test"},
++        )
++        self.assertIn(b"booking_source", downloaded.data)
++        self.assertIn(b"portal", downloaded.data)
++        self.assertIn(b"support_desk", downloaded.data)
++
+     def test_invalid_report_date_and_missing_identity_are_rejected(self):
+         invalid = self.api.post(
+             "/api/reports",
+diff --git a/app/migrations/002_booking_source.sql b/app/migrations/002_booking_source.sql
+new file mode 100644
+--- /dev/null
++++ b/app/migrations/002_booking_source.sql
+@@ -1,0 +1,1 @@
++ALTER TABLE bookings ADD COLUMN booking_source TEXT NOT NULL DEFAULT 'portal';

@@ -1,0 +1,44 @@
+steps:
+  - id: unit-and-release-contract-tests
+    name: python:3.12-slim
+    dir: GCP/LAB-014-secure-app-delivery
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        python -m pip install --no-cache-dir -r app/requirements.txt -r tests/requirements.txt
+        python -m unittest discover -s app/tests -v
+        python -m unittest discover -s tests -p 'test_*.py' -v
+  - id: build-commit-image
+    name: gcr.io/cloud-builders/docker
+    dir: GCP/LAB-014-secure-app-delivery
+    args:
+      - build
+      - --pull
+      - --build-arg
+      - COMMIT_SHA=$COMMIT_SHA
+      - --tag
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:$COMMIT_SHA
+      - --label
+      - org.opencontainers.image.revision=$COMMIT_SHA
+      - --file
+      - app/Dockerfile
+      - .
+  - id: push-commit-image
+    name: gcr.io/cloud-builders/docker
+    dir: GCP/LAB-014-secure-app-delivery
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:$COMMIT_SHA
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}:$COMMIT_SHA
+serviceAccount: projects/$PROJECT_ID/serviceAccounts/lab014-builder@$PROJECT_ID.iam.gserviceaccount.com
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_MEDIUM
+  substitutionOption: MUST_MATCH
+timeout: 900s
+substitutions:
+  _REGION: asia-southeast1
+  _REPOSITORY: lab014-apps
+  _IMAGE: shipping-quote-api

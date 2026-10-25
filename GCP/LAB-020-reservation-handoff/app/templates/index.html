@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12304a">
+  <title>ระบบจองและส่งรายงาน · Lab 20</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Lab 20 home"><span class="brand-mark">LH</span><span>Lab Handoff</span></a>
+    <span class="environment">{{ environment }}</span>
+  </header>
+  <main class="page">
+    <section class="hero">
+      <p class="eyebrow">INTERNAL SERVICE · {{ environment|upper }}</p>
+      <h1>จองบริการและติดตามรายงาน</h1>
+      <p>จองช่วงเวลาสำหรับทีม Cloud แล้วสร้างรายงานแบบเบื้องหลัง ข้อมูลของคุณจะแสดงเฉพาะบัญชีที่ลงชื่อเข้าใช้</p>
+    </section>
+    <section class="panel" aria-labelledby="slots-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">01 · BOOKING</p><h2 id="slots-title">ช่วงเวลาที่เปิดให้จอง</h2></div>
+        <button id="refresh" class="button secondary" type="button">รีเฟรช</button>
+      </div>
+      <p id="booking-status" class="status" role="status" aria-live="polite"></p>
+      <div id="slots" class="slot-list"><p class="muted">กำลังโหลดข้อมูล…</p></div>
+    </section>
+    <section class="panel" aria-labelledby="reports-title">
+      <div class="section-heading"><div><p class="eyebrow">02 · ASYNC REPORT</p><h2 id="reports-title">สร้างรายงานการจอง</h2></div></div>
+      <form id="report-form" class="report-form">
+        <label for="report-date">วันที่ของรายงาน (UTC)</label>
+        <div class="form-row">
+          <input id="report-date" name="report_date" type="date" required>
+          <button class="button primary" type="submit">ส่งคำขอสร้างรายงาน</button>
+        </div>
+      </form>
+      <p id="report-status" class="status" role="status" aria-live="polite"></p>
+      <div id="reports" class="report-list"></div>
+    </section>
+    <section class="panel compact" aria-labelledby="ops-title">
+      <p class="eyebrow">SERVICE STATUS</p>
+      <h2 id="ops-title">การเชื่อมต่อ</h2>
+      <p id="connection-status" class="muted">กำลังตรวจสอบ…</p>
+    </section>
+    <footer>Lab 20 · ตัวอย่างข้อมูลสังเคราะห์ · ไม่ใช้ข้อมูลลูกค้าจริง</footer>
+  </main>
+</body>
+</html>

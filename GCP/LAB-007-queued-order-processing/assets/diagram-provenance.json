@@ -1,0 +1,51 @@
+{
+  "archive_sha256": "a6d9d7921758042538b462f03cf64614c2cebd96743b3ed63580a769fc7de3e9",
+  "archive_url": "https://services.google.com/fh/files/misc/google-cloud-legacy-icons.zip",
+  "entrypoint": "https://cloud.google.com/icons",
+  "icons": [
+    {
+      "path": "cloud_run/cloud_run.svg",
+      "service": "Cloud Run",
+      "sha256": "97e1db08021eecae2a8c5124f382a9b451dc63deecaa87825dc5b396fab59c37"
+    },
+    {
+      "path": "cloud_sql/cloud_sql.svg",
+      "service": "Cloud Sql",
+      "sha256": "ffdf8329a098d53313f4a8b10449b33e1cf9f139aaeb4a53e6564c1fad6b8b1b"
+    },
+    {
+      "path": "pubsub/pubsub.svg",
+      "service": "Pubsub",
+      "sha256": "bd71cb16b24c5a368fc7913525e093f03e426d06e8917c1f255187e9f6c10217"
+    },
+    {
+      "path": "secret_manager/secret_manager.svg",
+      "service": "Secret Manager",
+      "sha256": "194b0f81870b265064680007e472d011797d01fbdede0bb4ade28e025a22e7b6"
+    },
+    {
+      "path": "cloud_scheduler/cloud_scheduler.svg",
+      "service": "Cloud Scheduler",
+      "sha256": "f1880ba2be9c1f294af12a7c0594d535f94e860ea9a5262eb94236b133fce5f9"
+    },
+    {
+      "path": "artifact_registry/artifact_registry.svg",
+      "service": "Artifact Registry",
+      "sha256": "f12916d3a2b3fcab588c475f35200a4f9db6cdde421e7dacac8ce7c4c55a72f1"
+    }
+  ],
+  "layout_decision": "Role-specific Cloud Run services remain individually identifiable; Scheduler, queue, and private database links use direct, non-perimeter routes; global services stay outside the regional boundary; Cloud SQL remains outside the customer VPC behind PSA.",
+  "style_attribution": {
+    "license": "MIT",
+    "note": "Diagram Design conventions adapted; official Google Cloud glyphs keep original geometry and colors.",
+    "upstream": "https://github.com/cathrynlavery/diagram-design"
+  },
+  "verification": "Architecture and event-flow diagrams are design artifacts only; no GCP deployment or Cloud verification is implied.",
+  "visual_review": {
+    "workflow_run": "https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40065411446",
+    "workflow_job_id": 120787509313,
+    "preview_width_px": 960,
+    "reviewed_at": "2026-10-24",
+    "result": "Both saved CI previews inspected at document width; labels and arrows are legible, topology footer clears the regional boundary."
+  }
+}

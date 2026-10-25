@@ -1,0 +1,22 @@
+project_id    = "replace-with-your-lab-project"
+region        = "asia-southeast1"
+bucket_suffix = "change123"
+
+# Use the principal shown by: gcloud auth list --filter=status:ACTIVE
+operator_member = "user:you@example.com"
+producer_member = "user:you@example.com"
+
+# Keep one partner for the baseline. The partner-b change request is documented
+# in the guide and adds a second secret, queue, simulator and receipt bucket.
+partners = {
+  "partner-a" = {
+    fault_mode     = "transient-503-first-two"
+    secret_version = "1"
+  }
+}
+
+# Foundation is created first; push the container image by digest, then enable.
+enable_workloads = false
+image_uri        = ""
+pause_scheduler = true
+allow_destroy   = false

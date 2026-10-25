@@ -1,0 +1,73 @@
+{
+  "diagram": "assets/solution.svg",
+  "standalone_html": "assets/solution.html",
+  "official_icon_catalog": "https://cloud.google.com/icons",
+  "source_repository": "https://github.com/AwesomeLogos/google-cloud-icons",
+  "source_commit": "9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192",
+  "attribution": "Original Google Cloud service icons from Google's official icon catalog, mirrored by AwesomeLogos/google-cloud-icons. Original geometry and colors are retained. The source repository is a community mirror, not Google-owned. Google Cloud/product marks remain property of Google.",
+  "render_target_width": 1440,
+  "layout_decision": "Two VPCs are side by side because the VPN/BGP link is the dominant relationship; tunnel pairs are short horizontal parallels between gateways. The branch probe sits left of its gateway, while the hub internal load balancer sits right of its gateway. Cloud Run is regional but outside VPC containment. Project-scoped private DNS authorization is shown as a separate dashed relationship. The optional change subnet is inside the branch boundary and labeled as non-baseline. The IAP icon is outside the Branch VPC; its administration path enters directly to the probe VM. The request path terminates at the left edge of the internal LB, and the backend arrow rises directly from the LB to the Cloud Run icon without crossing either service glyph. Official VPC icons appear in both VPC headers.",
+  "cloud_verification": "not-run",
+  "icons": {
+    "cloud_vpn.svg": {
+      "path": "assets/icons/cloud_vpn.svg",
+      "source_path": "docs/images/cloud_vpn.svg",
+      "git_blob_sha": "c8e46ff589ba71fc0d14d0169614a5a5507fac9b",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_vpn.svg"
+    },
+    "cloud_router.svg": {
+      "path": "assets/icons/cloud_router.svg",
+      "source_path": "docs/images/cloud_router.svg",
+      "git_blob_sha": "1afa7b736ee7bc64c6e63af8f0bdf494a2c678cf",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_router.svg"
+    },
+    "virtual_private_cloud.svg": {
+      "path": "assets/icons/virtual_private_cloud.svg",
+      "source_path": "docs/images/virtual_private_cloud.svg",
+      "git_blob_sha": "295b0ee2abc1f84424bf78978b39502820769fac",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/virtual_private_cloud.svg"
+    },
+    "cloud_dns.svg": {
+      "path": "assets/icons/cloud_dns.svg",
+      "source_path": "docs/images/cloud_dns.svg",
+      "git_blob_sha": "e0a5dadbed5c27238405bacee94bdcca58f6efaa",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_dns.svg"
+    },
+    "cloud_load_balancing.svg": {
+      "path": "assets/icons/cloud_load_balancing.svg",
+      "source_path": "docs/images/cloud_load_balancing.svg",
+      "git_blob_sha": "8ee1ca75ee3074ccdb693c54b1a6391c4832c9e9",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_load_balancing.svg"
+    },
+    "cloud_run.svg": {
+      "path": "assets/icons/cloud_run.svg",
+      "source_path": "docs/images/cloud_run.svg",
+      "git_blob_sha": "e2e3b7d3165bb94f0b37aa0a78bf85b2d851100c",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_run.svg"
+    },
+    "compute_engine.svg": {
+      "path": "assets/icons/compute_engine.svg",
+      "source_path": "docs/images/compute_engine.svg",
+      "git_blob_sha": "811860c5c78d342cce10722963c470759a3534d1",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/compute_engine.svg"
+    },
+    "identity_aware_proxy.svg": {
+      "path": "assets/icons/identity_aware_proxy.svg",
+      "source_path": "docs/images/identity-aware_proxy.svg",
+      "git_blob_sha": "18d4a6cfdb2da3e1158c6aa2325666578ae3b963",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/identity-aware_proxy.svg"
+    },
+    "cloud_build.svg": {
+      "path": "assets/icons/cloud_build.svg",
+      "source_path": "docs/images/cloud_build.svg",
+      "git_blob_sha": "21de5420f0480abe399d15c29c8353da9783bc39",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/cloud_build.svg"
+    },
+    "artifact_registry.svg": {
+      "path": "assets/icons/artifact_registry.svg",
+      "source_path": "docs/images/artifact_registry.svg",
+      "git_blob_sha": "81c46f8af7e0823a56c8c460e35758cbac8bfaf7",
+      "source_url": "https://github.com/AwesomeLogos/google-cloud-icons/blob/9fe9b31ddce5804ae4e6cf4d1bda5d5ee5ae6192/docs/images/artifact_registry.svg"
+    }
+  }
+}

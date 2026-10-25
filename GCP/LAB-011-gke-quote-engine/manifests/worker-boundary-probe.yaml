@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker-boundary-probe
+  namespace: quote-platform
+  labels:
+    app: boundary-probe
+    app.kubernetes.io/part-of: lab011-quote-engine
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  containers:
+    - name: probe
+      image: __QUOTE_ENGINE_IMAGE__
+      imagePullPolicy: IfNotPresent
+      command: ["python", "-m", "quote_engine"]
+      args: ["probe-worker"]
+      env:
+        - name: QUOTE_WORKER_URL
+          value: http://quote-worker.quote-platform.svc.cluster.local:8081
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+        seccompProfile:
+          type: RuntimeDefault

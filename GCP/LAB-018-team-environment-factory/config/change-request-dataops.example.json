@@ -1,0 +1,16 @@
+{
+  "environment": "dataops",
+  "project_id": "commerce-dataops-lab18-demo",
+  "project_name": "Commerce DataOps Lab 18",
+  "region": "asia-east1",
+  "team_group": "commerce-dataops@example.com",
+  "contractor_group": "cloud-contractors@example.com",
+  "labels": {"environment": "dataops"},
+  "budget": {
+    "currency": "THB",
+    "units": 1800,
+    "thresholds": [0.5, 0.9],
+    "notification_email": "cloud-ops@example.com"
+  },
+  "approval_reference": "PENDING-approval"
+}
