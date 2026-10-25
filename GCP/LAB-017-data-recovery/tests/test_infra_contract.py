@@ -19,14 +19,15 @@ class Lab017InfraContracts(unittest.TestCase):
             self.assertIn(f'"{api}"', MAIN)
 
     def test_database_is_postgres16_private_with_backup_and_pitr(self):
-        self.assertIn('database_version         = "POSTGRES_16"', MAIN)
+        self.assertIn('database_version    = "POSTGRES_16"', MAIN)
         self.assertIn("ipv4_enabled                                  = false", MAIN)
         self.assertIn("google_compute_network.lab.id", MAIN)
         self.assertIn("point_in_time_recovery_enabled = true", MAIN)
         self.assertIn("transaction_log_retention_days = 1", MAIN)
         self.assertIn("retained_backups = 7", MAIN)
         self.assertIn("google_service_networking_connection.private_services", MAIN)
-        self.assertIn("deletion_protection_enabled = false", MAIN)
+        self.assertIn("deletion_protection = false", MAIN)
+        self.assertNotIn("deletion_protection_enabled", MAIN)
 
     def test_storage_is_regional_private_and_soft_deleted(self):
         self.assertIn("location                    = var.region", MAIN)
