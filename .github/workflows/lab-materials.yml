@@ -1540,3 +1540,42 @@ jobs:
         run: bash -n GCP/LAB-016-legacy-migration/scripts/*.sh
       - name: Check private network, IAM, source bootstrap and cleanup contracts
         run: python3 -m unittest discover -s GCP/LAB-016-legacy-migration/tests -p 'test_infra_contract.py' -v
+
+
+  lab017-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate Lab 17 recovery brief and design boundary
+        run: python3 -m unittest discover -s GCP/LAB-017-data-recovery/tests -p 'test_brief.py' -v
+
+  lab017-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify Personal Custom diagrams, pinned icons, scopes and recovery gate
+        run: python3 -m unittest discover -s GCP/LAB-017-data-recovery/tests -p 'test_design.py' -v
+      - name: Install SVG renderer and Thai font
+        run: |
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y librsvg2-bin fonts-noto-core
+      - name: Render Lab 17 diagrams at guide width
+        run: |
+          mkdir -p lab017-diagram-preview
+          rsvg-convert --width 1440 GCP/LAB-017-data-recovery/assets/solution.svg -o lab017-diagram-preview/solution.png
+          rsvg-convert --width 1440 GCP/LAB-017-data-recovery/assets/recovery-flow.svg -o lab017-diagram-preview/recovery-flow.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab017-design-preview
+          path: |
+            lab017-diagram-preview/*.png
+            GCP/LAB-017-data-recovery/README.md
+            GCP/LAB-017-data-recovery/assets/**
+          if-no-files-found: error
+          retention-days: 14

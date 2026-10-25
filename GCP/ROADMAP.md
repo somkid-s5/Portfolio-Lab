@@ -1,6 +1,6 @@
 # แผนภาพใหญ่ — GCP 20 Solution Labs
 
-**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–16 Guide-ready; Lab 17–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
+**สถานะ:** แผนภาพใหญ่ 20 Labs; Lab 01–16 Guide-ready; Lab 17 Design in progress; Lab 18–20 Planned. ไม่มี GCP provisioning; Cloud verification ทุก Lab ยัง Not run.
 
 ## แนวทางที่ยึดร่วมกัน
 
@@ -359,6 +359,8 @@
 
 ### 17 — ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้
 
+**สถานะ:** Design in progress — ขยาย brief, requirements, architecture และ recovery diagram แล้ว; CI review pending. ไม่มี GCP resources; Cloud verification Not run.
+
 **โจทย์:** ทีมต้องรู้ว่าถ้าลบข้อมูลผิดหรือเสีย environment จะกู้บริการได้อย่างไร
 
 **สร้างอะไร:** Records App, PostgreSQL/Cloud SQL, object storage, backup/PITR, IaC, integrity probes และ recovery runbook
@@ -501,7 +503,9 @@ Lab 20 เป็นโจทย์รับมอบงานที่ใช้�
 
 Lab 15 — ระบบสำนักงานสาขาเชื่อมบริการ Private บน Cloud — Guide-ready หลัง [CI #40116589150](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40116589150) ผ่าน 54/54 repository jobs; ไม่มี GCP provisioning และ Cloud verification ยัง Not run.
 
-Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud — Guide-ready หลัง [CI #385](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40156391005) ผ่าน 59/59 repository jobs; ไม่มี GCP provisioning และ Cloud verification ยัง Not run. ขั้นถัดไปเริ่ม Lab 17 จาก Brief ตามลำดับ.
+Lab 16 — ย้ายระบบ Legacy พร้อมข้อมูลขึ้น Cloud — Guide-ready หลัง [CI #385](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40156391005) ผ่าน 59/59 repository jobs; ไม่มี GCP provisioning และ Cloud verification ยัง Not run.
+
+Lab 17 — ระบบจัดเก็บข้อมูลพร้อมแผนกู้คืนที่ทดสอบได้ — Design in progress. เพิ่ม requirements R01–R10, Cloud SQL PITR ไป instance ใหม่, Cloud Storage soft-delete restore, RPO/RTO objectives และ recovery diagrams ตาม Diagram Design Personal Custom จาก ZIP. CI review pending; ไม่มี GCP provisioning.
 
 ตัวอย่างรูปแบบการอ่าน: [Lab Test 2](../test/lab-test-2/README.md) ใช้เป็น reference ด้านการอ่าน ไม่ใช่ผลการทำ GCP Lab
 
