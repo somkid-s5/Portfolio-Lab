@@ -219,7 +219,7 @@ export DRILL_ID="LAB017-DRILL-01"
 
 **บันทึกจริง / หลักฐาน:** build ID, commit, image digest, ผล build และเวลาที่เสร็จ.
 
-### Task 08 — Deploy API แบบ private และเชื่อม private dependencies
+### Task 08 — Deploy API แบบ IAM-only และเชื่อม private dependencies
 
 1. ใช้ private IP จาก Task 04 และ deploy baseline:
    ```bash
@@ -347,18 +347,30 @@ export DRILL_ID="LAB017-DRILL-01"
    printf 'restore_point_utc=%s\n' "$RESTORE_POINT"
    ```
    ใช้เวลานี้เป็นจุดก่อน fault; ห้ามกำหนดเป็นเวลาในอนาคต.
-4. ทำ transaction ที่กำหนดขอบเขตชัดเจน:
+4. รัน block นี้ครั้งเดียว. มันเปลี่ยนแถวและลบแถวได้ก็ต่อเมื่อทั้งสองเงื่อนไขตรงคนละหนึ่ง row; ถ้าไม่ตรงจะ raise exception และ statement rollback:
    ```sql
-   BEGIN;
-   UPDATE public.records
-      SET amount_cents = amount_cents + 700000
-    WHERE drill_id = 'LAB017-DRILL-01' AND record_ref = 'LAB017-REC-001';
-   DELETE FROM public.records
-    WHERE drill_id = 'LAB017-DRILL-01' AND record_ref = 'LAB017-REC-002';
-   COMMIT;
+   DO $lab017$
+   DECLARE
+     updated_rows integer;
+     deleted_rows integer;
+   BEGIN
+     UPDATE public.records
+        SET amount_cents = amount_cents + 700000
+      WHERE drill_id = 'LAB017-DRILL-01' AND record_ref = 'LAB017-REC-001';
+     GET DIAGNOSTICS updated_rows = ROW_COUNT;
+
+     DELETE FROM public.records
+      WHERE drill_id = 'LAB017-DRILL-01' AND record_ref = 'LAB017-REC-002';
+     GET DIAGNOSTICS deleted_rows = ROW_COUNT;
+
+     IF updated_rows <> 1 OR deleted_rows <> 1 THEN
+       RAISE EXCEPTION 'Fixture scope mismatch: update=%, delete=%', updated_rows, deleted_rows;
+     END IF;
+   END
+   $lab017$;
    ```
-5. ตรวจผลหลัง commit. ต้องเห็น update หนึ่งแถวและ delete หนึ่งแถวใน fixture เท่านั้น. ถ้า affected row ไม่เท่ากับ 1 ต่อ statement ให้ rollback/หยุดและตรวจ.
-6. ทันทีหลัง commit ให้จดเวลา incident:
+5. ตรวจผลด้วย SELECT เดิม. ต้องเห็นค่า REC-001 เพิ่ม 700000 cents และไม่มี REC-002; record อื่นต้องไม่เปลี่ยน. หาก exception ให้หยุด ตรวจ fixture และห้ามทำ fault ซ้ำโดยไม่ตรวจ primary.
+6. ทันทีหลังการเปลี่ยนสำเร็จ ให้จดเวลา incident:
    ```bash
    export INCIDENT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
    printf 'incident_at_utc=%s\n' "$INCIDENT_AT"
@@ -366,7 +378,7 @@ export DRILL_ID="LAB017-DRILL-01"
 
 **ผลที่คาดหวัง:** primary ผิดจาก baseline เฉพาะสองแถว; app runtime role ยังไม่มีสิทธิ์ DELETE.
 
-**บันทึกจริง / หลักฐาน:** SQL ที่ใช้, row count ที่เปลี่ยน, `RESTORE_POINT`, `INCIDENT_AT`, เวลา commit, Cloud SQL operation/audit evidence. อย่าถ่าย secret หรือข้อมูลนอก fixture.
+**บันทึกจริง / หลักฐาน:** SQL ที่ใช้, ผล SELECT ก่อน/หลังและการตรวจจำนวนแถวใน DO block, `RESTORE_POINT`, `INCIDENT_AT`, เวลา commit, Cloud SQL operation/audit evidence. อย่าถ่าย secret หรือข้อมูลนอก fixture.
 
 ### Task 14 — ลบไฟล์ fixture แบบมี generation guard
 

@@ -59,6 +59,8 @@ class Lab017GuideTests(unittest.TestCase):
         self.assertIn("PITR สร้าง instance ใหม่", self.readme)
         self.assertIn("recovery_gate=PASS", self.readme)
         self.assertIn("ยังไม่ได้ทดสอบบน GCP", self.readme)
+        self.assertIn("GET DIAGNOSTICS updated_rows = ROW_COUNT", self.readme)
+        self.assertIn("RAISE EXCEPTION", self.readme)
 
 
 if __name__ == "__main__":
