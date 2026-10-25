@@ -40,7 +40,7 @@
 3. หลัง handoff ไม่มี Owner/Editor เหลือใน environment projects; seeder ใช้ไม่ได้ในงานประจำ และ factory ใช้ impersonation โดยไม่มี key
 4. Terraform state มี version และการทำ operation พร้อมกันบน state เดียวถูก lock หรือรอ; คู่มือห้ามใช้ force-unlock เว้นแต่ตรวจยืนยัน lock owner และ process แล้ว
 5. Budget เป็น alert-only; เมื่อถึง threshold จะส่งการแจ้งเตือน แต่ไม่ถือว่าเป็น spending cap
-6. Log ที่สร้างจาก Status API ปรากฏใน regional central log bucket; เมื่อ sink writer ไม่มีสิทธิ์ ให้แสดง error ที่ระบุได้และวิธีแก้แบบ scope แคบ
+6. Log ที่สร้างจาก Status API ปรากฏใน regional central log bucket; ตรวจ `roles/logging.logWriter` และ `roles/logging.bucketWriter` ที่ Project ปลายทาง และบันทึกขอบเขตที่ role ใช้กับ log buckets ทั้ง Project
 7. เปลี่ยน project label ด้วยมือแล้ว Terraform ตรวจพบ drift; apply คืนค่าให้ตรงกับ approved profile
 8. Change Request ทีม dataops ที่ขอ region `asia-east1` และกลุ่ม contractor แบบดูข้อมูลอย่างเดียว ต้องถูกปฏิเสธจนกว่า region จะถูกอนุมัติ; เมื่ออนุมัติแล้ว contractor ยังไม่มีสิทธิ์ invoke service หรือ deploy
 9. Cleanup ลบเฉพาะ environment Projects ตาม confirmation ที่กำหนด พร้อมเก็บ state, log archive และหลักฐาน cleanup ไว้ตามอายุที่ระบุ
@@ -72,14 +72,14 @@ Google Cloud ให้ Project Creator เป็น Owner ของ Project ท�
 | Terraform state | สร้าง GCS backend ใน Foundation Project ก่อน แล้ว migrate bootstrap state; เปิด Object Versioning, Uniform bucket-level access (UBLA) และ public access prevention; prefix แยก Environment และใช้ GCS lock |
 | IAM | กลุ่ม dev/stage แยก Project; developer ได้เฉพาะสิทธิ์ deploy/invoke ที่จำเป็นและ serviceAccountUser บน runtime SA ที่ระบุ; ไม่มี Owner/Editor |
 | Workload | Status API บน Cloud Run ต้อง authenticate; dev/stage ใช้ service/runtime identity คนละชุด |
-| Logs | Project-level sinks ส่งเฉพาะ log ที่กำหนดไป regional Cloud Logging bucket; ให้ sink writer เขียนปลายทางได้เท่านั้น |
+| Logs | Project-level sinks ส่งเฉพาะ log ที่กำหนดไป regional Cloud Logging bucket; bucket ไม่มี IAM policy ราย bucket จึงให้ sink writer มี `roles/logging.logWriter` และ `roles/logging.bucketWriter` ที่ Project ของปลายทาง ซึ่งครอบคลุม log buckets ทั้ง Project |
 | Cost / ownership | งบแยก Projectแบบ alert-only; labels ใช้ inventory/cost attribution ไม่ใช่ access boundary |
 | Change Request | dataops ขอ asia-east1 และ read-only contractor access; ต้องเพิ่ม region หลังอนุมัติข้อมูล และผูก read-only role โดยไม่ให้ invoker |
 | Cleanup | ลบเฉพาะ environment projects หลังยืนยัน inventory; คง Foundation state/log resources ตาม retention |
 
 GCS backend ต้องมี bucket ก่อนเริ่มใช้ remote backend; backend รองรับ state lock และเอกสาร Terraform แนะนำเปิด Object Versioning เพื่อกู้ state จากการลบ/แก้ผิดพลาด. [Terraform GCS backend](https://developer.hashicorp.com/terraform/language/backend/gcs)
 
-Cloud Logging sink ไปยัง log bucket ต่าง Project ต้องกำหนดสิทธิ์ให้ writer identity ที่ได้จาก sink; ปลายทางใช้ `roles/logging.bucketWriter` ตาม scope ที่ต้องเขียน. [Route logs to supported destinations](https://docs.cloud.google.com/logging/docs/export/configure_export_v2)
+Cloud Logging log bucket ไม่มี IAM allow policy ของตัวเอง. สำหรับการส่ง log ข้าม Project ให้ writer identity มี `roles/logging.logWriter` และ `roles/logging.bucketWriter` บน Project ปลายทาง; สอง role นี้จึงมีผลกับ log buckets ใน Project นั้น ไม่ใช่เฉพาะ bucket เดียว. ยืนยัน scope นี้กับผู้ดูแล Foundation Project ก่อนเริ่ม และตรวจ effective IAM หลัง handoff. [Cloud Logging IAM access control](https://docs.cloud.google.com/logging/docs/access-control) [Route logs to supported destinations](https://docs.cloud.google.com/logging/docs/export/configure_export_v2)
 
 Budget alerts ไม่ได้จำกัดค่าใช้จ่ายโดยอัตโนมัติ จึงใช้แสดงสัญญาณเตือนและผู้รับผิดชอบเท่านั้น. [Cloud Billing budgets](https://docs.cloud.google.com/billing/docs/how-to/budgets) การสร้าง project ต้องมี `resourcemanager.projects.create`; การผูก billing ใช้ Billing Account User ร่วมกับ Project Creator ตามสิทธิ์ที่องค์กรอนุมัติ. [Create projects](https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects)
 
@@ -100,7 +100,7 @@ Budget alerts ไม่ได้จำกัดค่าใช้จ่ายโ
 
 ## หลักฐานที่จะบันทึกเมื่อทำ Lab
 
-บันทึก actual values จากการรันจริงเท่านั้น: project IDs/parent, label inventory, plan/apply summary, Terraform state lock result, IAM ก่อน–หลัง handoff, budget thresholds/ผู้รับแจ้งเตือน, sink writer identity และ log query, authenticated/denied HTTP checks, drift plan, cleanup inventory และ Change Request approval. ห้ามบันทึก token, secret value, state file หรือ personal data ลง evidence.
+บันทึก actual values จากการรันจริงเท่านั้น: project IDs/parent, label inventory, plan/apply summary, Terraform state lock result, IAM ก่อน–หลัง handoff, budget thresholds/ผู้รับแจ้งเตือน, sink writer identity, role bindings ระดับ Project และ log query, authenticated/denied HTTP checks, drift plan, cleanup inventory และ Change Request approval. ห้ามบันทึก token, secret value, state file หรือ personal data ลง evidence.
 
 ## References
 

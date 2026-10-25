@@ -38,7 +38,7 @@ class Lab018BriefTests(unittest.TestCase):
 
     def test_required_design_constraints_and_sources_exist(self):
         for phrase in ("asia-southeast1", "asia-east1", "GCS lock",
-                       "roles/logging.bucketWriter", "Project ID", "project ส่วนตัว"):
+                       "roles/logging.logWriter", "roles/logging.bucketWriter", "bucket ไม่มี IAM policy ราย bucket", "Project ID", "project ส่วนตัว"):
             self.assertIn(phrase, self.readme)
         for url in (
             "https://docs.cloud.google.com/resource-manager/docs/access-control-proj",
