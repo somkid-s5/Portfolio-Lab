@@ -42,6 +42,7 @@ class Lab019DesignTests(unittest.TestCase):
                       "route-monitoring-probe", "route-alert-oncall"):
             self.assertIn(f'id="{route}"', self.svg)
         self.assertIn("OIDC", self.svg)
+        self.assertIn("dead-letter-events", self.svg)
         self.assertIn("telemetry", self.svg)
         self.assertIn("not every request", self.svg)
         self.assertIn("junction", " ".join(self.provenance["layout_decisions"]).lower())

@@ -680,7 +680,7 @@ resource "google_monitoring_alert_policy" "dead_lettered_tasks" {
   conditions {
     display_name = "At least one task reached the dead-letter queue"
     condition_threshold {
-      filter          = "metric.type=\\\"logging.googleapis.com/user/lab19_dead_lettered_tasks\\\""
+      filter          = "metric.type=\"logging.googleapis.com/user/lab19_dead_lettered_tasks\""
       comparison      = "COMPARISON_GT"
       threshold_value = 0
       duration        = "0s"
@@ -817,7 +817,7 @@ resource "google_monitoring_dashboard" "service" {
             dataSets = [{
               timeSeriesQuery = {
                 timeSeriesFilter = {
-                  filter = "metric.type=\\\"logging.googleapis.com/user/lab19_dead_lettered_tasks\\\""
+                  filter = "metric.type=\"logging.googleapis.com/user/lab19_dead_lettered_tasks\""
                   aggregation = {
                     alignmentPeriod  = "60s"
                     perSeriesAligner = "ALIGN_SUM"
