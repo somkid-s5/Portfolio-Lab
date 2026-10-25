@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 import psycopg
+from psycopg import sql
 
 SCHEMA = Path(__file__).resolve().parents[1] / "app" / "schema.sql"
 
@@ -17,9 +18,10 @@ def main() -> None:
     with psycopg.connect(conninfo) as conn:
         exists = conn.execute("SELECT 1 FROM pg_roles WHERE rolname = 'records_app'").fetchone()
         if exists:
-            conn.execute("ALTER ROLE records_app WITH LOGIN PASSWORD %s", (app_password,))
+            statement = sql.SQL("ALTER ROLE records_app WITH LOGIN PASSWORD {}").format(sql.Literal(app_password))
         else:
-            conn.execute("CREATE ROLE records_app WITH LOGIN PASSWORD %s", (app_password,))
+            statement = sql.SQL("CREATE ROLE records_app WITH LOGIN PASSWORD {}").format(sql.Literal(app_password))
+        conn.execute(statement)
         for statement in statements:
             conn.execute(statement)
         conn.execute("GRANT CONNECT ON DATABASE lab017_ci TO records_app")

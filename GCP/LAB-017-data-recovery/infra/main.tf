@@ -65,7 +65,6 @@ resource "google_sql_database_instance" "primary" {
   region                      = var.region
   database_version            = "POSTGRES_16"
   deletion_protection         = false
-  deletion_protection_enabled = false
 
   settings {
     tier                  = var.db_tier
