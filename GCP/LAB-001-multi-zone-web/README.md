@@ -143,8 +143,8 @@ gcloud compute regions describe asia-southeast1 --project="$PROJECT_ID" --format
 ตัวอย่างการแนบภาพหลังบันทึกไฟล์จริงแล้ว:
 
 ```markdown
-![T04 — backend ทั้งสอง Healthy](assets/diagrams/evidence/t04-backends-healthy.png)
-[T05 — ผล request distribution](assets/evidence/t05-baseline.json)
+**หลักฐานที่ผู้เรียนต้องแนบหลังทำ T04:** `assets/evidence/t04-backends-healthy.png` (ภาพ Health Check จาก GCP จริง; ยังไม่มีไฟล์ใน Guide-ready)
+**หลักฐานที่ผู้เรียนต้องสร้างหลังทำ T05:** `assets/evidence/t05-baseline.json` (ข้อมูล request distribution จริง; ยังไม่มีไฟล์ใน Guide-ready)
 ```
 
 ### แผนทดสอบ Solution
