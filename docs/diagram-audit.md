@@ -15,30 +15,30 @@
 
 | Lab | App blue #2563EB | Network teal #0F766E | Paper #F7FAFF | Diagram review |
 |---|:---:|:---:|:---:|---|
-| 01 | ✓ | ✓ | — | Not visually certified |
-| 02 | ✓ | ✓ | — | Not visually certified |
-| 03 | ✓ | ✓ | — | Not visually certified |
-| 04 | ✓ | ✓ | — | Not visually certified |
-| 05 | ✓ | ✓ | — | Not visually certified |
-| 06 | ✓ | — | — | Not visually certified |
-| 07 | ✓ | ✓ | — | Not visually certified |
-| 08 | ✓ | ✓ | — | Not visually certified |
-| 09 | ✓ | ✓ | — | Not visually certified |
-| 10 | ✓ | ✓ | — | Not visually certified |
-| 11 | ✓ | ✓ | ✓ | Not visually certified |
-| 12 | ✓ | ✓ | — | Not visually certified |
-| 13 | ✓ | ✓ | ✓ | Not visually certified |
-| 14 | ✓ | ✓ | — | Not visually certified |
-| 15 | ✓ | ✓ | ✓ | Not visually certified |
-| 16 | ✓ | ✓ | ✓ | Not visually certified |
-| 17 | ✓ | ✓ | ✓ | Not visually certified |
-| 18 | ✓ | ✓ | ✓ | Not visually certified |
-| 19 | ✓ | ✓ | ✓ | Not visually certified |
-| 20 | ✓ | ✓ | ✓ | Not visually certified |
+| 01 | ✓ | ✓ | — | Rendered and visually inspected; not runtime-certified |
+| 02 | ✓ | ✓ | — | Rendered and visually inspected; not runtime-certified |
+| 03 | ✓ | ✓ | — | Rendered and visually inspected; not runtime-certified |
+| 04 | ✓ | ✓ | — | Rendered and visually inspected; not runtime-certified |
+| 05 | ✓ | ✓ | — | Rendered and visually inspected; not runtime-certified |
+| 06 | ✓ | — | — | Rendered and visually inspected; not runtime-certified |
+| 07 | ✓ | ✓ | — | Rendered and visually inspected; not runtime-certified |
+| 08 | ✓ | ✓ | — | Rendered and visually inspected; not runtime-certified |
+| 09 | ✓ | ✓ | — | Rendered and visually inspected; not runtime-certified |
+| 10 | ✓ | ✓ | — | Rendered and visually inspected; not runtime-certified |
+| 11 | ✓ | ✓ | ✓ | Rendered and visually inspected; not runtime-certified |
+| 12 | ✓ | ✓ | — | Rendered and visually inspected; not runtime-certified |
+| 13 | ✓ | ✓ | ✓ | Rendered and visually inspected; not runtime-certified |
+| 14 | ✓ | ✓ | — | Rendered and visually inspected; not runtime-certified |
+| 15 | ✓ | ✓ | ✓ | Rendered and visually inspected; not runtime-certified |
+| 16 | ✓ | ✓ | ✓ | Rendered and visually inspected; not runtime-certified |
+| 17 | ✓ | ✓ | ✓ | Rendered and visually inspected; not runtime-certified |
+| 18 | ✓ | ✓ | ✓ | Rendered and visually inspected; not runtime-certified |
+| 19 | ✓ | ✓ | ✓ | Rendered and visually inspected; not runtime-certified |
+| 20 | ✓ | ✓ | ✓ | Rendered and visually inspected; not runtime-certified |
 
 **ข้อเท็จจริงที่สรุปได้จาก source:** 20/20 ภาพมีสีน้ำเงินหลัก, 19/20 มีสี teal, 8/20 ใช้สีพื้นกระดาษอ่อนตรง token; ทุกภาพมี accessible `title`/`desc` และ `role="img"`. White canvas ยังอยู่ภายใต้มาตรฐานที่ยอมรับ white/pale canvas. ไม่ควรใช้การไม่มีค่าสีเพียงอย่างเดียวตัดสินคุณภาพของ Diagram
 
-**จุดแตกต่างที่ต้องตรวจภาพจริง:** Lab 13 ปรับ semantic palette ใน SVG/HTML ให้ตรงสีหลักด้วยการแก้ Source โดยตรง (รักษา provider icons และ route geometry เดิมไว้; **ไม่ได้ใช้ Personal Custom Skill และยังไม่ผ่าน Visual Review**); Lab 06 ไม่ใช้ Network/VPC teal เพราะ Solution นี้ **ไม่มี VPC** ตามสถาปัตยกรรมที่ระบุใน SVG; ไม่ควรเติม Network panel หรือสีเพียงเพื่อให้ครบ palette; Lab 01–08 ใช้ PNG Preview ใน README เป็นหลัก ในขณะที่ Lab ถัดไปนิยมแสดง SVG; 01–08 ไม่จำเป็นต้อง redraw หาก layout ชัดเจนอยู่แล้ว. รูปแบบ font-size, label spacing, icon size และ connection geometry อาจยังไม่สม่ำเสมอ
+**จุดแตกต่างที่ต้องตรวจภาพจริง:** Lab 13 ปรับ semantic palette ใน SVG/HTML ให้ตรงสีหลักด้วยการแก้ Source โดยตรง (รักษา provider icons และ route geometry เดิมไว้; **ไม่ได้ใช้ Personal Custom Skill**); Lab 06 ไม่ใช้ Network/VPC teal เพราะ Solution นี้ **ไม่มี VPC** ตามสถาปัตยกรรมที่ระบุใน SVG; ไม่ควรเติม Network panel หรือสีเพียงเพื่อให้ครบ palette; Lab 01–08 ใช้ PNG Preview ใน README เป็นหลัก ในขณะที่ Lab ถัดไปนิยมแสดง SVG; 01–08 ไม่จำเป็นต้อง redraw หาก layout ชัดเจนอยู่แล้ว. รูปแบบ font-size, label spacing, icon size และ connection geometry อาจยังไม่สม่ำเสมอ
 
 ## สถานะและเกณฑ์ปิดงาน
 
@@ -47,9 +47,15 @@
 | Architecture SVG แก้ไขได้ในที่เดียวกันครบ 20 Lab | **ผ่าน 20/20** |
 | Relative diagram links ของ README ทุก Lab ชี้เป้าจริง | **ผ่าน 20/20** |
 | Compatibility asset mirrors ตรงกับ canonical files | **ผ่าน 60/60** ณ revision ที่ตรวจ |
-| Architecture semantics/diagram rendering inspected manually at 1000 px | **ยังไม่มีหลักฐานตรวจภาพครบ 20 Lab** |
+| Architecture semantics/diagram rendering inspected manually at 1000 px | **ตรวจภาพจริงครบ 20/20 ที่ 960–1000 px** (visual QA ไม่ใช่ GCP-runtime proof) |
 | Personal Custom Diagram Design Skill invocation verified | **ตรวจยืนยันไม่ได้ในสภาพแวดล้อม Cloud นี้** |
 
-เมื่อ Skill พร้อมใช้งาน ให้ review ภาพจริง 20 ภาพที่ความกว้าง ~1000px ทีละ Lab: (1) จัด GCP project/region/VPC ตรงจริง, (2) official icons/labels อ่านชัด, (3) route endpoints และ crossings ถูกต้อง, (4) ไม่มี clipping/พื้นที่เสียเปล่า, (5) ที่มาของ asset แสดงชัด, (6) แก้ `assets/diagrams/` และ sync legacy mirror ตรงกัน; บันทึก Reviewer/วันที่/ผลเฉพาะภาพ
+## Final render inspection — 2026-10-25
 
-**คำตัดสินตอนนี้:** ยืนยันได้ว่าใช้ **มาตรฐานโครงสร้างไฟล์ร่วมกันแล้ว** และการใช้ palette หลักส่วนมากสอดคล้องกัน; **ยังยืนยันไม่ได้ว่าทุกภาพผ่านการรับรอง Visual Quality และ Architecture Accuracy**. ห้ามเปลี่ยนเป็น Visual-reviewed เพียงเพราะ CI ผ่าน
+- เปิดภาพหลักของ Lab **01–20 ครบ**: Lab 01–08 ใช้ PNG preview ใน Repo; Lab 09–20 render SVG source ที่ document width 1000px ผ่าน CI workflow #457 และตรวจภาพจริง
+- ตรวจความอ่านได้ของ icon/label, project/region/VPC scope, ความหมายของเส้นและพื้นที่ว่างเท่าที่พิสูจน์จากภาพ static; แก้ Lab 11/13/15 เรื่อง header contrast ที่ถูก global CSS override, Lab 16 เรื่องข้อความเส้นทางทับ region, Lab 20 เรื่อง title layering และ boundary. Sync `assets/diagrams/solution.svg` กับ mirrors/HTML
+- ติดตั้ง pinned Thai font ในการทำ preview ลดปัญหาตัวอักษรไทย fallback; layout ต่างกันตาม topology ได้โดยไม่ต้องใช้สี/องค์ประกอบเท่ากันทุก Lab
+- **หลักฐานว่าเรียกใช้ Personal Custom Diagram Design Skill ยังไม่มี** เนื่องจาก Skill นี้ไม่ callable ในสภาพแวดล้อมนี้; อ้าง ZIP เป็น style reference เท่านั้น. ไม่อ้างว่า Skill-certified
+- Manual image review ไม่ใช่การตรวจว่าบริการ IAM/network/region ทุกคำสั่ง Deploy ผ่าน GCP จริง (Cloud verification = Not run); ตอนทำ Lab ถ้าแบบจริงต่างจากภาพต้องแก้และบันทึกหลักฐาน
+
+**คำตัดสิน:** ผ่านการตรวจโครงสร้างไฟล์และ Visual QA ของภาพหลัก 20/20 เพื่อเผยแพร่ **Guide-ready**; ไม่ใช่ Cloud-verified หรือการรับรอง Skill provenance.
