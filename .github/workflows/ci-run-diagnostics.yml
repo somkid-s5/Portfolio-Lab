@@ -1,0 +1,25 @@
+name: Diagnose Lab CI failures
+on:
+  push:
+    branches: [docs/gcp-solution-labs]
+    paths:
+      - '.github/workflows/ci-run-diagnostics.yml'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect failing jobs in recent verification runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for run in 40209880022 40210048706; do
+            echo "=== Run $run failed jobs ==="
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/jobs?per_page=100" \
+              --jq '.jobs[] | select(.conclusion == "failure") | "\(.id) \(.name) \(.html_url)"' || true
+          done
