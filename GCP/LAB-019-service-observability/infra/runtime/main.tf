@@ -94,7 +94,7 @@ variable "worker_delay_ms" {
 }
 
 locals {
-  image                   = format(
+  image = format(
     "%s-docker.pkg.dev/%s/lab19-apps/lab19-service@%s",
     var.region,
     var.project_id,
