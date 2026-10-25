@@ -1,6 +1,6 @@
 # Lab 19 — ระบบเฝ้าระวังและรับ Incident สำหรับทีมบริการ
 
-> **สถานะ:** Brief + Design draft — รอตรวจ CI; ยังไม่มี Task Guide  
+> **สถานะ:** Brief + Design ready — [CI #403](https://github.com/somkid-s5/Portfolio-Lab/actions/runs/40163824288) ผ่านครบ 73/73 repository jobs และ Lab 19 ผ่าน 2/2 checks (brief, design/render); ยังไม่มี Task Guide  
 > **Cloud verification:** Not run — ไม่มีการสร้าง GCP resources หรือผลทดสอบจริง  
 > **Diagram:** ใช้แนวทาง Diagram Design Personal Custom จาก ZIP ตาม [docs/diagram-style.md](../../docs/diagram-style.md)
 
