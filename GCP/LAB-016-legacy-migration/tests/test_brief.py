@@ -14,20 +14,29 @@ class Lab016BriefTests(unittest.TestCase):
         cls.readme = LAB_README.read_text(encoding="utf-8")
         cls.roadmap = ROADMAP.read_text(encoding="utf-8")
 
-    def test_requirements_are_complete_and_identifiable(self):
+    def test_requirements_and_guide_sections_are_complete(self):
         ids = re.findall(r"^\| (R\d{2}) \|", self.readme, re.MULTILINE)
         self.assertEqual(ids, [f"R{i:02d}" for i in range(1, 11)])
-        for required in ("## สถานการณ์", "## ข้อกำหนดและวิธีพิสูจน์", "## บันทึกผลและหลักฐานระหว่างทำ", "## Case-study summary"):
+        for required in (
+            "## เป้าหมาย",
+            "## Requirements และเกณฑ์รับงาน",
+            "## ก่อนเริ่ม",
+            "## Task 00 —",
+            "## Task 13 —",
+            "## Case-study summary สำหรับบันทึกผลจริง",
+            "Actual / Evidence",
+        ):
             self.assertIn(required, self.readme)
 
     def test_verification_is_not_fabricated(self):
         self.assertIn("Cloud verification:** Not run", self.readme)
-        self.assertIn("ยังไม่มีการสร้างหรือทดสอบทรัพยากร GCP", self.readme)
+        self.assertIn("ยังไม่มีผลจากการสร้างหรือทดสอบทรัพยากรจริง", self.readme)
         self.assertNotRegex(self.readme.lower(), r"cloud[- ]verified\s*[:=]\s*pass")
 
-    def test_official_references_and_scope_are_recorded(self):
+    def test_official_references_and_solution_scope_are_recorded(self):
         self.assertIn("docs.cloud.google.com/database-migration/docs/postgres/scenario-overview", self.readme)
-        self.assertIn("docs.cloud.google.com/load-balancing/docs/https/use-cases", self.readme)
+        self.assertIn("docs.cloud.google.com/load-balancing/docs/https/setup-global-ext-https-compute", self.readme)
+        self.assertIn("docs.cloud.google.com/load-balancing/docs/https/setup-global-ext-https-serverless", self.readme)
         self.assertIn("Cloud Run", self.readme)
         self.assertIn("Cloud SQL", self.readme)
         self.assertIn("write-freeze", self.readme)
