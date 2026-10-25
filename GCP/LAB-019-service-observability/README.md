@@ -95,6 +95,42 @@ Cloud SQL, serverless egress, log ingestion/retention, uptime checks และ n
 
 ทีมพบ Incident มากเกินไปจาก input error และ error ชั่วคราวหนึ่งครั้ง จึงต้องปรับ alert ให้ expected 4xx และ isolated failure ไม่ page On-call แต่ sustained 5xx, burn-rate breach, queue backlog/oldest message age ที่เกินเกณฑ์ และ Worker/DB saturation ยังสร้าง Incident ตามลำดับความรุนแรง ผู้เรียนต้องแสดง filter/threshold ก่อนและหลัง พร้อม test cases ที่ยืนยันทั้ง alert suppression และ alert ที่ยังต้องทำงาน ห้ามปิด alert policy ทั้งหมดเพื่อให้เงียบ
 
+
+## Task Sequence Design
+
+ลำดับนี้เป็น **แผนเรียงงาน** เพื่อทบทวน dependency ก่อนเขียนขั้นตอน Console/Cloud Shell แบบละเอียด; ยังไม่ใช่ Task Guide. ทุก Task จะมี Checkpoint, Expected, ช่อง Actual/Evidence, จุดวิเคราะห์เมื่อไม่ตรง และ cleanup handoff.
+
+| Task | ขอบเขตและผลที่ต้องได้ก่อนเดินต่อ |
+|---|---|
+| T00 — ตรวจสิทธิ์ งบ และข้อจำกัด | เลือก Lab project ที่อนุญาต, ตรวจ billing/quotas/APIs/region/role และบันทึกขอบเขตค่าใช้จ่ายก่อนสร้าง resource |
+| T01 — เตรียม Cloud Shell และค่า Lab | checkout branch/commit ที่กำหนด, ตั้งตัวแปรโดยไม่ใส่ secret ใน history, ตรวจ gcloud/Terraform version และเปิดเฉพาะ APIs ที่ต้องใช้ |
+| T02 — สร้าง Foundation แบบ private | Terraform สร้าง VPC/subnet, PSA range, Cloud SQL private IP, Pub/Sub topic/subscription/DLQ, Artifact Registry และ IAM identities; ตรวจ plan/outputs ก่อน apply |
+| T03 — Build และ Publish application images | รัน app/unit checks, build API/Worker/migrator จาก source ที่ pin, push ไป Artifact Registry และบันทึก image digest |
+| T04 — สร้าง schema ด้วย migrator identity | รัน Cloud Run Job แบบ one-off ผ่าน private egress, สร้าง PostgreSQL schema/roles/seed data และตรวจ migration result; API runtime ไม่มีสิทธิ์ DDL |
+| T05 — Deploy Worker และ authenticated push | Deploy Worker แบบ IAM-authenticated; ตั้ง Pub/Sub push OIDC service account, audience, invoker binding และ retry/DLQ behavior |
+| T06 — Deploy Task API และ private DB access | Deploy API แบบ IAM-authenticated, จำกัด max instances/concurrency, ตั้ง Direct VPC egress และสิทธิ์ publish/read เท่าที่ต้องใช้ |
+| T07 — พิสูจน์ transaction และ security boundaries | POST/GET task, duplicate key/delivery, worker status, anonymous denial, push token denial/acceptance และ Cloud SQL no-public-IP |
+| T08 — สร้าง structured logs และ SLI metrics | ตรวจ JSON events; สร้าง total/bad counters และ latency distribution จาก eligible business requests; ตรวจ exclusions สำหรับ health/expected 4xx |
+| T09 — สร้าง custom service, SLO และ dashboard | สร้าง availability/latency SLO กับ rolling 7 วันและ dashboard; เทียบ Logs Explorer/Metrics Explorer/Cloud Run native metrics โดยรอ metric ingestion |
+| T10 — ตั้ง burn-rate และ resource alerts | ตั้ง SLO-based policy ผ่าน `select_slo_burn_rate` (fast 10×/60m, slow 2×/24h) พร้อม Queue/DLQ/Worker/DB conditions และ notification channel |
+| T11 — ตั้ง OIDC uptime check และตรวจ agent | สร้าง authenticated HTTPS check ด้วย Monitoring service agent, ให้ invoker เฉพาะ API และยืนยัน API ไม่มี `allUsers` |
+| T12 — วัด Baseline และ Error Budget | สร้าง bounded traffic, ตรวจ event count/latency/backlog/DB metrics, บันทึก metric delay และค่า baseline จริง |
+| T13 — Fault drill: API error/latency | เปิด fault ผ่าน revision config, สร้างช่วง 5xx/slow ตามจำนวนจำกัด, ตรวจ SLO burn/Incident/runbook และบันทึก timeline |
+| T14 — Fault drill: Worker/Queue และ recovery | เพิ่ม worker delay ให้ backlog/oldest age สูง, ตรวจ retry/DLQ, คืน revision/config, รอ queue drain และพิสูจน์ task completion |
+| T15 — Change Request: ลด alert noise | ทดสอบ expected 4xx และ isolated error บน baseline traffic ที่เพียงพอ; candidate ต้องไม่ page เหตุที่อยู่ใน budget แต่ยัง alert sustained 5xx/SLO burn/queue stuck |
+| T16 — สรุป Incident และ Case Study | กรอก user impact, detection/mitigation/recovery times, SLO/budget, dashboard/log evidence, CR before/after, limitations และข้อสรุปที่อ้างจาก Actual เท่านั้น |
+| T17 — Cleanup และตรวจทรัพยากรคงเหลือ | ปิด test traffic, ลบ resources ตาม dependency, ตรวจ project inventory/billing หลัง Terraform destroy และเก็บเฉพาะหลักฐานที่ไม่เป็นความลับ |
+
+### กติกาออกแบบการทดสอบ
+
+- Fault switch เป็น revision configuration เฉพาะ Lab; ไม่มี public chaos route และทุก Task มีคำสั่งคืนค่า/rollback ทันที
+- Alert ที่ใช้ SLO burn rate ต้องใช้ `select_slo_burn_rate` filter; Google Cloud ระบุ fast-burn 10× กับ lookback สั้น 1–2 ชั่วโมง และ slow-burn 2× กับ lookback 24 ชั่วโมงเป็นจุดเริ่มต้น. Task Guide จะใช้ threshold ที่ brief ระบุและย้ำว่าเป็น training values.
+- Task ที่ตรวจ “isolated error ไม่ page” ต้องสร้าง baseline eligible requests มากพอให้คำนวณ budget ได้; ห้ามใช้ error 1 ครั้งจาก sample เล็กแล้วสรุปว่า alert noise ผ่าน
+- Cloud SQL, log metric และ Monitoring SLO อาจมีเวลาสร้าง/ingest; Expected จะบอกช่วงรอและจุดตรวจ metric descriptor/data ก่อนทดสอบ alert
+- Terraform provider ใช้รุ่นเดียวกับ Repo Lab 18 คือ 7.29.0 เป็น candidate; ก่อน authoring ต้องยืนยัน schema ของ logging metrics, SLO, burn alerts และ uptime-check OIDC ด้วย CI validate
+- ลำดับนี้ยังไม่มีคำสั่ง Deploy, ผล performance, alert delivery หรือ Cloud PASS; จะเพิ่ม Tasks เมื่อ app/infra contract และ cost boundary ผ่านการทบทวน
+
+
 ## ไฟล์ใน Lab
 
 - `assets/solution.svg` — source Diagram แบบแก้ไขได้ ใช้แนวทางและ icon set เดียวกับ Lab 18

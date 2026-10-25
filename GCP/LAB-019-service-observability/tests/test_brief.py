@@ -36,6 +36,14 @@ class Lab019BriefTests(unittest.TestCase):
         self.assertIn("Cloud Trace", self.readme)
         self.assertIn("sampled", self.readme)
 
+    def test_task_sequence_is_ordered_and_still_design_only(self):
+        ids = re.findall(r"^\\| T(\\d{2}) —", self.readme, re.MULTILINE)
+        self.assertEqual(ids, [f"{i:02d}" for i in range(18)])
+        self.assertIn("Task Sequence Design", self.readme)
+        self.assertNotRegex(self.readme, r"(?m)^## Task \\d{2}")
+        self.assertIn("select_slo_burn_rate", self.readme)
+        self.assertIn("ยังไม่มีคำสั่ง Deploy", self.readme)
+
     def test_security_cost_boundary_and_sources_are_present(self):
         self.assertIn("ไม่มีการ provision", self.readme)
         self.assertIn("ไม่ได้จำกัดค่าใช้จ่ายโดยอัตโนมัติ", self.readme)
